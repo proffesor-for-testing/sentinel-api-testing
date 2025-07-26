@@ -39,13 +39,13 @@ The project is in the initial stages of Phase 1, focusing on laying the foundati
 | Implement basic Test Execution Engine (HTTP client)| ✅ Done     | HTTP client-based test executor with result validation.              |
 | Implement End-to-End API Flow                      | ✅ Done     | Complete workflow from spec upload to test execution and results.    |
 
-### Phase 3: Refinement - Core Features (Not Started)
+### Phase 3: Refinement - Core Features (In Progress)
 *Focus: Expand core testing capabilities with more advanced functional agents.*
 
 | Task                                               | Status      | Notes                                                                 |
 | -------------------------------------------------- | ----------- | --------------------------------------------------------------------- |
-| Implement `Functional-Negative-Agent` (BVA + LLM)  | ⬜ To Do    |                                                                       |
-| Implement `Functional-Stateful-Agent` (SODG)       | ⬜ To Do    |                                                                       |
+| Implement `Functional-Negative-Agent` (BVA + LLM)  | ✅ Done     | Complete hybrid BVA + creative testing agent with comprehensive error validation. |
+| Implement `Functional-Stateful-Agent` (SODG)       | ✅ Done     | Complete SODG-based stateful testing agent with multi-step workflow support. |
 | Enhance Reporting UI (detailed failure analysis)   | ⬜ To Do    |                                                                       |
 
 ### Phase 4: Refinement - Advanced Capabilities (Not Started)

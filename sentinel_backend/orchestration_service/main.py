@@ -8,6 +8,8 @@ import logging
 
 from agents.base_agent import AgentTask, AgentResult
 from agents.functional_positive_agent import FunctionalPositiveAgent
+from agents.functional_negative_agent import FunctionalNegativeAgent
+from agents.functional_stateful_agent import FunctionalStatefulAgent
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -60,7 +62,9 @@ async def generate_tests(request: TestGenerationRequest):
         
         # Initialize available agents
         agents = {
-            "Functional-Positive-Agent": FunctionalPositiveAgent()
+            "Functional-Positive-Agent": FunctionalPositiveAgent(),
+            "Functional-Negative-Agent": FunctionalNegativeAgent(),
+            "Functional-Stateful-Agent": FunctionalStatefulAgent()
         }
         
         agent_results = []
@@ -157,12 +161,21 @@ async def store_test_cases(spec_id: int, agent_type: str, test_cases: list[Dict[
     try:
         async with httpx.AsyncClient() as client:
             for test_case in test_cases:
+                # Determine appropriate tags based on agent type
+                tags = ["generated"]
+                if agent_type == "Functional-Positive-Agent":
+                    tags.append("positive")
+                elif agent_type == "Functional-Negative-Agent":
+                    tags.append("negative")
+                elif agent_type == "Functional-Stateful-Agent":
+                    tags.append("stateful")
+                
                 test_case_data = {
                     "spec_id": spec_id,
                     "agent_type": agent_type,
                     "description": test_case.get("description", ""),
                     "test_definition": test_case,
-                    "tags": ["generated", "positive"] if agent_type == "Functional-Positive-Agent" else ["generated"]
+                    "tags": tags
                 }
                 
                 response = await client.post(
