@@ -27,8 +27,8 @@ The project is in the initial stages of Phase 1, focusing on laying the foundati
 | Create Service Stubs (main.py + Dockerfile)        | ✅ Done     | All services have basic FastAPI apps and Docker configs.             |
 | **Implementation**                                 |             |                                                                       |
 | Implement Specification Service (Parser)           | ✅ Done     | Full FastAPI service with OpenAPI parsing, validation, and CRUD endpoints. |
-| Implement Data & Analytics Service (DB Connection) | ⬜ To Do    |                                                                       |
-| Define `api_specifications` DB model               | ✅ Done     | SQLAlchemy model created matching database schema design.            |
+| Implement Data & Analytics Service (DB Connection) | ✅ Done     | Complete FastAPI service with test case/suite management and analytics endpoints. |
+| Define `test_cases`, `test_runs`, `test_results` DB models | ✅ Done     | All database models created for test lifecycle management.           |
 
 ### Phase 2: Pseudocode - Minimum Viable Product (Not Started)
 *Focus: Achieve a working end-to-end flow: ingest spec -> generate simple tests -> run -> see results.*
@@ -38,7 +38,6 @@ The project is in the initial stages of Phase 1, focusing on laying the foundati
 | Implement `Functional-Positive-Agent`              | ⬜ To Do    |                                                                       |
 | Implement basic Test Execution Engine (pytest)     | ⬜ To Do    |                                                                       |
 | Implement basic Reporting UI (single run view)     | ⬜ To Do    |                                                                       |
-| Define `test_cases`, `test_runs`, `test_results` DB models | ⬜ To Do    |                                                                       |
 
 ### Phase 3: Refinement - Core Features (Not Started)
 *Focus: Expand core testing capabilities with more advanced functional agents.*
