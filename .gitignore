@@ -161,3 +161,21 @@ logs/
 # Temporary files
 tmp/
 temp/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# Frontend build artifacts
+build/
+dist/
+.next/
+out/
+
+# Package lock files (optional - some teams prefer to commit these)
+package-lock.json
+yarn.lock
