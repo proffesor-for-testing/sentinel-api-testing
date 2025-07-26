@@ -7,7 +7,6 @@ import {
   TestTube, 
   Menu, 
   X,
-  Activity,
   Shield
 } from 'lucide-react';
 
@@ -85,18 +84,6 @@ const Layout = ({ children }) => {
           </div>
         </nav>
 
-        {/* Phase indicator */}
-        <div className="absolute bottom-4 left-3 right-3">
-          <div className="bg-primary-50 border border-primary-200 rounded-lg p-3">
-            <div className="flex items-center">
-              <Activity className="h-4 w-4 text-primary-600 mr-2" />
-              <span className="text-xs font-medium text-primary-700">Phase 3 - Enhanced Reporting</span>
-            </div>
-            <p className="text-xs text-primary-600 mt-1">
-              Advanced negative testing & detailed failure analysis
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Main content */}
