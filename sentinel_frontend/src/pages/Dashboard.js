@@ -318,26 +318,6 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Phase 3 Features Highlight */}
-      <div className="card bg-gradient-to-r from-primary-50 to-primary-100 border-primary-200">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <Activity className="h-8 w-8 text-primary-600" />
-          </div>
-          <div className="ml-4">
-            <h3 className="text-lg font-medium text-primary-900">Phase 3 Enhanced Features</h3>
-            <p className="text-primary-700 mt-1">
-              Advanced negative testing with boundary value analysis, creative invalid data generation, 
-              and stateful workflow testing capabilities are now active.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className="badge badge-primary">Functional-Negative-Agent</span>
-              <span className="badge badge-primary">Functional-Stateful-Agent</span>
-              <span className="badge badge-primary">Enhanced Reporting UI</span>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
