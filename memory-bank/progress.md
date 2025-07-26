@@ -26,9 +26,9 @@ The project is in the initial stages of Phase 1, focusing on laying the foundati
 | Initialize `pyproject.toml`                        | ✅ Done     | Python dependencies and dev tools configured.                        |
 | Create Service Stubs (main.py + Dockerfile)        | ✅ Done     | All services have basic FastAPI apps and Docker configs.             |
 | **Implementation**                                 |             |                                                                       |
-| Implement Specification Service (Parser)           | ⬜ To Do    |                                                                       |
+| Implement Specification Service (Parser)           | ✅ Done     | Full FastAPI service with OpenAPI parsing, validation, and CRUD endpoints. |
 | Implement Data & Analytics Service (DB Connection) | ⬜ To Do    |                                                                       |
-| Define `api_specifications` DB model               | ⬜ To Do    |                                                                       |
+| Define `api_specifications` DB model               | ✅ Done     | SQLAlchemy model created matching database schema design.            |
 
 ### Phase 2: Pseudocode - Minimum Viable Product (Not Started)
 *Focus: Achieve a working end-to-end flow: ingest spec -> generate simple tests -> run -> see results.*
