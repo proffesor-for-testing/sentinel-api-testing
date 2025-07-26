@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: sentinel_db
+    environment:
+      - POSTGRES_USER=sentinel
+      - POSTGRES_PASSWORD=supersecretpassword
+      - POSTGRES_DB=sentinel_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - sentinel_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api_gateway:
+    build: ./api_gateway
+    container_name: sentinel_api_gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      - spec_service
+      - orchestration_service
+      - data_service
+    environment:
+      - SPEC_SERVICE_URL=http://spec_service:8001
+      - ORCHESTRATION_SERVICE_URL=http://orchestration_service:8002
+      - DATA_SERVICE_URL=http://data_service:8004
+
+  spec_service:
+    build: ./spec_service
+    container_name: sentinel_spec_service
+    ports:
+      - "8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://sentinel:supersecretpassword@db/sentinel_db
+
+  orchestration_service:
+    build: ./orchestration_service
+    container_name: sentinel_orchestration_service
+    ports:
+      - "8002:8002"
+    depends_on:
+      - execution_service
+      - data_service
+    environment:
+      - EXECUTION_SERVICE_URL=http://execution_service:8003
+      - DATA_SERVICE_URL=http://data_service:8004
+
+  execution_service:
+    build: ./execution_service
+    container_name: sentinel_execution_service
+    ports:
+      - "8003:8003"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://sentinel:supersecretpassword@db/sentinel_db
+
+  data_service:
+    build: ./data_service
+    container_name: sentinel_data_service
+    ports:
+      - "8004:8004"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://sentinel:supersecretpassword@db/sentinel_db
+
+volumes:
+  sentinel_postgres_data:
