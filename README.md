@@ -19,14 +19,21 @@ The platform is built upon the **ruv-FANN** and **ruv-swarm** frameworks, enabli
 
 The platform employs a workforce of specialized AI agents:
 
+### Functional Testing Agents
+- **Functional-Positive-Agent**: Generates valid, "happy path" test cases with schema-based data generation
+- **Functional-Negative-Agent**: Creates boundary value analysis and creative negative testing scenarios
+- **Functional-Stateful-Agent**: Builds complex multi-step workflows using Semantic Operation Dependency Graphs (SODG)
+
+### Security Testing Agents
+- **Security-Auth-Agent**: Tests for BOLA, function-level authorization, and authentication bypass vulnerabilities
+- **Security-Injection-Agent**: Probes for SQL/NoSQL/Command injection and LLM prompt injection attacks
+
+### Performance Testing Agents
+- **Performance-Planner-Agent**: Generates comprehensive load, stress, and spike testing scenarios with k6/JMeter scripts
+
+### Planned Agents
 - **Spec-Linter-Agent**: Analyzes API specs for "LLM-readiness"
-- **Functional-Positive-Agent**: Generates valid, "happy path" test cases
-- **Functional-Negative-Agent**: Creates boundary and error condition tests
-- **Functional-Stateful-Agent**: Builds complex multi-step workflows
-- **Security-Auth-Agent**: Tests authentication/authorization vulnerabilities
-- **Security-Injection-Agent**: Probes for injection attacks (including prompt injection)
-- **Performance-Planner-Agent**: Generates performance test plans
-- **Performance-Analyzer-Agent**: Analyzes performance test results
+- **Performance-Analyzer-Agent**: Analyzes performance test results with AI-powered insights
 
 ## 🚀 Quick Start
 
@@ -84,7 +91,10 @@ Agents for API testing/
 │   │   └── agents/                # AI agent implementations
 │   │       ├── functional_positive_agent.py
 │   │       ├── functional_negative_agent.py
-│   │       └── functional_stateful_agent.py
+│   │       ├── functional_stateful_agent.py
+│   │       ├── security_auth_agent.py
+│   │       ├── security_injection_agent.py
+│   │       └── performance_planner_agent.py
 │   ├── execution_service/         # Test execution
 │   └── data_service/              # Data & analytics
 ├── sentinel_frontend/              # React-based frontend UI
@@ -97,6 +107,7 @@ Agents for API testing/
 ├── demo_phase2.py                 # Phase 2 demonstration script
 ├── demo_phase3.py                 # Phase 3 agent demonstration
 ├── demo_phase3_frontend.py        # Phase 3 frontend demonstration
+├── demo_phase4.py                 # Phase 4 security & performance demonstration
 ├── demo_standalone.py             # Standalone demo (no Docker)
 └── .clinerules                    # Development patterns and preferences
 ```
@@ -123,8 +134,10 @@ The project follows a phased implementation approach:
 - ✅ Enhanced Reporting UI with detailed failure analysis
 - ✅ Agent-specific insights and test type classification
 
-### Phase 4: Advanced Capabilities (Next)
-- ⬜ Security and performance agents
+### Phase 4: Advanced Capabilities ✅ COMPLETED
+- ✅ Security-Auth-Agent (BOLA, function-level auth, auth bypass)
+- ✅ Security-Injection-Agent (SQL/NoSQL/Command/Prompt injection)
+- ✅ Performance-Planner-Agent (Load/Stress/Spike testing with k6/JMeter)
 - ⬜ Historical trend analysis
 - ⬜ Advanced analytics and anomaly detection
 
@@ -188,4 +201,14 @@ Sentinel aims to transform API testing from a manual, reactive process to an int
 
 ---
 
-**Note**: Phase 3 has been completed! The platform now includes comprehensive functional testing agents (Positive, Negative, and Stateful) with an enhanced React-based reporting UI. The system provides advanced boundary value analysis, creative negative testing, and multi-step workflow validation with detailed failure analysis and agent-specific insights.
+**Note**: Phase 4 has been completed! The platform now provides comprehensive API testing across all major domains:
+
+🔧 **Functional Testing**: Positive, negative, and stateful workflow testing with advanced boundary value analysis and creative test generation.
+
+🔐 **Security Testing**: BOLA, function-level authorization, authentication bypass, and comprehensive injection vulnerability testing (SQL/NoSQL/Command/Prompt injection for LLM-backed APIs).
+
+⚡ **Performance Testing**: Load, stress, and spike testing with intelligent API analysis and automated k6/JMeter script generation.
+
+📊 **Enhanced Reporting**: React-based UI with detailed failure analysis, agent-specific insights, and interactive test case exploration.
+
+The Sentinel platform is now enterprise-ready for comprehensive API testing across functional, security, and performance domains!

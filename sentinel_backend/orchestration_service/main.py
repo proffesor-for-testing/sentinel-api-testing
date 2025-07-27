@@ -10,6 +10,9 @@ from agents.base_agent import AgentTask, AgentResult
 from agents.functional_positive_agent import FunctionalPositiveAgent
 from agents.functional_negative_agent import FunctionalNegativeAgent
 from agents.functional_stateful_agent import FunctionalStatefulAgent
+from agents.security_auth_agent import SecurityAuthAgent
+from agents.security_injection_agent import SecurityInjectionAgent
+from agents.performance_planner_agent import PerformancePlannerAgent
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -64,7 +67,10 @@ async def generate_tests(request: TestGenerationRequest):
         agents = {
             "Functional-Positive-Agent": FunctionalPositiveAgent(),
             "Functional-Negative-Agent": FunctionalNegativeAgent(),
-            "Functional-Stateful-Agent": FunctionalStatefulAgent()
+            "Functional-Stateful-Agent": FunctionalStatefulAgent(),
+            "Security-Auth-Agent": SecurityAuthAgent(),
+            "Security-Injection-Agent": SecurityInjectionAgent(),
+            "Performance-Planner-Agent": PerformancePlannerAgent()
         }
         
         agent_results = []
@@ -169,6 +175,12 @@ async def store_test_cases(spec_id: int, agent_type: str, test_cases: list[Dict[
                     tags.append("negative")
                 elif agent_type == "Functional-Stateful-Agent":
                     tags.append("stateful")
+                elif agent_type == "Security-Auth-Agent":
+                    tags.extend(["security", "authentication", "authorization"])
+                elif agent_type == "Security-Injection-Agent":
+                    tags.extend(["security", "injection", "vulnerability"])
+                elif agent_type == "Performance-Planner-Agent":
+                    tags.extend(["performance", "load-testing", "planning"])
                 
                 test_case_data = {
                     "spec_id": spec_id,
