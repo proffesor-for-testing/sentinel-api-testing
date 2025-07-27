@@ -16,8 +16,15 @@
 - **Test Case Management UI**: Complete collaborative test case management with editing, bulk operations, selection, tagging, and enhanced filtering capabilities
 
 **Remaining Phase 5 Tasks:**
-- Role-Based Access Control (RBAC) for enterprise security
 - Finalized user and technical documentation
+
+**Recently Completed RBAC Implementation:**
+- **Authentication Service**: Complete JWT-based authentication service with user management, role definitions, and permission-based access control
+- **Role System**: Four-tier role hierarchy (Admin, Manager, Tester, Viewer) with granular permissions for specifications, test cases, test suites, test runs, user management, and analytics
+- **Authentication Middleware**: Reusable middleware for FastAPI services with token validation, permission checking, and role-based access control
+- **API Gateway Integration**: Full integration of RBAC into the API Gateway with protected endpoints and authentication flow
+- **User Management**: Complete user CRUD operations with role assignment, profile management, and secure password handling
+- **Demo Script**: Comprehensive RBAC demonstration script showcasing authentication, authorization, and role-based permissions
 
 ## 2. Recent Changes & Decisions
 

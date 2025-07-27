@@ -8,7 +8,8 @@ The platform is built upon the **ruv-FANN** and **ruv-swarm** frameworks, enabli
 
 ### Core Services
 
-- **API Gateway** (Port 8000): Single entry point for all user interactions
+- **API Gateway** (Port 8000): Single entry point for all user interactions with RBAC integration
+- **Authentication Service** (Port 8005): JWT-based authentication and user management
 - **Specification Service** (Port 8001): Manages API specification ingestion and parsing
 - **Orchestration Service** (Port 8002): Central brain managing agentic workflows
 - **Execution Service** (Port 8003): Handles test execution and scheduling
@@ -108,6 +109,7 @@ Agents for API testing/
 ├── demo_phase3.py                 # Phase 3 agent demonstration
 ├── demo_phase3_frontend.py        # Phase 3 frontend demonstration
 ├── demo_phase4.py                 # Phase 4 security & performance demonstration
+├── demo_rbac.py                   # RBAC authentication & authorization demonstration
 ├── demo_standalone.py             # Standalone demo (no Docker)
 └── .clinerules                    # Development patterns and preferences
 ```
@@ -145,7 +147,7 @@ The project follows a phased implementation approach:
 - ✅ CI/CD integration (CLI tool + GitHub Actions/GitLab CI/Jenkins templates)
 - ✅ Intelligent Data Mocking Agent (schema-aware mock data generation)
 - ✅ Test Case Management UI (collaborative editing, bulk operations, advanced filtering)
-- ⬜ Role-Based Access Control (RBAC)
+- ✅ Role-Based Access Control (RBAC) - JWT authentication, user management, role-based permissions
 - ⬜ Production deployment documentation
 
 ## 🛠️ Development
@@ -168,6 +170,27 @@ The project follows a phased implementation approach:
 ### Database Setup
 
 The platform uses PostgreSQL with the pgvector extension. The database schema is defined in `memory-bank/database-schema.md`.
+
+### Authentication & RBAC
+
+The platform includes comprehensive Role-Based Access Control (RBAC):
+
+**Default Admin Credentials:**
+- Email: `admin@sentinel.com`
+- Password: `admin123`
+
+**User Roles:**
+- **Admin**: Full access including user management
+- **Manager**: Most permissions except user management
+- **Tester**: Testing-focused permissions (create/edit test cases, run tests)
+- **Viewer**: Read-only access to all resources
+
+**Demo RBAC Features:**
+```bash
+python demo_rbac.py
+```
+
+This script demonstrates authentication, authorization, and role-based permissions across different user types.
 
 ## 📊 Key Features
 

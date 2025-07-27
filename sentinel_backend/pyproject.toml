@@ -34,6 +34,12 @@ schedule = "^1.2.0"
 # LLM Interaction (example)
 openai = "^0.28.0"
 
+# Authentication & Security
+pyjwt = "^2.8.0"
+bcrypt = "^4.0.1"
+python-multipart = "^0.0.6"
+email-validator = "^2.0.0"
+
 [tool.poetry.dev-dependencies]
 black = "^23.7.0"
 isort = "^5.12.0"

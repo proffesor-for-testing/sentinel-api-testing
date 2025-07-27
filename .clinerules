@@ -31,7 +31,35 @@ This file captures important patterns, preferences, and project intelligence to 
 - **Actionable Feedback:** All user-facing outputs, from test results to linter reports, should provide clear, actionable feedback. Avoid vague error messages.
 - **Transparency:** While the system is complex, its operations should be as transparent as possible. Logs should be detailed, and it should be clear why an agent made a particular decision.
 
-## 5. Memory Bank Updates
+## 5. RBAC Implementation Patterns
+
+- **Authentication Service Architecture:** JWT-based authentication with bcrypt password hashing, role-based permissions, and in-memory user storage (easily replaceable with database)
+- **Role Hierarchy:** Four-tier system (Admin > Manager > Tester > Viewer) with granular permissions for different platform features
+- **Middleware Pattern:** Reusable authentication middleware with dependency injection for FastAPI services, supporting both required and optional authentication
+- **Permission System:** Fine-grained permissions (e.g., "spec:create", "test_case:read") mapped to roles, enabling flexible access control
+- **API Gateway Integration:** Centralized authentication through API Gateway with service-to-service token validation
+- **Security Best Practices:** Secure token handling, password hashing, role-based endpoint protection, and comprehensive error handling
+
+## 6. Task Completion Protocol
+
+**MANDATORY STEPS when completing any task:**
+
+1. **Update Memory Bank**: Always update relevant memory bank files after completing a task:
+   - Update `progress.md` to mark completed tasks and add implementation notes
+   - Update `activeContext.md` to reflect current status and next steps
+   - Update other relevant memory bank files if the task affects them
+
+2. **Update README.md**: Always update the main README.md file to reflect:
+   - New features or capabilities implemented
+   - Changes to project structure or architecture
+   - Updated phase completion status
+   - New demo scripts or documentation
+
+3. **Update .clinerules**: Document any new patterns, preferences, or implementation approaches discovered during the task
+
+4. **Ask about GitHub Push**: At the end of every completed task, ask the user if all changes should be pushed to GitHub
+
+## 7. Memory Bank Updates
 
 -   The Memory Bank is the single source of truth. It MUST be updated after any significant architectural decision, feature implementation, or change in project direction.
 -   `progress.md` should be updated at the end of every major work session to reflect the current state of the project.

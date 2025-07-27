@@ -24,13 +24,23 @@ services:
     ports:
       - "8000:8000"
     depends_on:
+      - auth_service
       - spec_service
       - orchestration_service
       - data_service
     environment:
+      - AUTH_SERVICE_URL=http://auth_service:8005
       - SPEC_SERVICE_URL=http://spec_service:8001
       - ORCHESTRATION_SERVICE_URL=http://orchestration_service:8002
       - DATA_SERVICE_URL=http://data_service:8004
+
+  auth_service:
+    build: ./auth_service
+    container_name: sentinel_auth_service
+    ports:
+      - "8005:8000"
+    environment:
+      - JWT_SECRET_KEY=sentinel-jwt-secret-change-in-production
 
   spec_service:
     build: ./spec_service

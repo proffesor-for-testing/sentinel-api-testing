@@ -1,9 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
 import httpx
 import os
 import logging
+import sys
+sys.path.append('../auth_service')
+from auth_middleware import get_current_user, require_permission, Permissions, optional_auth
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -16,6 +19,7 @@ app = FastAPI(
 )
 
 # Service URLs
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth_service:8005")
 SPEC_SERVICE_URL = os.getenv("SPEC_SERVICE_URL", "http://spec_service:8000")
 ORCHESTRATION_SERVICE_URL = os.getenv("ORCHESTRATION_SERVICE_URL", "http://orchestration_service:8000")
 DATA_SERVICE_URL = os.getenv("DATA_SERVICE_URL", "http://data_service:8000")
@@ -56,6 +60,28 @@ class EndToEndTestRequest(BaseModel):
     target_environment: str
     source_filename: Optional[str] = None
     agent_types: List[str] = ["Functional-Positive-Agent"]
+
+
+# Authentication Models
+class UserLogin(BaseModel):
+    """Request model for user login."""
+    email: str
+    password: str
+
+
+class UserCreate(BaseModel):
+    """Request model for user registration."""
+    email: str
+    full_name: str
+    password: str
+    role: str = "viewer"
+
+
+class UserUpdate(BaseModel):
+    """Request model for user updates."""
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
 
 
 @app.get("/")
@@ -186,7 +212,10 @@ async def complete_testing_flow(request: EndToEndTestRequest):
 
 # Individual API endpoints
 @app.post("/api/v1/specifications")
-async def upload_specification(request: SpecificationUploadRequest):
+async def upload_specification(
+    request: SpecificationUploadRequest,
+    auth_data: Dict[str, Any] = Depends(require_permission(Permissions.SPEC_CREATE))
+):
     """Upload and parse an API specification."""
     async with httpx.AsyncClient() as client:
         try:
@@ -203,7 +232,9 @@ async def upload_specification(request: SpecificationUploadRequest):
 
 
 @app.get("/api/v1/specifications")
-async def list_specifications():
+async def list_specifications(
+    auth_data: Dict[str, Any] = Depends(require_permission(Permissions.SPEC_READ))
+):
     """List all uploaded API specifications."""
     async with httpx.AsyncClient() as client:
         try:
@@ -369,3 +400,164 @@ async def get_test_run_results_endpoint(run_id: int):
             raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
         except httpx.RequestError:
             raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+
+# Authentication Endpoints
+@app.post("/auth/login")
+async def login(request: UserLogin):
+    """Authenticate user and return access token."""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{AUTH_SERVICE_URL}/auth/login",
+                json=request.dict()
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Authentication service is unavailable")
+
+
+@app.post("/auth/register")
+async def register(
+    request: UserCreate,
+    auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_CREATE))
+):
+    """Register a new user (admin only)."""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{AUTH_SERVICE_URL}/auth/register",
+                json=request.dict(),
+                headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Authentication service is unavailable")
+
+
+@app.get("/auth/profile")
+async def get_profile(auth_data: Dict[str, Any] = Depends(get_current_user)):
+    """Get current user's profile."""
+    return auth_data["user"]
+
+
+@app.put("/auth/profile")
+async def update_profile(
+    request: UserUpdate,
+    auth_data: Dict[str, Any] = Depends(get_current_user)
+):
+    """Update current user's profile."""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.put(
+                f"{AUTH_SERVICE_URL}/auth/profile",
+                json=request.dict(),
+                headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Authentication service is unavailable")
+
+
+@app.get("/auth/users")
+async def list_users(
+    auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_READ))
+):
+    """List all users (requires user read permission)."""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{AUTH_SERVICE_URL}/auth/users",
+                headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Authentication service is unavailable")
+
+
+@app.get("/auth/users/{user_id}")
+async def get_user(
+    user_id: int,
+    auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_READ))
+):
+    """Get a specific user by ID."""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{AUTH_SERVICE_URL}/auth/users/{user_id}",
+                headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Authentication service is unavailable")
+
+
+@app.put("/auth/users/{user_id}")
+async def update_user(
+    user_id: int,
+    request: UserUpdate,
+    auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_UPDATE))
+):
+    """Update a user (admin only)."""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.put(
+                f"{AUTH_SERVICE_URL}/auth/users/{user_id}",
+                json=request.dict(),
+                headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Authentication service is unavailable")
+
+
+@app.delete("/auth/users/{user_id}")
+async def delete_user(
+    user_id: int,
+    auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_DELETE))
+):
+    """Delete a user (admin only)."""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.delete(
+                f"{AUTH_SERVICE_URL}/auth/users/{user_id}",
+                headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Authentication service is unavailable")
+
+
+@app.get("/auth/roles")
+async def list_roles():
+    """List all available roles and their permissions."""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(f"{AUTH_SERVICE_URL}/auth/roles")
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Authentication service is unavailable")
