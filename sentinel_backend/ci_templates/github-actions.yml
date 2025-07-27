@@ -1,0 +1,188 @@
+name: Sentinel API Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      sentinel:
+        image: sentinel/platform:latest
+        ports:
+          - 8000:8000
+        env:
+          DATABASE_URL: postgresql://postgres:password@postgres:5432/sentinel
+          
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: sentinel
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Sentinel CLI
+      run: |
+        pip install sentinel-cli
+        # Or if running from source:
+        # pip install -e ./sentinel_backend
+
+    - name: Wait for Sentinel to be ready
+      run: |
+        timeout 60 bash -c 'until curl -f http://localhost:8000/health; do sleep 2; done'
+
+    - name: Run Functional Tests
+      run: |
+        sentinel test api-spec.yaml \
+          --test-types functional \
+          --output results/functional.json \
+          --format json
+      continue-on-error: true
+
+    - name: Run Security Tests
+      run: |
+        sentinel test api-spec.yaml \
+          --test-types security \
+          --output results/security.json \
+          --format json
+      continue-on-error: true
+
+    - name: Run Performance Tests
+      run: |
+        sentinel test api-spec.yaml \
+          --test-types performance \
+          --output results/performance.json \
+          --format json
+      continue-on-error: true
+
+    - name: Generate Combined Report
+      run: |
+        sentinel test api-spec.yaml \
+          --test-types functional,security,performance \
+          --output results/junit.xml \
+          --format junit \
+          --fail-on-issues
+
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: sentinel-test-results
+        path: results/
+
+    - name: Publish Test Results
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: Sentinel API Tests
+        path: results/junit.xml
+        reporter: java-junit
+
+    - name: Comment PR with Results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          
+          try {
+            const results = JSON.parse(fs.readFileSync('results/functional.json', 'utf8'));
+            const totalTests = results.total_tests || 0;
+            const passedTests = results.passed_tests || 0;
+            const failedTests = results.failed_tests || 0;
+            const issues = results.issues || [];
+            
+            let comment = `## 🤖 Sentinel API Test Results\n\n`;
+            comment += `**Summary:**\n`;
+            comment += `- Total Tests: ${totalTests}\n`;
+            comment += `- Passed: ✅ ${passedTests}\n`;
+            comment += `- Failed: ❌ ${failedTests}\n\n`;
+            
+            if (issues.length > 0) {
+              comment += `**Issues Found:**\n`;
+              issues.slice(0, 5).forEach(issue => {
+                const severity = issue.severity || 'unknown';
+                const emoji = severity === 'high' ? '🔴' : severity === 'medium' ? '🟡' : '🔵';
+                comment += `- ${emoji} **${severity.toUpperCase()}**: ${issue.message}\n`;
+              });
+              
+              if (issues.length > 5) {
+                comment += `- ... and ${issues.length - 5} more issues\n`;
+              }
+            }
+            
+            comment += `\n[View detailed results in the Actions tab](${context.payload.pull_request.html_url}/checks)`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          } catch (error) {
+            console.log('Could not read test results:', error.message);
+          }
+
+  security-gate:
+    runs-on: ubuntu-latest
+    needs: api-tests
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Download Test Results
+      uses: actions/download-artifact@v3
+      with:
+        name: sentinel-test-results
+        path: results/
+
+    - name: Security Gate Check
+      run: |
+        python3 << 'EOF'
+        import json
+        import sys
+        
+        try:
+            with open('results/security.json', 'r') as f:
+                results = json.load(f)
+            
+            high_severity_issues = [
+                issue for issue in results.get('issues', [])
+                if issue.get('severity') == 'high'
+            ]
+            
+            if high_severity_issues:
+                print(f"❌ Security gate failed: {len(high_severity_issues)} high-severity issues found")
+                for issue in high_severity_issues[:3]:
+                    print(f"  • {issue.get('message', 'No message')}")
+                sys.exit(1)
+            else:
+                print("✅ Security gate passed: No high-severity issues found")
+                
+        except FileNotFoundError:
+            print("⚠️  Security results not found, skipping gate check")
+        except Exception as e:
+            print(f"❌ Error checking security gate: {e}")
+            sys.exit(1)
+        EOF

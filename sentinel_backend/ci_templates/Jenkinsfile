@@ -1,0 +1,410 @@
+pipeline {
+    agent any
+    
+    parameters {
+        choice(
+            name: 'TEST_TYPES',
+            choices: ['functional', 'security', 'performance', 'all'],
+            description: 'Types of tests to run'
+        )
+        booleanParam(
+            name: 'FAIL_ON_SECURITY_ISSUES',
+            defaultValue: true,
+            description: 'Fail build on high-severity security issues'
+        )
+        string(
+            name: 'SPEC_FILE',
+            defaultValue: 'api-spec.yaml',
+            description: 'Path to API specification file'
+        )
+        string(
+            name: 'SENTINEL_URL',
+            defaultValue: 'http://localhost:8000',
+            description: 'Sentinel platform URL'
+        )
+    }
+    
+    environment {
+        SENTINEL_CLI_VERSION = '1.0.0'
+        RESULTS_DIR = 'test-results'
+        REPORTS_DIR = 'reports'
+    }
+    
+    stages {
+        stage('Setup') {
+            steps {
+                script {
+                    // Clean workspace
+                    deleteDir()
+                    
+                    // Checkout code
+                    checkout scm
+                    
+                    // Create directories
+                    sh "mkdir -p ${RESULTS_DIR} ${REPORTS_DIR}"
+                    
+                    // Install Sentinel CLI
+                    sh '''
+                        python3 -m pip install --user sentinel-cli==${SENTINEL_CLI_VERSION}
+                        export PATH=$PATH:~/.local/bin
+                        sentinel --version
+                    '''
+                }
+            }
+        }
+        
+        stage('Start Services') {
+            steps {
+                script {
+                    // Start Sentinel platform using Docker Compose
+                    sh '''
+                        docker-compose -f sentinel_backend/docker-compose.yml up -d
+                        
+                        # Wait for services to be ready
+                        timeout 120 bash -c 'until curl -f ${SENTINEL_URL}/health; do 
+                            echo "Waiting for Sentinel to be ready..."
+                            sleep 5
+                        done'
+                        
+                        echo "✅ Sentinel platform is ready"
+                    '''
+                }
+            }
+        }
+        
+        stage('Validate Specification') {
+            steps {
+                script {
+                    sh '''
+                        export PATH=$PATH:~/.local/bin
+                        sentinel validate ${SPEC_FILE} || {
+                            echo "❌ API specification validation failed"
+                            exit 1
+                        }
+                        echo "✅ API specification is valid"
+                    '''
+                }
+            }
+        }
+        
+        stage('Run Tests') {
+            parallel {
+                stage('Functional Tests') {
+                    when {
+                        anyOf {
+                            expression { params.TEST_TYPES == 'functional' }
+                            expression { params.TEST_TYPES == 'all' }
+                        }
+                    }
+                    steps {
+                        script {
+                            sh '''
+                                export PATH=$PATH:~/.local/bin
+                                sentinel test ${SPEC_FILE} \
+                                    --test-types functional \
+                                    --output ${RESULTS_DIR}/functional.json \
+                                    --format json \
+                                    --base-url ${SENTINEL_URL} \
+                                    --no-fail-on-issues
+                                
+                                # Generate JUnit XML for Jenkins
+                                sentinel test ${SPEC_FILE} \
+                                    --test-types functional \
+                                    --output ${RESULTS_DIR}/functional-junit.xml \
+                                    --format junit \
+                                    --base-url ${SENTINEL_URL} \
+                                    --no-fail-on-issues
+                            '''
+                        }
+                    }
+                    post {
+                        always {
+                            // Archive functional test results
+                            archiveArtifacts artifacts: "${RESULTS_DIR}/functional*", allowEmptyArchive: true
+                        }
+                    }
+                }
+                
+                stage('Security Tests') {
+                    when {
+                        anyOf {
+                            expression { params.TEST_TYPES == 'security' }
+                            expression { params.TEST_TYPES == 'all' }
+                        }
+                    }
+                    steps {
+                        script {
+                            sh '''
+                                export PATH=$PATH:~/.local/bin
+                                sentinel test ${SPEC_FILE} \
+                                    --test-types security \
+                                    --output ${RESULTS_DIR}/security.json \
+                                    --format json \
+                                    --base-url ${SENTINEL_URL} \
+                                    --no-fail-on-issues
+                                
+                                # Generate JUnit XML for Jenkins
+                                sentinel test ${SPEC_FILE} \
+                                    --test-types security \
+                                    --output ${RESULTS_DIR}/security-junit.xml \
+                                    --format junit \
+                                    --base-url ${SENTINEL_URL} \
+                                    --no-fail-on-issues
+                            '''
+                        }
+                    }
+                    post {
+                        always {
+                            // Archive security test results
+                            archiveArtifacts artifacts: "${RESULTS_DIR}/security*", allowEmptyArchive: true
+                        }
+                    }
+                }
+                
+                stage('Performance Tests') {
+                    when {
+                        anyOf {
+                            expression { params.TEST_TYPES == 'performance' }
+                            expression { params.TEST_TYPES == 'all' }
+                        }
+                    }
+                    steps {
+                        script {
+                            sh '''
+                                export PATH=$PATH:~/.local/bin
+                                sentinel test ${SPEC_FILE} \
+                                    --test-types performance \
+                                    --output ${RESULTS_DIR}/performance.json \
+                                    --format json \
+                                    --base-url ${SENTINEL_URL} \
+                                    --no-fail-on-issues
+                                
+                                # Generate JUnit XML for Jenkins
+                                sentinel test ${SPEC_FILE} \
+                                    --test-types performance \
+                                    --output ${RESULTS_DIR}/performance-junit.xml \
+                                    --format junit \
+                                    --base-url ${SENTINEL_URL} \
+                                    --no-fail-on-issues
+                            '''
+                        }
+                    }
+                    post {
+                        always {
+                            // Archive performance test results
+                            archiveArtifacts artifacts: "${RESULTS_DIR}/performance*", allowEmptyArchive: true
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Security Gate') {
+            when {
+                anyOf {
+                    expression { params.TEST_TYPES == 'security' }
+                    expression { params.TEST_TYPES == 'all' }
+                }
+            }
+            steps {
+                script {
+                    def securityGateResult = sh(
+                        script: '''
+                            python3 << 'EOF'
+import json
+import sys
+import os
+
+try:
+    with open('${RESULTS_DIR}/security.json', 'r') as f:
+        results = json.load(f)
+    
+    high_severity_issues = [
+        issue for issue in results.get('issues', [])
+        if issue.get('severity') == 'high'
+    ]
+    
+    if high_severity_issues:
+        print(f"❌ Security gate: {len(high_severity_issues)} high-severity issues found")
+        for issue in high_severity_issues[:5]:
+            print(f"  • {issue.get('message', 'No message')}")
+        
+        # Check if we should fail the build
+        fail_on_issues = os.environ.get('FAIL_ON_SECURITY_ISSUES', 'true').lower() == 'true'
+        if fail_on_issues:
+            print("🚫 Failing build due to security issues")
+            sys.exit(1)
+        else:
+            print("⚠️  Security issues found but not failing build")
+    else:
+        print("✅ Security gate passed: No high-severity issues found")
+        
+except FileNotFoundError:
+    print("⚠️  Security results not found, skipping gate check")
+except Exception as e:
+    print(f"❌ Error checking security gate: {e}")
+    sys.exit(1)
+EOF
+                        ''',
+                        returnStatus: true
+                    )
+                    
+                    if (securityGateResult != 0 && params.FAIL_ON_SECURITY_ISSUES) {
+                        error("Security gate failed - high severity issues found")
+                    }
+                }
+            }
+        }
+        
+        stage('Generate Reports') {
+            steps {
+                script {
+                    sh '''
+                        export PATH=$PATH:~/.local/bin
+                        
+                        # Generate combined HTML report
+                        sentinel test ${SPEC_FILE} \
+                            --test-types functional,security,performance \
+                            --output ${REPORTS_DIR}/combined-report.html \
+                            --format html \
+                            --base-url ${SENTINEL_URL} \
+                            --no-fail-on-issues
+                        
+                        # Generate summary report
+                        python3 << 'EOF'
+import json
+import os
+from datetime import datetime
+
+def load_results(filename):
+    try:
+        with open(f'${RESULTS_DIR}/{filename}', 'r') as f:
+            return json.load(f)
+    except:
+        return {}
+
+# Load all test results
+functional = load_results('functional.json')
+security = load_results('security.json')
+performance = load_results('performance.json')
+
+# Generate summary
+summary = {
+    "timestamp": datetime.now().isoformat(),
+    "build_number": os.environ.get('BUILD_NUMBER', 'unknown'),
+    "git_commit": os.environ.get('GIT_COMMIT', 'unknown'),
+    "functional": {
+        "total_tests": functional.get('total_tests', 0),
+        "passed_tests": functional.get('passed_tests', 0),
+        "failed_tests": functional.get('failed_tests', 0),
+        "duration": functional.get('duration', 0)
+    },
+    "security": {
+        "total_issues": len(security.get('issues', [])),
+        "high_severity": len([i for i in security.get('issues', []) if i.get('severity') == 'high']),
+        "medium_severity": len([i for i in security.get('issues', []) if i.get('severity') == 'medium']),
+        "low_severity": len([i for i in security.get('issues', []) if i.get('severity') == 'low'])
+    },
+    "performance": {
+        "duration": performance.get('duration', 0),
+        "status": performance.get('status', 'unknown')
+    }
+}
+
+# Save summary
+with open('${REPORTS_DIR}/summary.json', 'w') as f:
+    json.dump(summary, f, indent=2)
+
+print("✅ Summary report generated")
+EOF
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            // Publish test results
+            script {
+                if (fileExists("${RESULTS_DIR}/functional-junit.xml")) {
+                    publishTestResults testResultsPattern: "${RESULTS_DIR}/*-junit.xml"
+                }
+                
+                if (fileExists("${RESULTS_DIR}/security-junit.xml")) {
+                    publishTestResults testResultsPattern: "${RESULTS_DIR}/security-junit.xml"
+                }
+                
+                if (fileExists("${RESULTS_DIR}/performance-junit.xml")) {
+                    publishTestResults testResultsPattern: "${RESULTS_DIR}/performance-junit.xml"
+                }
+            }
+            
+            // Archive all artifacts
+            archiveArtifacts artifacts: "${RESULTS_DIR}/**/*", allowEmptyArchive: true
+            archiveArtifacts artifacts: "${REPORTS_DIR}/**/*", allowEmptyArchive: true
+            
+            // Publish HTML reports
+            publishHTML([
+                allowMissing: false,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: "${REPORTS_DIR}",
+                reportFiles: 'combined-report.html',
+                reportName: 'Sentinel Test Report'
+            ])
+            
+            // Clean up Docker containers
+            sh '''
+                docker-compose -f sentinel_backend/docker-compose.yml down -v || true
+                docker system prune -f || true
+            '''
+        }
+        
+        success {
+            script {
+                // Send success notification
+                if (env.CHANGE_ID) {
+                    // This is a pull request
+                    def summary = readJSON file: "${REPORTS_DIR}/summary.json"
+                    def message = """
+🤖 **Sentinel API Test Results - SUCCESS**
+
+**Functional Tests:**
+- Total: ${summary.functional.total_tests}
+- Passed: ✅ ${summary.functional.passed_tests}
+- Failed: ❌ ${summary.functional.failed_tests}
+
+**Security Tests:**
+- High Severity: 🔴 ${summary.security.high_severity}
+- Medium Severity: 🟡 ${summary.security.medium_severity}
+- Total Issues: ${summary.security.total_issues}
+
+**Performance Tests:**
+- Duration: ${summary.performance.duration}s
+- Status: ${summary.performance.status.toUpperCase()}
+
+[View detailed report](${BUILD_URL}Sentinel_Test_Report/)
+                    """
+                    
+                    // Add comment to pull request (if using GitHub/GitLab integration)
+                    echo "Test results summary: ${message}"
+                }
+            }
+        }
+        
+        failure {
+            script {
+                // Send failure notification
+                echo "❌ Sentinel API tests failed. Check the build logs and reports for details."
+                
+                // You can add email notifications, Slack messages, etc. here
+                // emailext (
+                //     subject: "Sentinel API Tests Failed - Build ${BUILD_NUMBER}",
+                //     body: "The Sentinel API tests have failed. Please check the build logs.",
+                //     to: "${env.CHANGE_AUTHOR_EMAIL}"
+                // )
+            }
+        }
+    }
+}

@@ -1,0 +1,272 @@
+stages:
+  - validate
+  - test
+  - security-gate
+  - report
+
+variables:
+  SENTINEL_URL: "http://sentinel:8000"
+  POSTGRES_DB: sentinel
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: password
+  POSTGRES_HOST_AUTH_METHOD: trust
+
+services:
+  - name: postgres:15
+    alias: postgres
+  - name: sentinel/platform:latest
+    alias: sentinel
+    variables:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/sentinel
+
+before_script:
+  - apt-get update -qq && apt-get install -y -qq curl python3-pip
+  - pip3 install sentinel-cli
+  - timeout 60 bash -c 'until curl -f $SENTINEL_URL/health; do sleep 2; done'
+
+validate-spec:
+  stage: validate
+  script:
+    - sentinel validate api-spec.yaml
+  artifacts:
+    reports:
+      junit: validation-results.xml
+    paths:
+      - validation-results.xml
+    expire_in: 1 week
+  only:
+    - merge_requests
+    - main
+    - develop
+
+functional-tests:
+  stage: test
+  script:
+    - mkdir -p results
+    - |
+      sentinel test api-spec.yaml \
+        --test-types functional \
+        --output results/functional.json \
+        --format json \
+        --no-fail-on-issues
+  artifacts:
+    reports:
+      junit: results/functional-junit.xml
+    paths:
+      - results/
+    expire_in: 1 week
+  parallel:
+    matrix:
+      - TEST_ENV: [staging, production]
+  only:
+    - merge_requests
+    - main
+    - develop
+
+security-tests:
+  stage: test
+  script:
+    - mkdir -p results
+    - |
+      sentinel test api-spec.yaml \
+        --test-types security \
+        --output results/security.json \
+        --format json \
+        --no-fail-on-issues
+  artifacts:
+    reports:
+      junit: results/security-junit.xml
+    paths:
+      - results/
+    expire_in: 1 week
+  allow_failure: true
+  only:
+    - merge_requests
+    - main
+    - develop
+
+performance-tests:
+  stage: test
+  script:
+    - mkdir -p results
+    - |
+      sentinel test api-spec.yaml \
+        --test-types performance \
+        --output results/performance.json \
+        --format json \
+        --no-fail-on-issues
+  artifacts:
+    reports:
+      performance: results/performance.json
+    paths:
+      - results/
+    expire_in: 1 week
+  only:
+    - main
+    - develop
+    - schedules
+
+security-gate:
+  stage: security-gate
+  dependencies:
+    - security-tests
+  script:
+    - |
+      python3 << 'EOF'
+      import json
+      import sys
+      import os
+      
+      try:
+          with open('results/security.json', 'r') as f:
+              results = json.load(f)
+          
+          high_severity_issues = [
+              issue for issue in results.get('issues', [])
+              if issue.get('severity') == 'high'
+          ]
+          
+          # Check if we're in a merge request
+          is_mr = os.environ.get('CI_MERGE_REQUEST_ID') is not None
+          
+          if high_severity_issues:
+              print(f"❌ Security gate: {len(high_severity_issues)} high-severity issues found")
+              for issue in high_severity_issues[:5]:
+                  print(f"  • {issue.get('message', 'No message')}")
+              
+              if is_mr:
+                  print("🚫 Blocking merge request due to security issues")
+                  sys.exit(1)
+              else:
+                  print("⚠️  Security issues found but not blocking (not a merge request)")
+          else:
+              print("✅ Security gate passed: No high-severity issues found")
+              
+      except FileNotFoundError:
+          print("⚠️  Security results not found, skipping gate check")
+      except Exception as e:
+          print(f"❌ Error checking security gate: {e}")
+          sys.exit(1)
+      EOF
+  only:
+    - merge_requests
+    - main
+    - develop
+
+generate-report:
+  stage: report
+  dependencies:
+    - functional-tests
+    - security-tests
+    - performance-tests
+  script:
+    - mkdir -p reports
+    - |
+      sentinel test api-spec.yaml \
+        --test-types functional,security,performance \
+        --output reports/combined-report.html \
+        --format html \
+        --no-fail-on-issues
+    - |
+      # Generate summary for GitLab merge request
+      if [ -n "$CI_MERGE_REQUEST_ID" ]; then
+        python3 << 'EOF'
+      import json
+      import os
+      
+      def load_results(filename):
+          try:
+              with open(f'results/{filename}', 'r') as f:
+                  return json.load(f)
+          except:
+              return {}
+      
+      functional = load_results('functional.json')
+      security = load_results('security.json')
+      performance = load_results('performance.json')
+      
+      # Create summary comment
+      summary = "## 🤖 Sentinel API Test Results\n\n"
+      
+      # Functional tests
+      if functional:
+          summary += f"**Functional Tests:**\n"
+          summary += f"- Total: {functional.get('total_tests', 0)}\n"
+          summary += f"- Passed: ✅ {functional.get('passed_tests', 0)}\n"
+          summary += f"- Failed: ❌ {functional.get('failed_tests', 0)}\n\n"
+      
+      # Security tests
+      if security:
+          issues = security.get('issues', [])
+          high_issues = [i for i in issues if i.get('severity') == 'high']
+          medium_issues = [i for i in issues if i.get('severity') == 'medium']
+          
+          summary += f"**Security Tests:**\n"
+          summary += f"- High Severity: 🔴 {len(high_issues)}\n"
+          summary += f"- Medium Severity: 🟡 {len(medium_issues)}\n"
+          summary += f"- Total Issues: {len(issues)}\n\n"
+      
+      # Performance tests
+      if performance:
+          summary += f"**Performance Tests:**\n"
+          summary += f"- Duration: {performance.get('duration', 0):.2f}s\n"
+          summary += f"- Status: {performance.get('status', 'unknown').upper()}\n\n"
+      
+      summary += f"[View detailed report]({os.environ.get('CI_JOB_URL', '')}/artifacts/file/reports/combined-report.html)"
+      
+      # Save summary for GitLab to pick up
+      with open('reports/summary.md', 'w') as f:
+          f.write(summary)
+      
+      print("Summary generated successfully")
+      EOF
+      fi
+  artifacts:
+    reports:
+      junit: results/*-junit.xml
+    paths:
+      - reports/
+    expire_in: 1 month
+  only:
+    - merge_requests
+    - main
+    - develop
+
+# Scheduled nightly tests
+nightly-full-suite:
+  extends: 
+    - functional-tests
+    - security-tests
+    - performance-tests
+  script:
+    - mkdir -p results
+    - |
+      sentinel test api-spec.yaml \
+        --test-types functional,security,performance \
+        --output results/nightly-results.json \
+        --format json \
+        --fail-on-issues
+  only:
+    - schedules
+  when: manual
+
+# Manual deployment testing
+deployment-tests:
+  stage: test
+  script:
+    - mkdir -p results
+    - |
+      # Test against deployed environment
+      SENTINEL_URL="https://api.production.example.com" \
+      sentinel test api-spec.yaml \
+        --test-types functional \
+        --output results/deployment.json \
+        --format json \
+        --no-fail-on-issues
+  artifacts:
+    paths:
+      - results/
+    expire_in: 1 week
+  when: manual
+  only:
+    - main

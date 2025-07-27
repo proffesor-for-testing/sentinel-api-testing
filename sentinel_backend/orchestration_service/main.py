@@ -13,6 +13,7 @@ from agents.functional_stateful_agent import FunctionalStatefulAgent
 from agents.security_auth_agent import SecurityAuthAgent
 from agents.security_injection_agent import SecurityInjectionAgent
 from agents.performance_planner_agent import PerformancePlannerAgent
+from agents.data_mocking_agent import DataMockingAgent
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -39,6 +40,23 @@ class TestGenerationResponse(BaseModel):
     status: str
     total_test_cases: int
     agent_results: list[Dict[str, Any]]
+
+
+class DataGenerationRequest(BaseModel):
+    """Request model for mock data generation."""
+    spec_id: int
+    strategy: str = "realistic"  # realistic, edge_cases, invalid, boundary
+    count: int = 10
+    seed: Optional[int] = None
+
+
+class DataGenerationResponse(BaseModel):
+    """Response model for mock data generation."""
+    task_id: str
+    status: str
+    mock_data: Dict[str, Any]
+    global_data: Dict[str, Any]
+    metadata: Dict[str, Any]
 
 
 @app.get("/")
@@ -70,7 +88,8 @@ async def generate_tests(request: TestGenerationRequest):
             "Functional-Stateful-Agent": FunctionalStatefulAgent(),
             "Security-Auth-Agent": SecurityAuthAgent(),
             "Security-Injection-Agent": SecurityInjectionAgent(),
-            "Performance-Planner-Agent": PerformancePlannerAgent()
+            "Performance-Planner-Agent": PerformancePlannerAgent(),
+            "Data-Mocking-Agent": DataMockingAgent()
         }
         
         agent_results = []
@@ -122,6 +141,57 @@ async def generate_tests(request: TestGenerationRequest):
     except Exception as e:
         logger.error(f"Error in test generation: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Test generation failed: {str(e)}")
+
+
+@app.post("/generate-data", response_model=DataGenerationResponse)
+async def generate_data(request: DataGenerationRequest):
+    """
+    Generate mock data using the Data Mocking Agent.
+    
+    This endpoint generates realistic test data based on API specifications
+    for use in testing scenarios.
+    """
+    try:
+        task_id = str(uuid.uuid4())
+        logger.info(f"Starting data generation task {task_id} for spec_id: {request.spec_id}")
+        
+        # Fetch the API specification from the Spec Service
+        api_spec = await fetch_api_specification(request.spec_id)
+        if not api_spec:
+            raise HTTPException(status_code=404, detail="API specification not found")
+        
+        # Initialize data mocking agent
+        data_agent = DataMockingAgent()
+        
+        # Configure data generation
+        config = {
+            'strategy': request.strategy,
+            'count': request.count,
+            'seed': request.seed
+        }
+        
+        # Execute data generation
+        logger.info(f"Executing Data-Mocking-Agent with strategy: {request.strategy}")
+        result = await data_agent.execute(api_spec, config)
+        
+        if 'error' in result:
+            raise HTTPException(status_code=500, detail=result['error'])
+        
+        logger.info(f"Data generation task {task_id} completed successfully")
+        
+        return DataGenerationResponse(
+            task_id=task_id,
+            status="completed",
+            mock_data=result.get('mock_data', {}),
+            global_data=result.get('global_data', {}),
+            metadata=result.get('metadata', {})
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in data generation: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Data generation failed: {str(e)}")
 
 
 async def fetch_api_specification(spec_id: int) -> Optional[Dict[str, Any]]:
