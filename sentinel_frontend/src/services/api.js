@@ -71,6 +71,26 @@ export const apiService = {
     return response.data;
   },
 
+  async getTestCase(caseId) {
+    const response = await api.get(`/api/v1/test-cases/${caseId}`);
+    return response.data;
+  },
+
+  async updateTestCase(caseId, testCaseData) {
+    const response = await api.put(`/api/v1/test-cases/${caseId}`, testCaseData);
+    return response.data;
+  },
+
+  async deleteTestCase(caseId) {
+    const response = await api.delete(`/api/v1/test-cases/${caseId}`);
+    return response.data;
+  },
+
+  async bulkUpdateTestCases(updates) {
+    const response = await api.post('/api/v1/test-cases/bulk-update', updates);
+    return response.data;
+  },
+
   // Test Generation
   async generateTests(requestData) {
     const response = await api.post('/api/v1/generate-tests', requestData);

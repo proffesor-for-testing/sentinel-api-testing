@@ -146,6 +146,146 @@ async def get_test_case(case_id: int, db: AsyncSession = Depends(get_db)):
             detail=f"Error retrieving test case: {str(e)}"
         )
 
+@app.put("/api/v1/test-cases/{case_id}", response_model=TestCaseResponse)
+async def update_test_case(
+    case_id: int,
+    test_case_data: TestCaseCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Update an existing test case."""
+    try:
+        result = await db.execute(
+            select(TestCase).where(TestCase.id == case_id)
+        )
+        test_case = result.scalar_one_or_none()
+        
+        if not test_case:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test case with ID {case_id} not found"
+            )
+        
+        # Update fields
+        test_case.spec_id = test_case_data.spec_id
+        test_case.agent_type = test_case_data.agent_type
+        test_case.description = test_case_data.description
+        test_case.test_definition = test_case_data.test_definition
+        test_case.tags = test_case_data.tags if test_case_data.tags else None
+        test_case.updated_at = datetime.utcnow()
+        
+        await db.commit()
+        await db.refresh(test_case)
+        
+        return TestCaseResponse.model_validate(test_case)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating test case: {str(e)}"
+        )
+
+@app.delete("/api/v1/test-cases/{case_id}", response_model=DeleteResponse)
+async def delete_test_case(case_id: int, db: AsyncSession = Depends(get_db)):
+    """Delete a test case."""
+    try:
+        result = await db.execute(
+            select(TestCase).where(TestCase.id == case_id)
+        )
+        test_case = result.scalar_one_or_none()
+        
+        if not test_case:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test case with ID {case_id} not found"
+            )
+        
+        await db.delete(test_case)
+        await db.commit()
+        
+        return DeleteResponse(
+            message=f"Test case {case_id} deleted successfully",
+            deleted_id=case_id
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting test case: {str(e)}"
+        )
+
+@app.post("/api/v1/test-cases/bulk-update")
+async def bulk_update_test_cases(
+    updates: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    """Bulk update test cases (add/remove tags, change status, etc.)."""
+    try:
+        case_ids = updates.get("case_ids", [])
+        action = updates.get("action")
+        data = updates.get("data", {})
+        
+        if not case_ids or not action:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="case_ids and action are required"
+            )
+        
+        # Get test cases
+        result = await db.execute(
+            select(TestCase).where(TestCase.id.in_(case_ids))
+        )
+        test_cases = result.scalars().all()
+        
+        if not test_cases:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No test cases found with provided IDs"
+            )
+        
+        updated_count = 0
+        
+        for test_case in test_cases:
+            if action == "add_tags":
+                new_tags = data.get("tags", [])
+                existing_tags = test_case.tags or []
+                test_case.tags = list(set(existing_tags + new_tags))
+                updated_count += 1
+            
+            elif action == "remove_tags":
+                tags_to_remove = data.get("tags", [])
+                existing_tags = test_case.tags or []
+                test_case.tags = [tag for tag in existing_tags if tag not in tags_to_remove]
+                updated_count += 1
+            
+            elif action == "set_tags":
+                test_case.tags = data.get("tags", [])
+                updated_count += 1
+            
+            test_case.updated_at = datetime.utcnow()
+        
+        await db.commit()
+        
+        return {
+            "message": f"Successfully updated {updated_count} test cases",
+            "updated_count": updated_count,
+            "action": action
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error in bulk update: {str(e)}"
+        )
+
 # Test Suites endpoints
 @app.post("/api/v1/test-suites", response_model=TestSuiteResponse)
 async def create_test_suite(
