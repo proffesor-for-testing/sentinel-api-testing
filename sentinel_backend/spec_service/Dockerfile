@@ -17,4 +17,4 @@ RUN poetry config virtualenvs.create false && poetry install --no-dev --no-root
 COPY . .
 
 # Command to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uvicorn", "main:app", "--host", "${SENTINEL_NETWORK_HOST:-0.0.0.0}", "--port", "${SPEC_SERVICE_PORT:-8001}"]

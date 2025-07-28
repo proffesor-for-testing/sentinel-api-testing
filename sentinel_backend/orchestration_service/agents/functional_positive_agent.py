@@ -11,6 +11,7 @@ import string
 from datetime import datetime, timedelta
 
 from .base_agent import BaseAgent, AgentTask, AgentResult
+from config.settings import get_application_settings
 
 
 class FunctionalPositiveAgent(BaseAgent):
@@ -158,6 +159,35 @@ class FunctionalPositiveAgent(BaseAgent):
             expected_status=expected_status,
             assertions=assertions
         )
+    
+    def _create_test_case(
+        self,
+        endpoint: str,
+        method: str,
+        description: str,
+        headers: Dict[str, str],
+        query_params: Dict[str, Any],
+        body: Optional[Dict[str, Any]],
+        expected_status: int,
+        assertions: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Create a standardized test case with configuration-based settings."""
+        app_settings = get_application_settings()
+        test_timeout = getattr(app_settings, 'test_execution_timeout', 600)
+        
+        return {
+            'test_name': description,
+            'test_type': 'functional-positive',
+            'method': method.upper(),
+            'path': endpoint,
+            'headers': headers,
+            'query_params': query_params,
+            'body': body,
+            'timeout': test_timeout,
+            'expected_status_codes': [expected_status],
+            'assertions': assertions,
+            'tags': ['functional', 'positive', f'{method.lower()}-method']
+        }
     
     async def _generate_parameter_variation_tests(
         self, 

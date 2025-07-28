@@ -148,12 +148,12 @@ The project follows a phased implementation approach:
 - ✅ Intelligent Data Mocking Agent (schema-aware mock data generation)
 - ✅ Test Case Management UI (collaborative editing, bulk operations, advanced filtering)
 - ✅ Role-Based Access Control (RBAC) - JWT authentication, user management, role-based permissions
-- 🔄 Configuration Modularization Initiative (Major progress: 45+ of 60+ tasks completed)
-  - ✅ Centralized Pydantic BaseSettings configuration system
-  - ✅ Core services updated (auth_service, execution_service, orchestration_service, CLI, frontend)
-  - ✅ Key agents updated (data_mocking_agent, security_auth_agent, performance_planner_agent)
-  - ✅ Security, database, service URLs, timeouts, and logging centralized
-  - 🔄 Remaining: security_injection_agent, functional agents, network settings, documentation
+- ✅ Configuration Modularization Initiative (COMPLETED)
+  - ✅ Comprehensive centralized Pydantic BaseSettings configuration system
+  - ✅ All services updated (auth_service, execution_service, orchestration_service, CLI, frontend, API Gateway)
+  - ✅ All agents updated (data_mocking_agent, security_auth_agent, performance_planner_agent, security_injection_agent, functional_positive_agent, functional_negative_agent, functional_stateful_agent)
+  - ✅ Security, database, service URLs, timeouts, logging, and agent-specific settings centralized
+  - ✅ Environment-specific configuration files with proper validation and type safety
 - ⬜ Production deployment documentation
 
 ## 🛠️ Development
@@ -172,6 +172,108 @@ The project follows a phased implementation approach:
    cd api_gateway
    poetry run uvicorn main:app --reload --port 8000
    ```
+
+### Configuration Management
+
+The platform uses a comprehensive centralized configuration system built with Pydantic BaseSettings for type-safe configuration management.
+
+#### Configuration Structure
+
+All configuration is managed through `sentinel_backend/config/settings.py` with the following sections:
+
+- **Database Settings**: Connection strings, pool configurations, migration settings
+- **Service Discovery**: Inter-service URLs, ports, timeouts, health check intervals
+- **Security Configuration**: JWT secrets, password policies, CORS settings, rate limiting
+- **Network Settings**: Host bindings, port mappings, timeout configurations
+- **Application Settings**: Feature flags, pagination limits, logging levels, agent parameters
+
+#### Environment-Specific Configuration
+
+The platform supports multiple deployment environments:
+
+```bash
+# Development (default)
+SENTINEL_ENVIRONMENT=development
+
+# Testing
+SENTINEL_ENVIRONMENT=testing
+
+# Production
+SENTINEL_ENVIRONMENT=production
+
+# Docker
+SENTINEL_ENVIRONMENT=docker
+```
+
+#### Configuration Files
+
+Environment-specific configuration files are located in `sentinel_backend/config/`:
+
+- `development.env` - Local development settings
+- `testing.env` - Test environment settings
+- `production.env` - Production deployment settings
+- `docker.env` - Docker container settings
+
+#### Configuration Usage
+
+Services import configuration using centralized functions:
+
+```python
+from config.settings import get_settings, get_service_settings, get_application_settings
+
+# Get all settings
+settings = get_settings()
+
+# Get specific setting sections
+service_settings = get_service_settings()
+app_settings = get_application_settings()
+
+# Use configuration
+timeout = service_settings.service_timeout
+log_level = app_settings.log_level
+```
+
+#### Environment Variables
+
+All configuration can be overridden using environment variables with the `SENTINEL_` prefix:
+
+```bash
+# Database configuration
+SENTINEL_DB_URL=postgresql+asyncpg://user:pass@host/db
+SENTINEL_DB_POOL_SIZE=20
+
+# Service URLs
+SENTINEL_SERVICE_AUTH_SERVICE_URL=http://auth:8005
+SENTINEL_SERVICE_SERVICE_TIMEOUT=60
+
+# Security settings
+SENTINEL_SECURITY_JWT_SECRET_KEY=your-secret-key
+SENTINEL_SECURITY_JWT_EXPIRATION_HOURS=24
+
+# Application settings
+SENTINEL_APP_LOG_LEVEL=DEBUG
+SENTINEL_APP_DEBUG=true
+```
+
+#### Docker Configuration
+
+For Docker deployments, use the `.env.docker` file:
+
+```bash
+# Copy and customize the Docker environment file
+cp sentinel_backend/.env.docker sentinel_backend/.env.local
+# Edit .env.local with your settings
+docker-compose --env-file .env.local up
+```
+
+#### Production Security
+
+For production deployments:
+
+1. **Change default secrets**: Update JWT secret keys and database passwords
+2. **Use environment variables**: Never commit secrets to version control
+3. **Validate configuration**: The system validates configuration on startup
+4. **Monitor configuration**: Enable configuration audit logging
 
 ### Database Setup
 

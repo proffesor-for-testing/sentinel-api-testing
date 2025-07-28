@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -e .
 COPY . .
 
 # Expose port
-EXPOSE 8000
+EXPOSE ${AUTH_SERVICE_PORT:-8000}
 
 # Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "${SENTINEL_NETWORK_HOST:-0.0.0.0}", "--port", "${AUTH_SERVICE_PORT:-8000}", "--reload"]

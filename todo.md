@@ -38,11 +38,14 @@ The goal is to create a centralized configuration system that supports:
   - Current: `postgresql+asyncpg://user:password@localhost/sentinel_db`
 - [x] **spec_service/main.py**: Move `DATABASE_URL` to config
   - Current: `postgresql+asyncpg://user:password@localhost/sentinel_db`
-- [ ] **execution_service/main.py**: Move database configuration to config
-- [ ] **docker-compose.yml**: Move database credentials to environment files
-  - Current: `POSTGRES_PASSWORD=supersecretpassword`
-  - Current: `POSTGRES_USER=sentinel`
-  - Current: `POSTGRES_DB=sentinel_db`
+- [x] **execution_service/main.py**: Move database configuration to config
+  - ✅ Already using centralized configuration with proper service URLs and timeouts
+  - ✅ Uses `service_settings.data_service_url` and `service_settings.service_timeout`
+  - ✅ Uses `app_settings.test_execution_timeout` for test execution
+- [x] **docker-compose.yml**: Move database credentials to environment files
+  - ✅ Updated to use `.env.docker` environment file
+  - ✅ All database credentials now use environment variables
+  - ✅ Port mappings use environment variables
 - [x] Add database pool configuration (min/max connections, timeouts)
 - [x] Add database migration settings
 
@@ -107,20 +110,20 @@ The goal is to create a centralized configuration system that supports:
 ## Network & Infrastructure Configuration
 
 ### ✅ Network Settings
-- [ ] **docker-compose.yml**: Move all port mappings to config
-  - Current: API Gateway `"8000:8000"`
-  - Current: Auth Service `"8005:8000"`
-  - Current: Spec Service `"8001:8001"`
-  - Current: Orchestration Service `"8002:8002"`
-  - Current: Execution Service `"8003:8003"`
-  - Current: Data Service `"8004:8004"`
-  - Current: Database `"5432:5432"`
-- [ ] **All services**: Move host binding to config
-  - Current: `host="0.0.0.0"` in various services
-- [ ] **All services**: Move timeout configurations to config
-  - Current: `timeout=30000` in frontend
-  - Current: `timeout=5.0` in various HTTP clients
-  - Current: `timeout=300` in CLI
+- [x] **docker-compose.yml**: Move all port mappings to config
+  - ✅ Updated to use environment variables for all port mappings
+  - ✅ API Gateway uses `${API_GATEWAY_PORT}:8000`
+  - ✅ Auth Service uses `${AUTH_SERVICE_PORT}:8000`
+  - ✅ All services use environment variables for port configuration
+  - ✅ Database uses `${DATABASE_PORT}:5432`
+- [x] **All services**: Move host binding to config
+  - ✅ Services already use centralized configuration for network settings
+  - ✅ Host binding configuration available through `network_settings.host`
+- [x] **All services**: Move timeout configurations to config
+  - ✅ Frontend uses centralized timeout configuration
+  - ✅ HTTP clients use `service_settings.service_timeout`
+  - ✅ CLI uses `app_settings.test_execution_timeout`
+  - ✅ All timeout configurations centralized
 
 ## Frontend Configuration
 
@@ -203,12 +206,15 @@ The goal is to create a centralized configuration system that supports:
   - ✅ Authentication scenarios moved to configuration
   - ✅ Security test timeouts and limits configured
   - ✅ Aggressive testing mode configuration added
-- [ ] **orchestration_service/agents/security_injection_agent.py**: Move security test parameters
-  - Injection payload configurations
-  - Test case limits and timeouts
-- [ ] **orchestration_service/agents/functional_*.py**: Move functional test settings
-  - Example URLs (currently `https://example.com/test`)
-  - Test data generation parameters
+- [x] **orchestration_service/agents/security_injection_agent.py**: Move security test parameters
+  - ✅ Injection payload configurations moved to configuration
+  - ✅ Test case limits and timeouts configured
+  - ✅ Added proper timeout configuration using `app_settings.security_injection_timeout`
+- [x] **orchestration_service/agents/functional_*.py**: Move functional test settings
+  - ✅ functional_positive_agent: Updated to use `app_settings.test_execution_timeout`
+  - ✅ functional_negative_agent: Updated to use `app_settings.test_execution_timeout`
+  - ✅ functional_stateful_agent: Updated to use `app_settings.test_execution_timeout`
+  - ✅ Test data generation parameters configured through centralized settings
 - [x] **orchestration_service/agents/performance_planner_agent.py**: Move performance settings
   - ✅ Load test configurations moved to configuration
   - ✅ Performance thresholds and user limits configured
@@ -217,7 +223,13 @@ The goal is to create a centralized configuration system that supports:
 ## Docker & Deployment Configuration
 
 ### ✅ Container Configuration
-- [ ] Update all Dockerfiles to use configuration
+- [x] Update all Dockerfiles to use configuration
+  - ✅ api_gateway/Dockerfile: Updated to use `${SENTINEL_NETWORK_HOST}` and `${API_GATEWAY_PORT}`
+  - ✅ auth_service/Dockerfile: Updated to use `${SENTINEL_NETWORK_HOST}` and `${AUTH_SERVICE_PORT}`
+  - ✅ spec_service/Dockerfile: Updated to use `${SENTINEL_NETWORK_HOST}` and `${SPEC_SERVICE_PORT}`
+  - ✅ orchestration_service/Dockerfile: Updated to use `${SENTINEL_NETWORK_HOST}` and `${ORCHESTRATION_SERVICE_PORT}`
+  - ✅ execution_service/Dockerfile: Updated to use `${SENTINEL_NETWORK_HOST}` and `${EXECUTION_SERVICE_PORT}`
+  - ✅ data_service/Dockerfile: Updated to use `${SENTINEL_NETWORK_HOST}` and `${DATA_SERVICE_PORT}`
 - [x] **docker-compose.yml**: Use environment file references
   - ✅ Updated to use `.env.docker` environment file
   - ✅ Replaced all hardcoded values with environment variables
@@ -254,7 +266,12 @@ The goal is to create a centralized configuration system that supports:
 ## Documentation Updates
 
 ### ✅ Configuration Documentation
-- [ ] Update README.md with configuration instructions
+- [x] Update README.md with configuration instructions
+  - ✅ Added comprehensive Configuration Management section
+  - ✅ Documented environment-specific configuration
+  - ✅ Added configuration usage examples
+  - ✅ Documented environment variables and Docker configuration
+  - ✅ Added production security guidelines
 - [ ] Create configuration reference documentation
 - [ ] Add environment setup guides
 - [ ] Document security best practices

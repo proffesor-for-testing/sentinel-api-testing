@@ -14,6 +14,7 @@ import json
 import re
 
 from .base_agent import BaseAgent, AgentTask, AgentResult
+from config.settings import get_application_settings
 
 
 class FunctionalNegativeAgent(BaseAgent):
@@ -945,3 +946,30 @@ class FunctionalNegativeAgent(BaseAgent):
                 path = path.replace(f"{{{param_name}}}", str(param_value))
         
         return path
+    
+    def _create_test_case(
+        self,
+        endpoint: str,
+        method: str,
+        description: str,
+        headers: Optional[Dict[str, str]] = None,
+        query_params: Optional[Dict[str, Any]] = None,
+        body: Optional[Any] = None,
+        expected_status: int = 400
+    ) -> Dict[str, Any]:
+        """Create a standardized test case with configuration-based settings."""
+        app_settings = get_application_settings()
+        test_timeout = getattr(app_settings, 'test_execution_timeout', 600)
+        
+        return {
+            'test_name': description,
+            'test_type': 'functional-negative',
+            'method': method.upper(),
+            'path': endpoint,
+            'headers': headers or {"Content-Type": "application/json", "Accept": "application/json"},
+            'query_params': query_params or {},
+            'body': body,
+            'timeout': test_timeout,
+            'expected_status_codes': [expected_status],
+            'tags': ['functional', 'negative', f'{method.lower()}-method']
+        }

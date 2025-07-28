@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from .base_agent import BaseAgent, AgentTask, AgentResult
+from config.settings import get_application_settings
 
 
 class DependencyType(Enum):
@@ -960,3 +961,26 @@ class FunctionalStatefulAgent(BaseAgent):
             })
         
         return assertions
+    
+    def _create_test_case(
+        self,
+        endpoint: str,
+        method: str,
+        description: str,
+        expected_status: int,
+        assertions: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Create a standardized test case with configuration-based settings."""
+        app_settings = get_application_settings()
+        test_timeout = getattr(app_settings, 'test_execution_timeout', 600)
+        
+        return {
+            'test_name': description,
+            'test_type': 'functional-stateful',
+            'method': method.upper(),
+            'path': endpoint,
+            'timeout': test_timeout,
+            'expected_status_codes': [expected_status],
+            'assertions': assertions,
+            'tags': ['functional', 'stateful', 'multi-step', 'workflow']
+        }
