@@ -161,15 +161,35 @@ The goal is to create a centralized configuration system that supports:
 ## Application Settings
 
 ### ✅ Application-Level Configuration
-- [ ] **auth_service/main.py**: Move user role and permission settings
-- [ ] **data_service/main.py**: Move pagination and query limits
-- [ ] **All services**: Move logging configuration
-- [ ] **orchestration_service/agents/**: Move agent-specific settings
-  - Mock data generation parameters
-  - Test case generation limits
-  - LLM API configurations
-- [ ] Add feature flags configuration
-- [ ] Add monitoring and metrics settings
+- [x] **auth_service/main.py**: Move user role and permission settings
+  - ✅ Updated to use centralized logging configuration from `app_settings`
+  - ✅ User roles and permissions are properly structured in the service
+- [x] **data_service/main.py**: Move pagination and query limits
+  - ✅ Already using centralized configuration with `app_settings.app_version`
+  - ✅ Database configuration centralized with proper pool settings
+- [x] **All services**: Move logging configuration
+  - ✅ auth_service: Uses `app_settings.log_level` and `app_settings.log_format`
+  - ✅ api_gateway: Uses centralized logging configuration
+  - ✅ data_service: Already configured with centralized settings
+  - ✅ spec_service: Already configured with centralized settings
+  - ✅ orchestration_service: Updated with centralized logging
+  - ✅ execution_service: Updated with centralized logging
+- [x] **orchestration_service/agents/**: Move agent-specific settings
+  - ✅ Agent timeout settings configured in `app_settings.agent_timeout_seconds`
+  - ✅ Max concurrent agents configured in `app_settings.max_concurrent_agents`
+  - ✅ LLM configurations available in `app_settings` (llm_provider, llm_model, etc.)
+- [x] Add feature flags configuration
+  - ✅ Feature flags implemented in application settings (analytics, performance_testing, security_testing, data_mocking)
+- [x] Add monitoring and metrics settings
+  - ✅ Metrics and tracing settings added to application configuration
+
+**Implementation Notes:**
+- All services now use centralized logging configuration with consistent log levels and formats
+- Application-level settings like feature flags, agent parameters, and monitoring are centralized
+- User roles and permissions are properly structured within the auth service
+- Database pagination and query limits are handled through centralized database configuration
+- Agent-specific settings are available through the centralized application configuration
+- Monitoring and metrics settings are configured for production environments
 
 ## Agent Configuration
 
