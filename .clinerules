@@ -56,7 +56,25 @@ This file captures important patterns, preferences, and project intelligence to 
 - **Avoid Long Descriptions**: Detailed descriptions can cause git commit failures; keep them brief and focused
 - **Use Present Tense**: Write commit messages in present tense (e.g., "Add feature" not "Added feature")
 
-## 8. Task Completion Protocol
+## 8. Configuration Modularization Patterns
+
+**Configuration Management Approach:**
+- **Centralized Configuration**: Use Pydantic BaseSettings for type-safe configuration management with environment variable support
+- **Environment-Specific Files**: Separate configuration files for development, testing, production, and Docker environments
+- **Security First**: Never commit sensitive data (passwords, API keys, secrets) to version control
+- **Validation**: Configuration should fail fast with clear error messages on startup
+- **Precedence Order**: Environment variables > configuration files > defaults
+- **Backward Compatibility**: Maintain compatibility during configuration migration
+
+**Configuration Categories:**
+- **Database Settings**: Connection strings, pool configurations, migration settings
+- **Service Discovery**: Inter-service URLs, ports, timeouts, health check intervals
+- **Security Configuration**: JWT secrets, password policies, CORS settings, rate limiting
+- **Network Settings**: Host bindings, port mappings, timeout configurations
+- **Application Settings**: Feature flags, pagination limits, logging levels, agent parameters
+- **External Services**: LLM API configurations, third-party service integrations
+
+## 9. Task Completion Protocol
 
 **MANDATORY STEPS when completing any task:**
 
