@@ -473,21 +473,63 @@ async def get_failure_rate_trends(
     days: int = Query(30, description="Number of days to analyze"),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get historical failure rate data."""
+    """Get historical failure rate data with real analysis."""
     try:
         end_date = datetime.utcnow()
         start_date = end_date - timedelta(days=days)
         
-        # This is a simplified implementation
-        # In a real system, you'd aggregate data by date and calculate failure rates
-        return [
-            FailureRateData(
-                date=end_date - timedelta(days=i),
-                total_tests=10,
-                failed_tests=2,
-                failure_rate=0.2
-            ) for i in range(min(days, 7))  # Return sample data for last 7 days
-        ]
+        # Build base query for test runs in the date range
+        query = select(
+            func.date(TestRun.started_at).label('run_date'),
+            func.count(TestResult.id).label('total_tests'),
+            func.sum(func.case((TestResult.status == 'failed', 1), else_=0)).label('failed_tests')
+        ).select_from(
+            TestRun.__table__.join(TestResult.__table__, TestRun.id == TestResult.run_id)
+        ).where(
+            and_(
+                TestRun.started_at >= start_date,
+                TestRun.started_at <= end_date
+            )
+        ).group_by(func.date(TestRun.started_at))
+        
+        # Apply suite filter if provided
+        if suite_id:
+            query = query.where(TestRun.suite_id == suite_id)
+        
+        result = await db.execute(query)
+        daily_stats = result.fetchall()
+        
+        # Convert to response format and calculate failure rates
+        trend_data = []
+        for row in daily_stats:
+            total_tests = row.total_tests or 0
+            failed_tests = row.failed_tests or 0
+            failure_rate = (failed_tests / total_tests) if total_tests > 0 else 0.0
+            
+            trend_data.append(FailureRateData(
+                date=row.run_date,
+                total_tests=total_tests,
+                failed_tests=failed_tests,
+                failure_rate=failure_rate
+            ))
+        
+        # Fill in missing dates with zero data
+        date_map = {item.date: item for item in trend_data}
+        complete_data = []
+        
+        for i in range(days):
+            current_date = (end_date - timedelta(days=i)).date()
+            if current_date in date_map:
+                complete_data.append(date_map[current_date])
+            else:
+                complete_data.append(FailureRateData(
+                    date=current_date,
+                    total_tests=0,
+                    failed_tests=0,
+                    failure_rate=0.0
+                ))
+        
+        return sorted(complete_data, key=lambda x: x.date)
     
     except Exception as e:
         raise HTTPException(
@@ -501,20 +543,61 @@ async def get_latency_trends(
     days: int = Query(30, description="Number of days to analyze"),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get historical latency data."""
+    """Get historical latency data with real analysis."""
     try:
         end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
         
-        # This is a simplified implementation
-        # In a real system, you'd query test_results and calculate percentiles
-        return [
-            LatencyData(
-                date=end_date - timedelta(days=i),
-                avg_latency_ms=150.0 + (i * 5),
-                p95_latency_ms=250.0 + (i * 8),
-                p99_latency_ms=350.0 + (i * 12)
-            ) for i in range(min(days, 7))  # Return sample data for last 7 days
-        ]
+        # Build base query for test results with latency data
+        query = select(
+            func.date(TestRun.started_at).label('run_date'),
+            func.avg(TestResult.response_time_ms).label('avg_latency'),
+            func.percentile_cont(0.95).within_group(TestResult.response_time_ms).label('p95_latency'),
+            func.percentile_cont(0.99).within_group(TestResult.response_time_ms).label('p99_latency')
+        ).select_from(
+            TestRun.__table__.join(TestResult.__table__, TestRun.id == TestResult.run_id)
+        ).where(
+            and_(
+                TestRun.started_at >= start_date,
+                TestRun.started_at <= end_date,
+                TestResult.response_time_ms.isnot(None)
+            )
+        ).group_by(func.date(TestRun.started_at))
+        
+        # Apply endpoint filter if provided
+        if endpoint:
+            query = query.where(TestResult.test_definition.contains(endpoint))
+        
+        result = await db.execute(query)
+        daily_stats = result.fetchall()
+        
+        # Convert to response format
+        trend_data = []
+        for row in daily_stats:
+            trend_data.append(LatencyData(
+                date=row.run_date,
+                avg_latency_ms=float(row.avg_latency or 0),
+                p95_latency_ms=float(row.p95_latency or 0),
+                p99_latency_ms=float(row.p99_latency or 0)
+            ))
+        
+        # Fill in missing dates with zero data
+        date_map = {item.date: item for item in trend_data}
+        complete_data = []
+        
+        for i in range(days):
+            current_date = (end_date - timedelta(days=i)).date()
+            if current_date in date_map:
+                complete_data.append(date_map[current_date])
+            else:
+                complete_data.append(LatencyData(
+                    date=current_date,
+                    avg_latency_ms=0.0,
+                    p95_latency_ms=0.0,
+                    p99_latency_ms=0.0
+                ))
+        
+        return sorted(complete_data, key=lambda x: x.date)
     
     except Exception as e:
         raise HTTPException(
@@ -577,6 +660,338 @@ async def get_health_summary(db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error generating health summary: {str(e)}"
+        )
+
+# Advanced Analytics endpoints
+@app.get("/api/v1/analytics/anomalies")
+async def detect_anomalies(
+    days: int = Query(30, description="Number of days to analyze"),
+    threshold: float = Query(2.0, description="Standard deviation threshold for anomaly detection"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Detect anomalies in test performance and failure patterns."""
+    try:
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        # Get daily failure rates and latencies
+        query = select(
+            func.date(TestRun.started_at).label('run_date'),
+            func.count(TestResult.id).label('total_tests'),
+            func.sum(func.case((TestResult.status == 'failed', 1), else_=0)).label('failed_tests'),
+            func.avg(TestResult.response_time_ms).label('avg_latency')
+        ).select_from(
+            TestRun.__table__.join(TestResult.__table__, TestRun.id == TestResult.run_id)
+        ).where(
+            and_(
+                TestRun.started_at >= start_date,
+                TestRun.started_at <= end_date
+            )
+        ).group_by(func.date(TestRun.started_at))
+        
+        result = await db.execute(query)
+        daily_stats = result.fetchall()
+        
+        if len(daily_stats) < 7:  # Need at least a week of data
+            return {
+                "anomalies": [],
+                "message": "Insufficient data for anomaly detection (minimum 7 days required)"
+            }
+        
+        # Calculate statistics for anomaly detection
+        failure_rates = []
+        latencies = []
+        
+        for row in daily_stats:
+            total_tests = row.total_tests or 0
+            failed_tests = row.failed_tests or 0
+            failure_rate = (failed_tests / total_tests) if total_tests > 0 else 0.0
+            failure_rates.append(failure_rate)
+            latencies.append(float(row.avg_latency or 0))
+        
+        # Simple anomaly detection using standard deviation
+        import statistics
+        
+        anomalies = []
+        
+        if len(failure_rates) > 1:
+            failure_mean = statistics.mean(failure_rates)
+            failure_stdev = statistics.stdev(failure_rates) if len(failure_rates) > 1 else 0
+            
+            for i, (row, rate) in enumerate(zip(daily_stats, failure_rates)):
+                if failure_stdev > 0 and abs(rate - failure_mean) > threshold * failure_stdev:
+                    anomalies.append({
+                        "date": row.run_date.isoformat(),
+                        "type": "failure_rate",
+                        "value": rate,
+                        "expected_range": [
+                            max(0, failure_mean - threshold * failure_stdev),
+                            min(1, failure_mean + threshold * failure_stdev)
+                        ],
+                        "severity": "high" if abs(rate - failure_mean) > 3 * failure_stdev else "medium"
+                    })
+        
+        if len(latencies) > 1:
+            latency_mean = statistics.mean(latencies)
+            latency_stdev = statistics.stdev(latencies) if len(latencies) > 1 else 0
+            
+            for i, (row, latency) in enumerate(zip(daily_stats, latencies)):
+                if latency_stdev > 0 and abs(latency - latency_mean) > threshold * latency_stdev:
+                    anomalies.append({
+                        "date": row.run_date.isoformat(),
+                        "type": "latency",
+                        "value": latency,
+                        "expected_range": [
+                            max(0, latency_mean - threshold * latency_stdev),
+                            latency_mean + threshold * latency_stdev
+                        ],
+                        "severity": "high" if abs(latency - latency_mean) > 3 * latency_stdev else "medium"
+                    })
+        
+        return {
+            "anomalies": sorted(anomalies, key=lambda x: x["date"], reverse=True),
+            "analysis_period": {
+                "start_date": start_date.date().isoformat(),
+                "end_date": end_date.date().isoformat(),
+                "days_analyzed": len(daily_stats)
+            },
+            "baseline_metrics": {
+                "avg_failure_rate": statistics.mean(failure_rates) if failure_rates else 0,
+                "avg_latency_ms": statistics.mean(latencies) if latencies else 0
+            }
+        }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error detecting anomalies: {str(e)}"
+        )
+
+@app.get("/api/v1/analytics/predictions")
+async def get_quality_predictions(
+    days_ahead: int = Query(7, description="Number of days to predict ahead"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Generate predictive quality insights based on historical trends."""
+    try:
+        # Get last 30 days of data for trend analysis
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=30)
+        
+        query = select(
+            func.date(TestRun.started_at).label('run_date'),
+            func.count(TestResult.id).label('total_tests'),
+            func.sum(func.case((TestResult.status == 'failed', 1), else_=0)).label('failed_tests'),
+            func.avg(TestResult.response_time_ms).label('avg_latency')
+        ).select_from(
+            TestRun.__table__.join(TestResult.__table__, TestRun.id == TestResult.run_id)
+        ).where(
+            and_(
+                TestRun.started_at >= start_date,
+                TestRun.started_at <= end_date
+            )
+        ).group_by(func.date(TestRun.started_at)).order_by(func.date(TestRun.started_at))
+        
+        result = await db.execute(query)
+        daily_stats = result.fetchall()
+        
+        if len(daily_stats) < 7:
+            return {
+                "predictions": [],
+                "message": "Insufficient historical data for predictions (minimum 7 days required)"
+            }
+        
+        # Simple linear trend analysis
+        failure_rates = []
+        latencies = []
+        days = []
+        
+        for i, row in enumerate(daily_stats):
+            total_tests = row.total_tests or 0
+            failed_tests = row.failed_tests or 0
+            failure_rate = (failed_tests / total_tests) if total_tests > 0 else 0.0
+            failure_rates.append(failure_rate)
+            latencies.append(float(row.avg_latency or 0))
+            days.append(i)
+        
+        predictions = []
+        
+        # Simple linear regression for trend prediction
+        if len(failure_rates) >= 2:
+            # Calculate trend for failure rate
+            n = len(failure_rates)
+            sum_x = sum(days)
+            sum_y = sum(failure_rates)
+            sum_xy = sum(x * y for x, y in zip(days, failure_rates))
+            sum_x2 = sum(x * x for x in days)
+            
+            if n * sum_x2 - sum_x * sum_x != 0:
+                slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x * sum_x)
+                intercept = (sum_y - slope * sum_x) / n
+                
+                for i in range(1, days_ahead + 1):
+                    future_day = len(days) + i
+                    predicted_failure_rate = max(0, min(1, slope * future_day + intercept))
+                    
+                    predictions.append({
+                        "date": (end_date + timedelta(days=i)).date().isoformat(),
+                        "predicted_failure_rate": predicted_failure_rate,
+                        "trend": "improving" if slope < -0.01 else "degrading" if slope > 0.01 else "stable",
+                        "confidence": "medium" if abs(slope) < 0.05 else "low"
+                    })
+        
+        # Generate recommendations based on trends
+        recommendations = []
+        if predictions:
+            avg_predicted_failure = sum(p["predicted_failure_rate"] for p in predictions) / len(predictions)
+            current_failure = failure_rates[-1] if failure_rates else 0
+            
+            if avg_predicted_failure > current_failure * 1.2:
+                recommendations.append("Quality degradation predicted - consider increasing test coverage")
+            elif avg_predicted_failure < current_failure * 0.8:
+                recommendations.append("Quality improvement trend detected - maintain current practices")
+            
+            if avg_predicted_failure > 0.3:
+                recommendations.append("High failure rate predicted - review recent code changes")
+        
+        return {
+            "predictions": predictions,
+            "recommendations": recommendations,
+            "analysis_period": {
+                "historical_days": len(daily_stats),
+                "prediction_days": days_ahead
+            },
+            "current_metrics": {
+                "failure_rate": failure_rates[-1] if failure_rates else 0,
+                "avg_latency_ms": latencies[-1] if latencies else 0
+            }
+        }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating predictions: {str(e)}"
+        )
+
+@app.get("/api/v1/analytics/insights")
+async def get_quality_insights(
+    days: int = Query(30, description="Number of days to analyze"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Generate comprehensive quality insights and recommendations."""
+    try:
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        # Get comprehensive test data
+        query = select(
+            TestResult.agent_type,
+            TestResult.status,
+            TestResult.response_time_ms,
+            func.count(TestResult.id).label('count')
+        ).select_from(
+            TestRun.__table__.join(TestResult.__table__, TestRun.id == TestResult.run_id)
+        ).where(
+            and_(
+                TestRun.started_at >= start_date,
+                TestRun.started_at <= end_date
+            )
+        ).group_by(TestResult.agent_type, TestResult.status)
+        
+        result = await db.execute(query)
+        agent_stats = result.fetchall()
+        
+        # Analyze by agent type
+        agent_insights = {}
+        total_tests = 0
+        total_failures = 0
+        
+        for row in agent_stats:
+            agent_type = row.agent_type
+            status = row.status
+            count = row.count
+            
+            if agent_type not in agent_insights:
+                agent_insights[agent_type] = {
+                    "total_tests": 0,
+                    "failed_tests": 0,
+                    "passed_tests": 0,
+                    "error_tests": 0
+                }
+            
+            agent_insights[agent_type]["total_tests"] += count
+            total_tests += count
+            
+            if status == "failed":
+                agent_insights[agent_type]["failed_tests"] += count
+                total_failures += count
+            elif status == "passed":
+                agent_insights[agent_type]["passed_tests"] += count
+            elif status == "error":
+                agent_insights[agent_type]["error_tests"] += count
+        
+        # Calculate failure rates and generate insights
+        insights = []
+        recommendations = []
+        
+        for agent_type, stats in agent_insights.items():
+            if stats["total_tests"] > 0:
+                failure_rate = stats["failed_tests"] / stats["total_tests"]
+                
+                if failure_rate > 0.3:
+                    insights.append({
+                        "type": "high_failure_rate",
+                        "agent_type": agent_type,
+                        "failure_rate": failure_rate,
+                        "severity": "high",
+                        "message": f"{agent_type} has high failure rate ({failure_rate:.1%})"
+                    })
+                    recommendations.append(f"Review {agent_type} test cases and underlying API issues")
+                
+                elif failure_rate < 0.05:
+                    insights.append({
+                        "type": "excellent_quality",
+                        "agent_type": agent_type,
+                        "failure_rate": failure_rate,
+                        "severity": "info",
+                        "message": f"{agent_type} shows excellent quality ({failure_rate:.1%} failure rate)"
+                    })
+        
+        # Overall quality assessment
+        overall_failure_rate = total_failures / total_tests if total_tests > 0 else 0
+        quality_score = max(0, min(100, (1 - overall_failure_rate) * 100))
+        
+        quality_grade = "A" if quality_score >= 95 else "B" if quality_score >= 85 else "C" if quality_score >= 70 else "D" if quality_score >= 60 else "F"
+        
+        return {
+            "overall_quality": {
+                "score": quality_score,
+                "grade": quality_grade,
+                "failure_rate": overall_failure_rate,
+                "total_tests": total_tests
+            },
+            "agent_performance": [
+                {
+                    "agent_type": agent_type,
+                    "total_tests": stats["total_tests"],
+                    "failure_rate": stats["failed_tests"] / stats["total_tests"] if stats["total_tests"] > 0 else 0,
+                    "success_rate": stats["passed_tests"] / stats["total_tests"] if stats["total_tests"] > 0 else 0
+                }
+                for agent_type, stats in agent_insights.items()
+            ],
+            "insights": insights,
+            "recommendations": recommendations,
+            "analysis_period": {
+                "start_date": start_date.date().isoformat(),
+                "end_date": end_date.date().isoformat(),
+                "days_analyzed": days
+            }
+        }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating quality insights: {str(e)}"
         )
 
 @app.get("/health")

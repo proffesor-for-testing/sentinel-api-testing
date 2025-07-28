@@ -7,7 +7,8 @@ import {
   TestTube, 
   Menu, 
   X,
-  Shield
+  Shield,
+  BarChart3
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -19,6 +20,7 @@ const Layout = ({ children }) => {
     { name: 'Test Runs', href: '/test-runs', icon: PlayCircle },
     { name: 'Specifications', href: '/specifications', icon: FileText },
     { name: 'Test Cases', href: '/test-cases', icon: TestTube },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   ];
 
   const isActive = (href) => {

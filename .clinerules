@@ -40,7 +40,16 @@ This file captures important patterns, preferences, and project intelligence to 
 - **API Gateway Integration:** Centralized authentication through API Gateway with service-to-service token validation
 - **Security Best Practices:** Secure token handling, password hashing, role-based endpoint protection, and comprehensive error handling
 
-## 6. Task Completion Protocol
+## 6. Advanced Analytics Implementation Patterns
+
+- **Historical Trend Analysis**: Implement real database queries using SQLAlchemy with date-based aggregation, statistical calculations (mean, standard deviation), and gap-filling for missing dates
+- **Anomaly Detection**: Use statistical methods (standard deviation thresholds) for identifying outliers in failure rates and latency patterns
+- **Predictive Analytics**: Implement simple linear regression for trend prediction with confidence scoring based on slope magnitude
+- **Quality Insights**: Generate automated insights by analyzing agent performance patterns and failure rate thresholds
+- **Frontend Analytics**: Create tabbed analytics interfaces with responsive charts using Recharts library, supporting multiple time ranges and real-time data refresh
+- **Database Performance**: Use PostgreSQL percentile functions for latency analysis and efficient date-based grouping for trend queries
+
+## 7. Task Completion Protocol
 
 **MANDATORY STEPS when completing any task:**
 
