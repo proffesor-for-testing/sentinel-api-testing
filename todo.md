@@ -62,14 +62,17 @@ The goal is to create a centralized configuration system that supports:
   - Current: `ORCHESTRATION_SERVICE_URL = "http://orchestration_service:8000"`
   - Current: `DATA_SERVICE_URL = "http://data_service:8000"`
   - Current: `EXECUTION_SERVICE_URL = "http://execution_service:8000"`
-- [ ] **orchestration_service/main.py**: Move service URLs to config
-  - Current: `EXECUTION_SERVICE_URL = "http://execution_service:8000"`
-  - Current: `DATA_SERVICE_URL = "http://data_service:8000"`
-  - Current: `SPEC_SERVICE_URL = "http://spec_service:8000"`
-- [ ] **execution_service/main.py**: Move service URLs to config
-  - Current: `DATA_SERVICE_URL = "http://data_service:8000"`
-- [ ] **auth_service/auth_middleware.py**: Move service URLs to config
-  - Current: `AUTH_SERVICE_URL = "http://auth_service:8005"`
+- [x] **orchestration_service/main.py**: Move service URLs to config
+  - ✅ Updated to use `service_settings.spec_service_url`, `service_settings.data_service_url`, `service_settings.execution_service_url`
+  - ✅ Added proper timeout configuration using `service_settings.service_timeout`
+  - ✅ Updated logging configuration from `app_settings`
+- [x] **execution_service/main.py**: Move service URLs to config
+  - ✅ Updated to use `service_settings.data_service_url`
+  - ✅ Added proper timeout configuration using `service_settings.service_timeout` and `app_settings.test_execution_timeout`
+  - ✅ Updated logging configuration from `app_settings`
+- [x] **auth_service/auth_middleware.py**: Move service URLs to config
+  - ✅ Updated to use `service_settings.auth_service_url`
+  - ✅ Added proper timeout configuration using `service_settings.service_timeout`
 
 **Implementation Notes:**
 - Updated API Gateway to use service_settings.auth_service_url, service_settings.spec_service_url, etc.

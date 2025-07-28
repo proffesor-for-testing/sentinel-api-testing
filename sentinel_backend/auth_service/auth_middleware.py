@@ -10,12 +10,15 @@ import os
 from typing import Dict, List, Optional, Any
 import logging
 
+# Import configuration
+from config.settings import get_service_settings
+
+# Get configuration
+service_settings = get_service_settings()
+
 logger = logging.getLogger(__name__)
 
 security = HTTPBearer()
-
-# Service configuration
-AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth_service:8005")
 
 class AuthenticationError(Exception):
     """Custom exception for authentication errors."""
@@ -32,10 +35,10 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     """
     token = credentials.credentials
     
-    async with httpx.AsyncClient(timeout=5.0) as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.post(
-                f"{AUTH_SERVICE_URL}/auth/validate",
+                f"{service_settings.auth_service_url}/auth/validate",
                 headers={"Authorization": f"Bearer {token}"}
             )
             
@@ -159,11 +162,11 @@ class AuthMiddleware:
     """
     
     def __init__(self, auth_service_url: str = None):
-        self.auth_service_url = auth_service_url or AUTH_SERVICE_URL
+        self.auth_service_url = auth_service_url or service_settings.auth_service_url
     
     async def validate_token(self, token: str) -> Dict[str, Any]:
         """Validate a JWT token and return user data."""
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
             try:
                 response = await client.post(
                     f"{self.auth_service_url}/auth/validate",

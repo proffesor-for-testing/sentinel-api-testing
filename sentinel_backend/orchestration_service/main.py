@@ -15,15 +15,22 @@ from agents.security_injection_agent import SecurityInjectionAgent
 from agents.performance_planner_agent import PerformancePlannerAgent
 from agents.data_mocking_agent import DataMockingAgent
 
+# Import configuration
+from config.settings import get_settings, get_service_settings, get_application_settings
+
+# Get configuration
+settings = get_settings()
+service_settings = get_service_settings()
+app_settings = get_application_settings()
+
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=getattr(logging, app_settings.log_level),
+    format=app_settings.log_format
+)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Sentinel Orchestration Service")
-
-EXECUTION_SERVICE_URL = os.getenv("EXECUTION_SERVICE_URL", "http://execution_service:8000")
-DATA_SERVICE_URL = os.getenv("DATA_SERVICE_URL", "http://data_service:8000")
-SPEC_SERVICE_URL = os.getenv("SPEC_SERVICE_URL", "http://spec_service:8000")
 
 
 class TestGenerationRequest(BaseModel):
@@ -205,8 +212,8 @@ async def fetch_api_specification(spec_id: int) -> Optional[Dict[str, Any]]:
         The parsed API specification or None if not found
     """
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"{SPEC_SERVICE_URL}/api/v1/specifications/{spec_id}")
+        async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+            response = await client.get(f"{service_settings.spec_service_url}/api/v1/specifications/{spec_id}")
             
             if response.status_code == 200:
                 spec_data = response.json()
@@ -235,7 +242,7 @@ async def store_test_cases(spec_id: int, agent_type: str, test_cases: list[Dict[
         True if successful, False otherwise
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
             for test_case in test_cases:
                 # Determine appropriate tags based on agent type
                 tags = ["generated"]
@@ -261,7 +268,7 @@ async def store_test_cases(spec_id: int, agent_type: str, test_cases: list[Dict[
                 }
                 
                 response = await client.post(
-                    f"{DATA_SERVICE_URL}/api/v1/test-cases",
+                    f"{service_settings.data_service_url}/api/v1/test-cases",
                     json=test_case_data
                 )
                 
@@ -284,5 +291,5 @@ async def delegate_agent_task(request: dict):
     This endpoint is maintained for backward compatibility but the new
     /generate-tests endpoint should be used for Phase 2 functionality.
     """
-    logger.info(f"Received legacy agent task. Execution URL: {EXECUTION_SERVICE_URL}, Data URL: {DATA_SERVICE_URL}")
+    logger.info(f"Received legacy agent task. Execution URL: {service_settings.execution_service_url}, Data URL: {service_settings.data_service_url}")
     return {"message": "Agent task delegated (legacy endpoint)", "task_id": 1}

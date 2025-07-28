@@ -8,14 +8,23 @@ import asyncio
 import logging
 from datetime import datetime
 
+# Import configuration
+from config.settings import get_settings, get_service_settings, get_application_settings, get_network_settings
+
+# Get configuration
+settings = get_settings()
+service_settings = get_service_settings()
+app_settings = get_application_settings()
+network_settings = get_network_settings()
+
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=getattr(logging, app_settings.log_level),
+    format=app_settings.log_format
+)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Sentinel Execution Service")
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-DATA_SERVICE_URL = os.getenv("DATA_SERVICE_URL", "http://data_service:8000")
 
 
 class TestRunRequest(BaseModel):
@@ -120,8 +129,9 @@ async def create_test_run(suite_id: int, target_environment: str) -> Optional[in
             }
             
             response = await client.post(
-                f"{DATA_SERVICE_URL}/api/v1/test-runs",
-                json=run_data
+                f"{service_settings.data_service_url}/api/v1/test-runs",
+                json=run_data,
+                timeout=service_settings.service_timeout
             )
             
             if response.status_code in [200, 201]:
@@ -139,9 +149,9 @@ async def create_test_run(suite_id: int, target_environment: str) -> Optional[in
 async def fetch_test_cases(suite_id: int) -> List[Dict[str, Any]]:
     """Fetch test cases for a given suite."""
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
             response = await client.get(
-                f"{DATA_SERVICE_URL}/api/v1/test-suites/{suite_id}/cases"
+                f"{service_settings.data_service_url}/api/v1/test-suites/{suite_id}/cases"
             )
             
             if response.status_code == 200:
@@ -167,7 +177,7 @@ async def execute_test_cases(
     """
     results = []
     
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=app_settings.test_execution_timeout) as client:
         for test_case in test_cases:
             result = await execute_single_test_case(client, test_case, target_environment)
             results.append(result)
@@ -275,7 +285,7 @@ async def validate_assertion(assertion: Dict[str, Any], response: httpx.Response
 async def store_test_results(run_id: int, results: List[TestCaseResult]) -> bool:
     """Store test results in the database."""
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
             for result in results:
                 result_data = {
                     "run_id": run_id,
@@ -293,7 +303,7 @@ async def store_test_results(run_id: int, results: List[TestCaseResult]) -> bool
                     result_data["error_message"] = result.error_message
                 
                 response = await client.post(
-                    f"{DATA_SERVICE_URL}/api/v1/test-results",
+                    f"{service_settings.data_service_url}/api/v1/test-results",
                     json=result_data
                 )
                 
@@ -311,14 +321,14 @@ async def store_test_results(run_id: int, results: List[TestCaseResult]) -> bool
 async def update_test_run_status(run_id: int, status: str) -> bool:
     """Update the status of a test run."""
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
             update_data = {
                 "status": status,
                 "completed_at": datetime.now().isoformat()
             }
             
             response = await client.patch(
-                f"{DATA_SERVICE_URL}/api/v1/test-runs/{run_id}",
+                f"{service_settings.data_service_url}/api/v1/test-runs/{run_id}",
                 json=update_data
             )
             
@@ -333,14 +343,14 @@ async def update_test_run_status(run_id: int, status: str) -> bool:
 async def get_test_run_status(run_id: int):
     """Get the status and results of a test run."""
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
             # Get run details
-            run_response = await client.get(f"{DATA_SERVICE_URL}/api/v1/test-runs/{run_id}")
+            run_response = await client.get(f"{service_settings.data_service_url}/api/v1/test-runs/{run_id}")
             if run_response.status_code != 200:
                 raise HTTPException(status_code=404, detail="Test run not found")
             
             # Get run results
-            results_response = await client.get(f"{DATA_SERVICE_URL}/api/v1/test-runs/{run_id}/results")
+            results_response = await client.get(f"{service_settings.data_service_url}/api/v1/test-runs/{run_id}/results")
             
             run_data = run_response.json()
             results_data = results_response.json() if results_response.status_code == 200 else []
