@@ -40,6 +40,10 @@ bcrypt = "^4.0.1"
 python-multipart = "^0.0.6"
 email-validator = "^2.0.0"
 
+# Configuration Management
+python-dotenv = "^1.0.0"
+pydantic = {extras = ["email"], version = "^2.0.0"}
+
 [tool.poetry.dev-dependencies]
 black = "^23.7.0"
 isort = "^5.12.0"

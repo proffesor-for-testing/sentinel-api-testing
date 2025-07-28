@@ -5,6 +5,12 @@ from fastapi import FastAPI, HTTPException, Depends, status, Query
 from sqlalchemy import create_engine, select, func, desc, and_
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import selectinload
+import sys
+import os
+
+# Add the parent directory to the path to import config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config.settings import get_database_settings, get_application_settings
 
 from .models import Base, TestCase, TestSuite, TestSuiteEntry, TestRun, TestResult
 from .schemas import (
@@ -17,17 +23,24 @@ from .schemas import (
     DeleteResponse, RunStatus, TestStatus
 )
 
+# Get configuration settings
+db_settings = get_database_settings()
+app_settings = get_application_settings()
+
 app = FastAPI(
     title="Sentinel Data & Analytics Service",
     description="Service for managing test data, analytics, and reporting",
-    version="1.0.0"
+    version=app_settings.app_version
 )
 
-# Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@localhost/sentinel_db")
-
-# Create async engine and session
-engine = create_async_engine(DATABASE_URL)
+# Create async engine and session with configuration
+engine = create_async_engine(
+    db_settings.url,
+    pool_size=db_settings.pool_size,
+    max_overflow=db_settings.max_overflow,
+    pool_timeout=db_settings.pool_timeout,
+    pool_recycle=db_settings.pool_recycle
+)
 AsyncSessionLocal = async_sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
 )

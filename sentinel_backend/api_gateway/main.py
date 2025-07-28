@@ -5,25 +5,31 @@ import httpx
 import os
 import logging
 import sys
+
+# Add the parent directory to the path to import config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config.settings import get_service_settings, get_application_settings, get_network_settings
+
 sys.path.append('../auth_service')
 from auth_middleware import get_current_user, require_permission, Permissions, optional_auth
 
+# Get configuration settings
+service_settings = get_service_settings()
+app_settings = get_application_settings()
+network_settings = get_network_settings()
+
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=getattr(logging, app_settings.log_level),
+    format=app_settings.log_format
+)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Sentinel API Gateway",
     description="Main entry point for the Sentinel AI-powered API testing platform",
-    version="1.0.0"
+    version=app_settings.app_version
 )
-
-# Service URLs
-AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth_service:8005")
-SPEC_SERVICE_URL = os.getenv("SPEC_SERVICE_URL", "http://spec_service:8000")
-ORCHESTRATION_SERVICE_URL = os.getenv("ORCHESTRATION_SERVICE_URL", "http://orchestration_service:8000")
-DATA_SERVICE_URL = os.getenv("DATA_SERVICE_URL", "http://data_service:8000")
-EXECUTION_SERVICE_URL = os.getenv("EXECUTION_SERVICE_URL", "http://execution_service:8000")
 
 
 # Request/Response Models
@@ -104,15 +110,15 @@ async def root():
 async def health_check():
     """Health check endpoint that verifies all services are running."""
     services = {
-        "spec_service": SPEC_SERVICE_URL,
-        "orchestration_service": ORCHESTRATION_SERVICE_URL,
-        "data_service": DATA_SERVICE_URL,
-        "execution_service": EXECUTION_SERVICE_URL
+        "spec_service": service_settings.spec_service_url,
+        "orchestration_service": service_settings.orchestration_service_url,
+        "data_service": service_settings.data_service_url,
+        "execution_service": service_settings.execution_service_url
     }
     
     health_status = {"status": "healthy", "services": {}}
     
-    async with httpx.AsyncClient(timeout=5.0) as client:
+    async with httpx.AsyncClient(timeout=service_settings.health_check_timeout) as client:
         for service_name, service_url in services.items():
             try:
                 response = await client.get(f"{service_url}/")
@@ -217,10 +223,10 @@ async def upload_specification(
     auth_data: Dict[str, Any] = Depends(require_permission(Permissions.SPEC_CREATE))
 ):
     """Upload and parse an API specification."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.post(
-                f"{SPEC_SERVICE_URL}/api/v1/specifications",
+                f"{service_settings.spec_service_url}/api/v1/specifications",
                 json=request.dict()
             )
             response.raise_for_status()
@@ -236,9 +242,9 @@ async def list_specifications(
     auth_data: Dict[str, Any] = Depends(require_permission(Permissions.SPEC_READ))
 ):
     """List all uploaded API specifications."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.get(f"{SPEC_SERVICE_URL}/api/v1/specifications")
+            response = await client.get(f"{service_settings.spec_service_url}/api/v1/specifications")
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -250,9 +256,9 @@ async def list_specifications(
 @app.get("/api/v1/specifications/{spec_id}")
 async def get_specification(spec_id: int):
     """Get a specific API specification."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.get(f"{SPEC_SERVICE_URL}/api/v1/specifications/{spec_id}")
+            response = await client.get(f"{service_settings.spec_service_url}/api/v1/specifications/{spec_id}")
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -264,10 +270,10 @@ async def get_specification(spec_id: int):
 @app.post("/api/v1/generate-tests")
 async def generate_tests(request: TestGenerationRequest):
     """Generate test cases using AI agents."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.post(
-                f"{ORCHESTRATION_SERVICE_URL}/generate-tests",
+                f"{service_settings.orchestration_service_url}/generate-tests",
                 json=request.dict()
             )
             response.raise_for_status()
@@ -281,9 +287,9 @@ async def generate_tests(request: TestGenerationRequest):
 @app.get("/api/v1/test-cases")
 async def list_test_cases(spec_id: Optional[int] = None):
     """List test cases, optionally filtered by specification ID."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            url = f"{DATA_SERVICE_URL}/api/v1/test-cases"
+            url = f"{service_settings.data_service_url}/api/v1/test-cases"
             if spec_id:
                 url += f"?spec_id={spec_id}"
             
@@ -298,8 +304,8 @@ async def list_test_cases(spec_id: Optional[int] = None):
 
 async def get_test_cases_for_spec(spec_id: int) -> List[Dict[str, Any]]:
     """Helper function to get test cases for a specific specification."""
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"{DATA_SERVICE_URL}/api/v1/test-cases?spec_id={spec_id}")
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        response = await client.get(f"{service_settings.data_service_url}/api/v1/test-cases?spec_id={spec_id}")
         response.raise_for_status()
         return response.json()
 
@@ -307,10 +313,10 @@ async def get_test_cases_for_spec(spec_id: int) -> List[Dict[str, Any]]:
 @app.post("/api/v1/test-suites")
 async def create_test_suite(request: TestSuiteCreateRequest):
     """Create a new test suite."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.post(
-                f"{DATA_SERVICE_URL}/api/v1/test-suites",
+                f"{service_settings.data_service_url}/api/v1/test-suites",
                 json=request.dict()
             )
             response.raise_for_status()
@@ -324,9 +330,9 @@ async def create_test_suite(request: TestSuiteCreateRequest):
 @app.get("/api/v1/test-suites")
 async def list_test_suites():
     """List all test suites."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.get(f"{DATA_SERVICE_URL}/api/v1/test-suites")
+            response = await client.get(f"{service_settings.data_service_url}/api/v1/test-suites")
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -338,10 +344,10 @@ async def list_test_suites():
 @app.post("/api/v1/test-runs")
 async def run_tests(request: TestRunRequest):
     """Execute a test suite against a target environment."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.post(
-                f"{EXECUTION_SERVICE_URL}/test-runs",
+                f"{service_settings.execution_service_url}/test-runs",
                 json=request.dict()
             )
             response.raise_for_status()
@@ -355,9 +361,9 @@ async def run_tests(request: TestRunRequest):
 @app.get("/api/v1/test-runs")
 async def list_test_runs():
     """List all test runs."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.get(f"{DATA_SERVICE_URL}/api/v1/test-runs")
+            response = await client.get(f"{service_settings.data_service_url}/api/v1/test-runs")
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -369,9 +375,9 @@ async def list_test_runs():
 @app.get("/api/v1/test-runs/{run_id}")
 async def get_test_run(run_id: int):
     """Get details of a specific test run."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.get(f"{EXECUTION_SERVICE_URL}/test-runs/{run_id}")
+            response = await client.get(f"{service_settings.execution_service_url}/test-runs/{run_id}")
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -382,8 +388,8 @@ async def get_test_run(run_id: int):
 
 async def get_test_run_results(run_id: int) -> Dict[str, Any]:
     """Helper function to get detailed test run results."""
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"{EXECUTION_SERVICE_URL}/test-runs/{run_id}")
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        response = await client.get(f"{service_settings.execution_service_url}/test-runs/{run_id}")
         response.raise_for_status()
         return response.json()
 
@@ -391,9 +397,9 @@ async def get_test_run_results(run_id: int) -> Dict[str, Any]:
 @app.get("/api/v1/test-runs/{run_id}/results")
 async def get_test_run_results_endpoint(run_id: int):
     """Get detailed results for a test run."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.get(f"{DATA_SERVICE_URL}/api/v1/test-runs/{run_id}/results")
+            response = await client.get(f"{service_settings.data_service_url}/api/v1/test-runs/{run_id}/results")
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -406,10 +412,10 @@ async def get_test_run_results_endpoint(run_id: int):
 @app.post("/auth/login")
 async def login(request: UserLogin):
     """Authenticate user and return access token."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.post(
-                f"{AUTH_SERVICE_URL}/auth/login",
+                f"{service_settings.auth_service_url}/auth/login",
                 json=request.dict()
             )
             response.raise_for_status()
@@ -426,10 +432,10 @@ async def register(
     auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_CREATE))
 ):
     """Register a new user (admin only)."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.post(
-                f"{AUTH_SERVICE_URL}/auth/register",
+                f"{service_settings.auth_service_url}/auth/register",
                 json=request.dict(),
                 headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
             )
@@ -453,10 +459,10 @@ async def update_profile(
     auth_data: Dict[str, Any] = Depends(get_current_user)
 ):
     """Update current user's profile."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.put(
-                f"{AUTH_SERVICE_URL}/auth/profile",
+                f"{service_settings.auth_service_url}/auth/profile",
                 json=request.dict(),
                 headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
             )
@@ -473,10 +479,10 @@ async def list_users(
     auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_READ))
 ):
     """List all users (requires user read permission)."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.get(
-                f"{AUTH_SERVICE_URL}/auth/users",
+                f"{service_settings.auth_service_url}/auth/users",
                 headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
             )
             response.raise_for_status()
@@ -493,10 +499,10 @@ async def get_user(
     auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_READ))
 ):
     """Get a specific user by ID."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.get(
-                f"{AUTH_SERVICE_URL}/auth/users/{user_id}",
+                f"{service_settings.auth_service_url}/auth/users/{user_id}",
                 headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
             )
             response.raise_for_status()
@@ -514,10 +520,10 @@ async def update_user(
     auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_UPDATE))
 ):
     """Update a user (admin only)."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.put(
-                f"{AUTH_SERVICE_URL}/auth/users/{user_id}",
+                f"{service_settings.auth_service_url}/auth/users/{user_id}",
                 json=request.dict(),
                 headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
             )
@@ -535,10 +541,10 @@ async def delete_user(
     auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_DELETE))
 ):
     """Delete a user (admin only)."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.delete(
-                f"{AUTH_SERVICE_URL}/auth/users/{user_id}",
+                f"{service_settings.auth_service_url}/auth/users/{user_id}",
                 headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
             )
             response.raise_for_status()
@@ -552,9 +558,9 @@ async def delete_user(
 @app.get("/auth/roles")
 async def list_roles():
     """List all available roles and their permissions."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.get(f"{AUTH_SERVICE_URL}/auth/roles")
+            response = await client.get(f"{service_settings.auth_service_url}/auth/roles")
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
