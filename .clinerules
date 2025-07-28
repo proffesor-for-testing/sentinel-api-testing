@@ -82,7 +82,7 @@ This file captures important patterns, preferences, and project intelligence to 
 - **Configuration Caching**: Use `@lru_cache()` decorator for performance optimization in configuration loading
 - **Type Safety**: All configuration access is type-safe through Pydantic models with proper validation
 
-## 9. Configuration Modularization Patterns
+## 9. Configuration Modularization Patterns (In Progress)
 
 **Configuration Management Approach Successfully Implemented:**
 - **Centralized Configuration**: Comprehensive Pydantic BaseSettings system with type-safe configuration management and environment variable support
@@ -99,6 +99,7 @@ This file captures important patterns, preferences, and project intelligence to 
 - **Network Settings**: Host bindings, port mappings, timeout configurations for all services
 - **Application Settings**: Feature flags, pagination limits, logging levels, agent parameters, test execution settings
 - **Frontend Configuration**: Separate JavaScript configuration system with environment detection and validation
+- **Agent Configuration**: Data mocking settings, security testing parameters, performance testing configurations
 
 **Implementation Patterns Successfully Applied:**
 - **Service Configuration Import**: All services now import configuration using `from config.settings import get_settings, get_service_settings, get_application_settings`
@@ -109,6 +110,7 @@ This file captures important patterns, preferences, and project intelligence to 
 - **Configuration Caching**: Use `@lru_cache()` decorator for performance optimization in configuration loading
 - **Type Safety**: All configuration access is type-safe through Pydantic models with proper validation
 - **Frontend Integration**: Created comprehensive frontend configuration system with environment-specific overrides and utility functions
+- **Agent Configuration**: Agents use `getattr(app_settings, 'setting_name', default_value)` pattern for configuration access
 
 **Services Successfully Updated:**
 - **auth_service**: Complete security configuration integration with JWT, CORS, admin user, and logging settings
@@ -117,6 +119,11 @@ This file captures important patterns, preferences, and project intelligence to 
 - **auth_middleware**: Service URLs and timeout configuration centralized
 - **CLI**: Default base URL and timeout configuration using centralized settings
 - **Frontend**: Complete configuration system with API URLs, timeouts, and environment-specific settings
+
+**Agents Successfully Updated:**
+- **data_mocking_agent**: Mock data generation settings, faker locale, response/parameter/entity variations
+- **security_auth_agent**: BOLA vectors, authentication scenarios, security test timeouts, aggressive testing mode
+- **performance_planner_agent**: Load test configurations, user limits, test duration, ramp-up times
 
 ## 10. Task Completion Protocol
 

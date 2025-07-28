@@ -16,6 +16,10 @@ from faker.providers import BaseProvider
 import uuid
 
 from .base_agent import BaseAgent
+from config.settings import get_application_settings
+
+# Get configuration
+app_settings = get_application_settings()
 
 
 class APIProvider(BaseProvider):
@@ -82,6 +86,14 @@ class DataMockingAgent(BaseAgent):
             'boundary': self._generate_boundary_data
         }
         
+        # Configuration-driven settings
+        self.default_count = getattr(app_settings, 'data_mocking_default_count', 10)
+        self.max_response_variations = getattr(app_settings, 'data_mocking_max_response_variations', 5)
+        self.max_parameter_variations = getattr(app_settings, 'data_mocking_max_parameter_variations', 3)
+        self.max_entity_variations = getattr(app_settings, 'data_mocking_max_entity_variations', 5)
+        self.faker_locale = getattr(app_settings, 'data_mocking_faker_locale', 'en_US')
+        self.realistic_data_bias = getattr(app_settings, 'data_mocking_realistic_bias', 0.8)
+        
         # Field pattern mappings
         self.field_patterns = {
             'email': lambda: self.fake.email(),
@@ -121,7 +133,7 @@ class DataMockingAgent(BaseAgent):
         """
         config = config or {}
         strategy = config.get('strategy', 'realistic')
-        count = config.get('count', 10)
+        count = config.get('count', self.default_count)
         seed = config.get('seed')
         
         if seed:
@@ -338,7 +350,7 @@ class DataMockingAgent(BaseAgent):
             
             for media_type, media_def in content.items():
                 schema = media_def.get('schema', {})
-                for i in range(min(count, 5)):  # Fewer response variations
+                for i in range(min(count, self.max_response_variations)):  # Configurable response variations
                     mock_response = await self._generate_from_schema(schema, analysis, strategy)
                     operation_data['responses'][status_code].append({
                         'media_type': media_type,
@@ -350,7 +362,7 @@ class DataMockingAgent(BaseAgent):
         parameters = operation.get('parameters', [])
         for param in parameters:
             param_schema = param.get('schema', {})
-            for i in range(min(count, 3)):  # Fewer parameter variations
+            for i in range(min(count, self.max_parameter_variations)):  # Configurable parameter variations
                 mock_param = await self._generate_from_schema(param_schema, analysis, strategy)
                 operation_data['parameters'].append({
                     'name': param.get('name'),
@@ -408,7 +420,7 @@ class DataMockingAgent(BaseAgent):
         # Generate test entities for each schema
         for schema_name in analysis.get('schemas', {}):
             global_data['test_entities'][schema_name] = []
-            for i in range(min(count, 5)):
+            for i in range(min(count, self.max_entity_variations)):
                 entity = await self._generate_from_schema_name(schema_name, analysis, strategy)
                 global_data['test_entities'][schema_name].append(entity)
         

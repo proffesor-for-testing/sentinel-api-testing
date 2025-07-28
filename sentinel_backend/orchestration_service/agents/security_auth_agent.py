@@ -12,7 +12,10 @@ from urllib.parse import urlparse, parse_qs
 import re
 import random
 from .base_agent import BaseAgent
+from config.settings import get_application_settings
 
+# Get configuration
+app_settings = get_application_settings()
 logger = logging.getLogger(__name__)
 
 class SecurityAuthAgent(BaseAgent):
@@ -30,6 +33,12 @@ class SecurityAuthAgent(BaseAgent):
         super().__init__()
         self.agent_type = "security-auth"
         self.description = "Security agent focused on authentication and authorization vulnerabilities"
+        
+        # Configuration-driven settings
+        self.max_bola_vectors = getattr(app_settings, 'security_max_bola_vectors', 12)
+        self.max_auth_scenarios = getattr(app_settings, 'security_max_auth_scenarios', 4)
+        self.default_test_timeout = getattr(app_settings, 'security_test_timeout', 30)
+        self.enable_aggressive_testing = getattr(app_settings, 'security_enable_aggressive_testing', False)
     
     def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
@@ -178,33 +187,7 @@ class SecurityAuthAgent(BaseAgent):
             return test_cases
         
         # Generate bypass techniques
-        bypass_techniques = [
-            {
-                'name': 'header_manipulation',
-                'headers': {'X-Forwarded-For': '127.0.0.1', 'X-Real-IP': '127.0.0.1'},
-                'description': 'IP spoofing via proxy headers'
-            },
-            {
-                'name': 'user_agent_bypass',
-                'headers': {'User-Agent': 'Internal-Service/1.0'},
-                'description': 'Internal service user agent'
-            },
-            {
-                'name': 'referer_bypass',
-                'headers': {'Referer': 'https://localhost/admin'},
-                'description': 'Admin referer bypass attempt'
-            },
-            {
-                'name': 'method_override',
-                'headers': {'X-HTTP-Method-Override': 'GET'},
-                'description': 'HTTP method override bypass'
-            },
-            {
-                'name': 'content_type_bypass',
-                'headers': {'Content-Type': 'application/x-www-form-urlencoded'},
-                'description': 'Content-Type manipulation'
-            }
-        ]
+        bypass_techniques = self._get_bypass_techniques()
         
         for technique in bypass_techniques:
             test_case = {
@@ -264,22 +247,10 @@ class SecurityAuthAgent(BaseAgent):
         
         if param_type == 'integer':
             # Integer-based IDs
-            base_vectors = [
-                {'value': 1, 'description': 'Access first resource'},
-                {'value': 999999, 'description': 'Access high-numbered resource'},
-                {'value': -1, 'description': 'Negative ID access'},
-                {'value': 0, 'description': 'Zero ID access'},
-            ]
+            base_vectors = self._get_integer_bola_vectors()
         else:
             # String-based IDs
-            base_vectors = [
-                {'value': 'admin', 'description': 'Admin user access'},
-                {'value': 'test', 'description': 'Test user access'},
-                {'value': '00000000-0000-0000-0000-000000000001', 'description': 'First UUID access'},
-                {'value': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'description': 'Pattern UUID access'},
-                {'value': '../admin', 'description': 'Path traversal attempt'},
-                {'value': 'null', 'description': 'Null string access'},
-            ]
+            base_vectors = self._get_string_bola_vectors()
         
         # Add authentication scenarios to each vector
         auth_scenarios = [
@@ -419,3 +390,70 @@ class SecurityAuthAgent(BaseAgent):
             return [self._generate_data_from_schema(items_schema)]
         else:
             return 'test-value'
+    
+    def _get_bypass_techniques(self) -> List[Dict[str, Any]]:
+        """Get authentication bypass techniques based on configuration."""
+        techniques = [
+            {
+                'name': 'header_manipulation',
+                'headers': {'X-Forwarded-For': '127.0.0.1', 'X-Real-IP': '127.0.0.1'},
+                'description': 'IP spoofing via proxy headers'
+            },
+            {
+                'name': 'user_agent_bypass',
+                'headers': {'User-Agent': 'Internal-Service/1.0'},
+                'description': 'Internal service user agent'
+            },
+            {
+                'name': 'referer_bypass',
+                'headers': {'Referer': 'https://localhost/admin'},
+                'description': 'Admin referer bypass attempt'
+            },
+            {
+                'name': 'method_override',
+                'headers': {'X-HTTP-Method-Override': 'GET'},
+                'description': 'HTTP method override bypass'
+            },
+            {
+                'name': 'content_type_bypass',
+                'headers': {'Content-Type': 'application/x-www-form-urlencoded'},
+                'description': 'Content-Type manipulation'
+            }
+        ]
+        
+        if self.enable_aggressive_testing:
+            # Add more aggressive techniques for comprehensive testing
+            techniques.extend([
+                {
+                    'name': 'host_header_injection',
+                    'headers': {'Host': 'evil.com'},
+                    'description': 'Host header injection attempt'
+                },
+                {
+                    'name': 'origin_bypass',
+                    'headers': {'Origin': 'https://trusted-domain.com'},
+                    'description': 'Origin header bypass attempt'
+                }
+            ])
+        
+        return techniques
+    
+    def _get_integer_bola_vectors(self) -> List[Dict[str, Any]]:
+        """Get integer-based BOLA attack vectors."""
+        return [
+            {'value': 1, 'description': 'Access first resource'},
+            {'value': 999999, 'description': 'Access high-numbered resource'},
+            {'value': -1, 'description': 'Negative ID access'},
+            {'value': 0, 'description': 'Zero ID access'},
+        ]
+    
+    def _get_string_bola_vectors(self) -> List[Dict[str, Any]]:
+        """Get string-based BOLA attack vectors."""
+        return [
+            {'value': 'admin', 'description': 'Admin user access'},
+            {'value': 'test', 'description': 'Test user access'},
+            {'value': '00000000-0000-0000-0000-000000000001', 'description': 'First UUID access'},
+            {'value': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'description': 'Pattern UUID access'},
+            {'value': '../admin', 'description': 'Path traversal attempt'},
+            {'value': 'null', 'description': 'Null string access'},
+        ]

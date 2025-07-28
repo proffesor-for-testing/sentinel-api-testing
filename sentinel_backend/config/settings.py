@@ -209,6 +209,29 @@ class ApplicationSettings(BaseSettings):
     llm_max_tokens: int = Field(default=2000, description="LLM maximum tokens")
     llm_temperature: float = Field(default=0.7, description="LLM temperature")
     
+    # Data mocking settings
+    data_mocking_default_count: int = Field(default=10, description="Default number of mock data items to generate")
+    data_mocking_max_response_variations: int = Field(default=5, description="Maximum response variations per endpoint")
+    data_mocking_max_parameter_variations: int = Field(default=3, description="Maximum parameter variations per endpoint")
+    data_mocking_max_entity_variations: int = Field(default=5, description="Maximum entity variations per schema")
+    data_mocking_faker_locale: str = Field(default="en_US", description="Faker locale for data generation")
+    data_mocking_realistic_bias: float = Field(default=0.8, description="Bias towards realistic data generation (0.0-1.0)")
+    
+    # Security testing settings
+    security_max_bola_vectors: int = Field(default=12, description="Maximum BOLA attack vectors per parameter")
+    security_max_auth_scenarios: int = Field(default=4, description="Maximum authentication scenarios per test")
+    security_test_timeout: int = Field(default=30, description="Security test timeout in seconds")
+    security_enable_aggressive_testing: bool = Field(default=False, description="Enable aggressive security testing techniques")
+    security_max_injection_payloads: int = Field(default=20, description="Maximum injection payloads per test")
+    security_injection_timeout: int = Field(default=10, description="Injection test timeout in seconds")
+    
+    # Performance testing settings
+    performance_default_users: int = Field(default=10, description="Default number of virtual users for performance tests")
+    performance_max_users: int = Field(default=1000, description="Maximum number of virtual users")
+    performance_test_duration: int = Field(default=60, description="Default performance test duration in seconds")
+    performance_ramp_up_time: int = Field(default=30, description="Default ramp-up time in seconds")
+    performance_think_time: int = Field(default=1, description="Default think time between requests in seconds")
+    
     # Cache settings
     cache_enabled: bool = Field(default=True, description="Enable caching")
     cache_ttl_seconds: int = Field(default=3600, description="Cache TTL in seconds")

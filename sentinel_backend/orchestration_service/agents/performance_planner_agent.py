@@ -12,7 +12,10 @@ from typing import Dict, List, Any, Optional, Tuple
 import re
 import math
 from .base_agent import BaseAgent
+from config.settings import get_application_settings
 
+# Get configuration
+app_settings = get_application_settings()
 logger = logging.getLogger(__name__)
 
 class PerformancePlannerAgent(BaseAgent):
@@ -31,6 +34,13 @@ class PerformancePlannerAgent(BaseAgent):
         super().__init__()
         self.agent_type = "performance-planner"
         self.description = "Performance agent focused on generating comprehensive test plans and load scenarios"
+        
+        # Configuration-driven settings
+        self.default_users = getattr(app_settings, 'performance_default_users', 10)
+        self.max_users = getattr(app_settings, 'performance_max_users', 1000)
+        self.test_duration = getattr(app_settings, 'performance_test_duration', 60)
+        self.ramp_up_time = getattr(app_settings, 'performance_ramp_up_time', 30)
+        self.think_time = getattr(app_settings, 'performance_think_time', 1)
     
     def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
@@ -390,21 +400,21 @@ class PerformancePlannerAgent(BaseAgent):
         """Get load testing profiles for a specific operation."""
         profiles = []
         
-        # Base profile
+        # Base profile using configuration
         base_profile = {
             'name': 'Standard Load',
             'category': 'standard',
-            'duration': '5m',
-            'virtual_users': 10,
-            'ramp_up_time': '30s',
-            'ramp_down_time': '30s',
-            'think_time': '1s',
+            'duration': f'{self.test_duration}s',
+            'virtual_users': self.default_users,
+            'ramp_up_time': f'{self.ramp_up_time}s',
+            'ramp_down_time': f'{self.ramp_up_time}s',
+            'think_time': f'{self.think_time}s',
             'expected_response_time': '500ms',
-            'expected_throughput': '20 rps',
+            'expected_throughput': f'{self.default_users * 2} rps',
             'success_criteria': {
                 'response_time_p95': '1s',
                 'error_rate': '1%',
-                'throughput_min': '15 rps'
+                'throughput_min': f'{int(self.default_users * 1.5)} rps'
             }
         }
         
@@ -414,13 +424,13 @@ class PerformancePlannerAgent(BaseAgent):
             critical_profile.update({
                 'name': 'Critical Path Load',
                 'category': 'critical',
-                'virtual_users': 25,
+                'virtual_users': min(self.default_users * 2, self.max_users // 10),
                 'expected_response_time': '200ms',
-                'expected_throughput': '50 rps',
+                'expected_throughput': f'{min(self.default_users * 5, self.max_users // 5)} rps',
                 'success_criteria': {
                     'response_time_p95': '500ms',
                     'error_rate': '0.5%',
-                    'throughput_min': '40 rps'
+                    'throughput_min': f'{min(self.default_users * 4, self.max_users // 6)} rps'
                 }
             })
             profiles.append(critical_profile)
@@ -430,14 +440,14 @@ class PerformancePlannerAgent(BaseAgent):
             data_profile.update({
                 'name': 'Data Intensive Load',
                 'category': 'data_intensive',
-                'virtual_users': 5,
-                'think_time': '3s',
+                'virtual_users': max(self.default_users // 2, 2),
+                'think_time': f'{self.think_time * 3}s',
                 'expected_response_time': '2s',
-                'expected_throughput': '5 rps',
+                'expected_throughput': f'{max(self.default_users // 2, 2)} rps',
                 'success_criteria': {
                     'response_time_p95': '5s',
                     'error_rate': '2%',
-                    'throughput_min': '3 rps'
+                    'throughput_min': f'{max(self.default_users // 3, 1)} rps'
                 }
             })
             profiles.append(data_profile)
@@ -454,8 +464,8 @@ class PerformancePlannerAgent(BaseAgent):
         
         base_stress_profile = {
             'name': 'Breaking Point Stress',
-            'duration': '10m',
-            'max_virtual_users': 100,
+            'duration': f'{self.test_duration * 10}s',
+            'max_virtual_users': min(self.max_users, self.default_users * 10),
             'ramp_up_strategy': 'gradual_increase',
             'breaking_point_detection': {
                 'response_time_threshold': '5s',
@@ -465,7 +475,7 @@ class PerformancePlannerAgent(BaseAgent):
             'recovery_validation': True,
             'success_criteria': {
                 'breaking_point_identified': True,
-                'recovery_time': '2m',
+                'recovery_time': f'{self.ramp_up_time * 4}s',
                 'post_recovery_performance': '90% of baseline'
             }
         }
@@ -481,14 +491,14 @@ class PerformancePlannerAgent(BaseAgent):
         
         base_spike_profile = {
             'name': 'Traffic Spike',
-            'baseline_users': 10,
-            'spike_users': 50,
-            'spike_duration': '2m',
+            'baseline_users': self.default_users,
+            'spike_users': min(self.default_users * 5, self.max_users // 2),
+            'spike_duration': f'{self.test_duration * 2}s',
             'spike_pattern': 'instant',
-            'recovery_time': '3m',
+            'recovery_time': f'{self.test_duration * 3}s',
             'success_criteria': {
                 'spike_handling': 'graceful_degradation',
-                'recovery_time': '1m',
+                'recovery_time': f'{self.ramp_up_time * 2}s',
                 'error_rate_during_spike': '5%'
             }
         }

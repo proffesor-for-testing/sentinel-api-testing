@@ -148,7 +148,12 @@ The project follows a phased implementation approach:
 - ✅ Intelligent Data Mocking Agent (schema-aware mock data generation)
 - ✅ Test Case Management UI (collaborative editing, bulk operations, advanced filtering)
 - ✅ Role-Based Access Control (RBAC) - JWT authentication, user management, role-based permissions
-- 🔄 Configuration Modularization Initiative (60+ tasks to centralize hardcoded values)
+- 🔄 Configuration Modularization Initiative (Major progress: 45+ of 60+ tasks completed)
+  - ✅ Centralized Pydantic BaseSettings configuration system
+  - ✅ Core services updated (auth_service, execution_service, orchestration_service, CLI, frontend)
+  - ✅ Key agents updated (data_mocking_agent, security_auth_agent, performance_planner_agent)
+  - ✅ Security, database, service URLs, timeouts, and logging centralized
+  - 🔄 Remaining: security_injection_agent, functional agents, network settings, documentation
 - ⬜ Production deployment documentation
 
 ## 🛠️ Development

@@ -194,18 +194,25 @@ The goal is to create a centralized configuration system that supports:
 ## Agent Configuration
 
 ### ✅ Agent-Specific Settings
-- [ ] **orchestration_service/agents/data_mocking_agent.py**: Move generation settings
-  - Mock data strategies and counts
-  - Faker locale settings
-- [ ] **orchestration_service/agents/security_*.py**: Move security test parameters
-  - Payload configurations
-  - Test case limits
+- [x] **orchestration_service/agents/data_mocking_agent.py**: Move generation settings
+  - ✅ Mock data strategies and counts moved to configuration
+  - ✅ Faker locale settings moved to configuration
+  - ✅ Added configurable response/parameter/entity variations
+- [x] **orchestration_service/agents/security_auth_agent.py**: Move security test parameters
+  - ✅ BOLA attack vectors moved to configuration
+  - ✅ Authentication scenarios moved to configuration
+  - ✅ Security test timeouts and limits configured
+  - ✅ Aggressive testing mode configuration added
+- [ ] **orchestration_service/agents/security_injection_agent.py**: Move security test parameters
+  - Injection payload configurations
+  - Test case limits and timeouts
 - [ ] **orchestration_service/agents/functional_*.py**: Move functional test settings
   - Example URLs (currently `https://example.com/test`)
   - Test data generation parameters
-- [ ] **orchestration_service/agents/performance_planner_agent.py**: Move performance settings
-  - Load test configurations
-  - Performance thresholds
+- [x] **orchestration_service/agents/performance_planner_agent.py**: Move performance settings
+  - ✅ Load test configurations moved to configuration
+  - ✅ Performance thresholds and user limits configured
+  - ✅ Test duration and ramp-up times configured
 
 ## Docker & Deployment Configuration
 
@@ -303,9 +310,18 @@ The goal is to create a centralized configuration system that supports:
 ## Progress Tracking
 
 - **Total Tasks**: 60+
-- **Completed**: 0
-- **In Progress**: 0
-- **Remaining**: 60+
+- **Completed**: 45+
+- **In Progress**: 5
+- **Remaining**: 10+
+
+**Recent Completions:**
+- ✅ Data mocking agent configuration integration
+- ✅ Security authentication agent configuration integration  
+- ✅ Performance planner agent configuration integration
+- ✅ Security, performance, and data mocking settings added to centralized configuration
+- ✅ All major services updated with centralized configuration (auth_service, CLI, frontend, execution_service, orchestration_service)
+- ✅ Docker and deployment configuration completed
+- ✅ Frontend configuration system implemented
 
 ---
 
