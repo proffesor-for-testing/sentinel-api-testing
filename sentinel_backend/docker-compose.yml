@@ -4,16 +4,18 @@ services:
   db:
     image: pgvector/pgvector:pg16
     container_name: sentinel_db
+    env_file:
+      - .env.docker
     environment:
-      - POSTGRES_USER=sentinel
-      - POSTGRES_PASSWORD=supersecretpassword
-      - POSTGRES_DB=sentinel_db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "${DATABASE_PORT}:5432"
     volumes:
       - sentinel_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,71 +23,92 @@ services:
   api_gateway:
     build: ./api_gateway
     container_name: sentinel_api_gateway
+    env_file:
+      - .env.docker
     ports:
-      - "8000:8000"
+      - "${API_GATEWAY_PORT}:8000"
     depends_on:
       - auth_service
       - spec_service
       - orchestration_service
       - data_service
     environment:
-      - AUTH_SERVICE_URL=http://auth_service:8005
-      - SPEC_SERVICE_URL=http://spec_service:8001
-      - ORCHESTRATION_SERVICE_URL=http://orchestration_service:8002
-      - DATA_SERVICE_URL=http://data_service:8004
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
+      - SPEC_SERVICE_URL=${SPEC_SERVICE_URL}
+      - ORCHESTRATION_SERVICE_URL=${ORCHESTRATION_SERVICE_URL}
+      - DATA_SERVICE_URL=${DATA_SERVICE_URL}
+      - EXECUTION_SERVICE_URL=${EXECUTION_SERVICE_URL}
+      - SENTINEL_ENVIRONMENT=${SENTINEL_ENVIRONMENT}
 
   auth_service:
     build: ./auth_service
     container_name: sentinel_auth_service
+    env_file:
+      - .env.docker
     ports:
-      - "8005:8000"
+      - "${AUTH_SERVICE_PORT}:8000"
     environment:
-      - JWT_SECRET_KEY=sentinel-jwt-secret-change-in-production
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - SENTINEL_ENVIRONMENT=${SENTINEL_ENVIRONMENT}
 
   spec_service:
     build: ./spec_service
     container_name: sentinel_spec_service
+    env_file:
+      - .env.docker
     ports:
-      - "8001:8001"
+      - "${SPEC_SERVICE_PORT}:8001"
     depends_on:
       db:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql+asyncpg://sentinel:supersecretpassword@db/sentinel_db
+      - DATABASE_URL=${DATABASE_URL}
+      - SENTINEL_ENVIRONMENT=${SENTINEL_ENVIRONMENT}
 
   orchestration_service:
     build: ./orchestration_service
     container_name: sentinel_orchestration_service
+    env_file:
+      - .env.docker
     ports:
-      - "8002:8002"
+      - "${ORCHESTRATION_SERVICE_PORT}:8002"
     depends_on:
       - execution_service
       - data_service
     environment:
-      - EXECUTION_SERVICE_URL=http://execution_service:8003
-      - DATA_SERVICE_URL=http://data_service:8004
+      - EXECUTION_SERVICE_URL=${EXECUTION_SERVICE_URL}
+      - DATA_SERVICE_URL=${DATA_SERVICE_URL}
+      - SPEC_SERVICE_URL=${SPEC_SERVICE_URL}
+      - SENTINEL_ENVIRONMENT=${SENTINEL_ENVIRONMENT}
 
   execution_service:
     build: ./execution_service
     container_name: sentinel_execution_service
+    env_file:
+      - .env.docker
     ports:
-      - "8003:8003"
+      - "${EXECUTION_SERVICE_PORT}:8003"
     depends_on:
       db:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql+asyncpg://sentinel:supersecretpassword@db/sentinel_db
+      - DATABASE_URL=${DATABASE_URL}
+      - DATA_SERVICE_URL=${DATA_SERVICE_URL}
+      - SENTINEL_ENVIRONMENT=${SENTINEL_ENVIRONMENT}
 
   data_service:
     build: ./data_service
     container_name: sentinel_data_service
+    env_file:
+      - .env.docker
     ports:
-      - "8004:8004"
+      - "${DATA_SERVICE_PORT}:8004"
     depends_on:
       db:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql+asyncpg://sentinel:supersecretpassword@db/sentinel_db
+      - DATABASE_URL=${DATABASE_URL}
+      - SENTINEL_ENVIRONMENT=${SENTINEL_ENVIRONMENT}
 
 volumes:
   sentinel_postgres_data:
