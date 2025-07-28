@@ -84,16 +84,25 @@ The goal is to create a centralized configuration system that supports:
 ## Security Configuration
 
 ### ✅ Security Settings Centralization
-- [ ] **auth_service/main.py**: Move security settings to config
-  - Current: `JWT_SECRET_KEY = "sentinel-secret-key-change-in-production"`
-  - Current: `JWT_ALGORITHM = "HS256"`
-  - Current: `JWT_EXPIRATION_HOURS = 24`
-  - Current: Admin password `"admin123"`
-- [ ] Add password policy configuration
-- [ ] Add session timeout settings
-- [ ] Add CORS configuration
-- [ ] Add rate limiting settings
-- [ ] Create secure secret management for production
+- [x] **auth_service/main.py**: Move security settings to config
+  - ✅ Updated to use `security_settings.jwt_secret_key`, `security_settings.jwt_algorithm`, `security_settings.jwt_expiration_hours`
+  - ✅ Updated CORS configuration to use `security_settings.cors_origins`, `security_settings.cors_allow_credentials`, etc.
+  - ✅ Updated default admin user to use `security_settings.default_admin_email` and `security_settings.default_admin_password`
+  - ✅ Added proper logging configuration from `app_settings`
+- [x] Add password policy configuration
+- [x] Add session timeout settings
+- [x] Add CORS configuration
+- [x] Add rate limiting settings
+- [x] Create secure secret management for production
+
+**Implementation Notes:**
+- Updated auth_service to use centralized security configuration
+- All JWT settings now come from security_settings
+- CORS configuration centralized with proper origins, credentials, methods, and headers
+- Default admin user configuration moved to centralized settings
+- Password policy settings added to security configuration
+- Session timeout and rate limiting settings included in configuration
+- Production security validation added with JWT secret key validation
 
 ## Network & Infrastructure Configuration
 
@@ -116,21 +125,38 @@ The goal is to create a centralized configuration system that supports:
 ## Frontend Configuration
 
 ### ✅ Frontend Settings
-- [ ] **sentinel_frontend/src/services/api.js**: Move API configuration
-  - Current: `API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080'`
-  - Current: `timeout: 30000`
-- [ ] Create environment-specific frontend configs
-- [ ] Add build-time configuration injection
-- [ ] Move CORS settings to backend config
+- [x] **sentinel_frontend/src/services/api.js**: Move API configuration
+  - ✅ Updated to use centralized configuration from `config/settings.js`
+  - ✅ Replaced hardcoded `API_BASE_URL` with `getApiUrl()` function
+  - ✅ Replaced hardcoded timeout with `getApiTimeout()` function
+- [x] Create environment-specific frontend configs
+- [x] Add build-time configuration injection
+- [x] Move CORS settings to backend config
+
+**Implementation Notes:**
+- Created comprehensive frontend configuration system in `sentinel_frontend/src/config/settings.js`
+- Implemented environment-specific overrides for development, production, and test environments
+- Added configuration validation and utility functions
+- Updated API service to use centralized configuration
+- Added feature flags, pagination settings, security configuration, and analytics configuration
+- Implemented proper environment detection and configuration validation
 
 ## CLI Configuration
 
 ### ✅ CLI Settings
-- [ ] **cli/main.py**: Move default configurations
-  - Current: `base_url: str = "http://localhost:8000"`
-  - Current: `timeout: int = 300`
-- [ ] Add CLI configuration file support
-- [ ] Add profile-based configurations (dev, staging, prod)
+- [x] **cli/main.py**: Move default configurations
+  - ✅ Updated to use `network_settings.api_gateway_port` for default base URL
+  - ✅ Updated to use `app_settings.test_execution_timeout` for default timeout
+  - ✅ Added proper configuration imports from centralized settings
+- [x] Add CLI configuration file support
+- [x] Add profile-based configurations (dev, staging, prod)
+
+**Implementation Notes:**
+- Updated CLI to import and use centralized configuration settings
+- Default base URL now uses configured API Gateway port
+- Default timeout now uses configured test execution timeout
+- CLI now properly integrates with the centralized configuration system
+- Configuration is loaded automatically based on environment detection
 
 ## Application Settings
 

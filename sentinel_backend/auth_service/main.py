@@ -10,8 +10,18 @@ import os
 import logging
 from enum import Enum
 
+# Import configuration
+from config.settings import get_security_settings, get_application_settings
+
+# Get configuration
+security_settings = get_security_settings()
+app_settings = get_application_settings()
+
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=getattr(logging, app_settings.log_level),
+    format=app_settings.log_format
+)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
@@ -23,16 +33,16 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=security_settings.cors_origins,
+    allow_credentials=security_settings.cors_allow_credentials,
+    allow_methods=security_settings.cors_allow_methods,
+    allow_headers=security_settings.cors_allow_headers,
 )
 
-# Configuration
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "sentinel-secret-key-change-in-production")
-JWT_ALGORITHM = "HS256"
-JWT_EXPIRATION_HOURS = 24
+# Configuration from centralized settings
+JWT_SECRET_KEY = security_settings.jwt_secret_key
+JWT_ALGORITHM = security_settings.jwt_algorithm
+JWT_EXPIRATION_HOURS = security_settings.jwt_expiration_hours
 
 security = HTTPBearer()
 
@@ -118,11 +128,11 @@ ROLE_PERMISSIONS = {
 
 # In-memory user store (replace with database in production)
 users_db = {
-    "admin@sentinel.com": {
+    security_settings.default_admin_email: {
         "id": 1,
-        "email": "admin@sentinel.com",
+        "email": security_settings.default_admin_email,
         "full_name": "System Administrator",
-        "hashed_password": bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
+        "hashed_password": bcrypt.hashpw(security_settings.default_admin_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
         "role": UserRole.ADMIN,
         "is_active": True,
         "created_at": datetime.utcnow(),

@@ -21,6 +21,13 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import print as rprint
 
+# Import configuration
+from config.settings import get_network_settings, get_application_settings
+
+# Get configuration
+network_settings = get_network_settings()
+app_settings = get_application_settings()
+
 console = Console()
 
 class SentinelClient:
@@ -113,8 +120,8 @@ class SentinelClient:
         await self.client.aclose()
 
 @click.group()
-@click.option('--base-url', default='http://localhost:8000', help='Sentinel API base URL')
-@click.option('--timeout', default=300, help='Request timeout in seconds')
+@click.option('--base-url', default=f"http://localhost:{network_settings.api_gateway_port}", help='Sentinel API base URL')
+@click.option('--timeout', default=app_settings.test_execution_timeout, help='Request timeout in seconds')
 @click.pass_context
 def cli(ctx, base_url, timeout):
     """Sentinel CLI - AI-powered API testing platform"""
