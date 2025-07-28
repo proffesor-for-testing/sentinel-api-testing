@@ -49,7 +49,14 @@ This file captures important patterns, preferences, and project intelligence to 
 - **Frontend Analytics**: Create tabbed analytics interfaces with responsive charts using Recharts library, supporting multiple time ranges and real-time data refresh
 - **Database Performance**: Use PostgreSQL percentile functions for latency analysis and efficient date-based grouping for trend queries
 
-## 7. Task Completion Protocol
+## 7. Git Commit Guidelines
+
+- **Concise Commit Messages**: Keep commit messages concise and under 50 characters for the title to avoid commit operation failures
+- **Format**: Use format "Action: Brief description" (e.g., "Add: Analytics dashboard", "Fix: Database connection", "Update: Phase 4 completion")
+- **Avoid Long Descriptions**: Detailed descriptions can cause git commit failures; keep them brief and focused
+- **Use Present Tense**: Write commit messages in present tense (e.g., "Add feature" not "Added feature")
+
+## 8. Task Completion Protocol
 
 **MANDATORY STEPS when completing any task:**
 
