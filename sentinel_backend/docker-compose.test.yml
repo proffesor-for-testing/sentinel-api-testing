@@ -1,0 +1,198 @@
+version: '3.8'
+
+services:
+  # Test Database
+  test_db:
+    image: postgres:15
+    container_name: sentinel_test_db
+    environment:
+      POSTGRES_DB: sentinel_test_db
+      POSTGRES_USER: sentinel_test
+      POSTGRES_PASSWORD: sentinel_test_password
+    ports:
+      - "15432:5432"
+    volumes:
+      - test_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel_test -d sentinel_test_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sentinel_test_network
+
+  # Test Services (using testing configuration)
+  test_auth_service:
+    build:
+      context: .
+      dockerfile: auth_service/Dockerfile
+    container_name: sentinel_test_auth_service
+    environment:
+      - SENTINEL_ENVIRONMENT=testing
+    env_file:
+      - config/testing.env
+    ports:
+      - "18005:8000"
+    depends_on:
+      test_db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - sentinel_test_network
+
+  test_spec_service:
+    build:
+      context: .
+      dockerfile: spec_service/Dockerfile
+    container_name: sentinel_test_spec_service
+    environment:
+      - SENTINEL_ENVIRONMENT=testing
+    env_file:
+      - config/testing.env
+    ports:
+      - "18001:8000"
+    depends_on:
+      test_db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - sentinel_test_network
+
+  test_orchestration_service:
+    build:
+      context: .
+      dockerfile: orchestration_service/Dockerfile
+    container_name: sentinel_test_orchestration_service
+    environment:
+      - SENTINEL_ENVIRONMENT=testing
+    env_file:
+      - config/testing.env
+    ports:
+      - "18002:8000"
+    depends_on:
+      test_spec_service:
+        condition: service_healthy
+      test_data_service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - sentinel_test_network
+
+  test_execution_service:
+    build:
+      context: .
+      dockerfile: execution_service/Dockerfile
+    container_name: sentinel_test_execution_service
+    environment:
+      - SENTINEL_ENVIRONMENT=testing
+    env_file:
+      - config/testing.env
+    ports:
+      - "18003:8000"
+    depends_on:
+      test_data_service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - sentinel_test_network
+
+  test_data_service:
+    build:
+      context: .
+      dockerfile: data_service/Dockerfile
+    container_name: sentinel_test_data_service
+    environment:
+      - SENTINEL_ENVIRONMENT=testing
+    env_file:
+      - config/testing.env
+    ports:
+      - "18004:8000"
+    depends_on:
+      test_db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - sentinel_test_network
+
+  test_api_gateway:
+    build:
+      context: .
+      dockerfile: api_gateway/Dockerfile
+    container_name: sentinel_test_api_gateway
+    environment:
+      - SENTINEL_ENVIRONMENT=testing
+    env_file:
+      - config/testing.env
+    ports:
+      - "18000:8000"
+    depends_on:
+      test_auth_service:
+        condition: service_healthy
+      test_spec_service:
+        condition: service_healthy
+      test_orchestration_service:
+        condition: service_healthy
+      test_execution_service:
+        condition: service_healthy
+      test_data_service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - sentinel_test_network
+
+  # Test Runner Service
+  test_runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: sentinel_test_runner
+    environment:
+      - SENTINEL_ENVIRONMENT=testing
+    env_file:
+      - config/testing.env
+    volumes:
+      - .:/app
+      - test_reports:/app/test_reports
+    depends_on:
+      test_api_gateway:
+        condition: service_healthy
+    command: ["pytest", "-v", "--tb=short", "--cov=.", "--cov-report=html:/app/test_reports/htmlcov", "--cov-report=xml:/app/test_reports/coverage.xml"]
+    networks:
+      - sentinel_test_network
+
+volumes:
+  test_db_data:
+    driver: local
+  test_reports:
+    driver: local
+
+networks:
+  sentinel_test_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
