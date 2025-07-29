@@ -312,14 +312,26 @@ This script demonstrates authentication, authorization, and role-based permissio
 - **Real-time Analytics**: Historical trend analysis and anomaly detection
 - **CI/CD Integration**: Seamless integration with modern DevOps workflows
 
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 ## 🤝 Contributing
 
-This project follows the patterns and preferences outlined in `.clinerules`. Key principles:
+This project is open source and welcomes contributions! This project follows the patterns and preferences outlined in `.clinerules`. Key principles:
 
 - **Modularity**: Develop within the microservices architecture
 - **Agent Specialization**: Create specialized agents for new testing types
 - **Specification-Driven**: All development driven by API specifications
 - **Hybrid AI**: Combine deterministic algorithms with LLM capabilities
+
+### How to Contribute
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add: Amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📚 Documentation
 
