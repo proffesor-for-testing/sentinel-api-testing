@@ -15,6 +15,7 @@ The platform is built upon the **ruv-FANN** and **ruv-swarm** frameworks, enabli
 - **Execution Service** (Port 8003): Handles test execution and scheduling
 - **Data & Analytics Service** (Port 8004): Manages data persistence and analytics
 - **PostgreSQL Database** (Port 5432): Data storage with pgvector extension
+- **Sentinel Rust Core** (Port 8088): High-performance agentic core powered by `ruv-swarm`
 
 ## 🤖 Specialized Agents
 
@@ -158,6 +159,13 @@ The project follows a phased implementation approach:
   - ✅ Configuration validation and error handling with management CLI tools
   - ✅ Backup/restore, migration, and template generation capabilities
 - ⬜ Production deployment documentation
+
+### Phase 6: Platform Evolution (🚀 IN PROGRESS)
+*   [x] **Create `sentinel-rust-core` Service:** Foundational Rust service with `ruv-swarm` integration.
+*   [ ] **Port Python Agents to Rust:** Re-implement agent logic in Rust for performance and scalability.
+*   [ ] **Enhance Observability:** Implement structured logging, metrics, and tracing.
+*   [ ] **Decouple Services:** Introduce a message broker for asynchronous communication.
+*   [ ] **Modernize Frontend:** Adopt modern state-management and data-fetching libraries.
 
 ## 🛠️ Development
 
