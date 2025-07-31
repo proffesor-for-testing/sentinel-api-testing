@@ -6,11 +6,7 @@ import os
 import logging
 import sys
 
-# Add the parent directory to the path to import config
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import get_service_settings, get_application_settings, get_network_settings
-
-sys.path.append('../auth_service')
 from auth_middleware import get_current_user, require_permission, Permissions, optional_auth
 
 # Get configuration settings

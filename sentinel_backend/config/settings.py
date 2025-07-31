@@ -9,7 +9,8 @@ variable support.
 import os
 from typing import Optional, List, Dict, Any
 from functools import lru_cache
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings
 from enum import Enum
 
 

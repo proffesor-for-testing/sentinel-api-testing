@@ -8,12 +8,10 @@ from sqlalchemy.orm import selectinload
 import sys
 import os
 
-# Add the parent directory to the path to import config
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import get_database_settings, get_application_settings
 
-from .models import Base, TestCase, TestSuite, TestSuiteEntry, TestRun, TestResult
-from .schemas import (
+from models import Base, TestCase, TestSuite, TestSuiteEntry, TestRun, TestResult
+from schemas import (
     TestCaseCreate, TestCaseResponse, TestCaseSummary,
     TestSuiteCreate, TestSuiteResponse, TestSuiteSummary,
     TestSuiteEntryCreate, TestSuiteEntryResponse,

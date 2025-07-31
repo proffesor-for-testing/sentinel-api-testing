@@ -19,7 +19,7 @@ pgvector = "^0.2.0"
 alembic = "^1.11.1" # For database migrations
 
 # API Spec Parsing
-prance = "^2.0.0"
+prance = ">=2.0.0"
 openapi-core = "^0.18.0"
 pyyaml = "^6.0"
 
@@ -43,6 +43,8 @@ email-validator = "^2.0.0"
 # Configuration Management
 python-dotenv = "^1.0.0"
 pydantic = {extras = ["email"], version = "^2.0.0"}
+pydantic-settings = "^2.0.0"
+Faker = "^22.0.0"
 
 [tool.poetry.dev-dependencies]
 black = "^23.7.0"

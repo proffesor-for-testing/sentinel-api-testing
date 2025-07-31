@@ -10,15 +10,13 @@ from prance import ResolvingParser
 from openapi_core import Spec
 import sys
 
-# Add the parent directory to the path to import config
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import get_database_settings, get_application_settings
 
-from .models import Base, ApiSpecification
-from .schemas import (
-    SpecificationCreate, 
-    SpecificationResponse, 
-    SpecificationSummary, 
+from models import Base, ApiSpecification
+from schemas import (
+    SpecificationCreate,
+    SpecificationResponse,
+    SpecificationSummary,
     DeleteResponse
 )
 

@@ -15,13 +15,15 @@ services:
     volumes:
       - sentinel_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_db"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   api_gateway:
-    build: ./api_gateway
+    build:
+      context: .
+      dockerfile: api_gateway/Dockerfile
     container_name: sentinel_api_gateway
     env_file:
       - .env.docker
@@ -32,6 +34,7 @@ services:
       - spec_service
       - orchestration_service
       - data_service
+      - sentinel_rust_core
     environment:
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
       - SPEC_SERVICE_URL=${SPEC_SERVICE_URL}
@@ -41,7 +44,9 @@ services:
       - SENTINEL_ENVIRONMENT=${SENTINEL_ENVIRONMENT}
 
   auth_service:
-    build: ./auth_service
+    build:
+      context: .
+      dockerfile: auth_service/Dockerfile
     container_name: sentinel_auth_service
     env_file:
       - .env.docker
@@ -52,7 +57,9 @@ services:
       - SENTINEL_ENVIRONMENT=${SENTINEL_ENVIRONMENT}
 
   spec_service:
-    build: ./spec_service
+    build:
+      context: .
+      dockerfile: spec_service/Dockerfile
     container_name: sentinel_spec_service
     env_file:
       - .env.docker
@@ -66,7 +73,9 @@ services:
       - SENTINEL_ENVIRONMENT=${SENTINEL_ENVIRONMENT}
 
   orchestration_service:
-    build: ./orchestration_service
+    build:
+      context: .
+      dockerfile: orchestration_service/Dockerfile
     container_name: sentinel_orchestration_service
     env_file:
       - .env.docker
@@ -75,6 +84,7 @@ services:
     depends_on:
       - execution_service
       - data_service
+      - sentinel_rust_core
     environment:
       - EXECUTION_SERVICE_URL=${EXECUTION_SERVICE_URL}
       - DATA_SERVICE_URL=${DATA_SERVICE_URL}
@@ -82,7 +92,9 @@ services:
       - SENTINEL_ENVIRONMENT=${SENTINEL_ENVIRONMENT}
 
   execution_service:
-    build: ./execution_service
+    build:
+      context: .
+      dockerfile: execution_service/Dockerfile
     container_name: sentinel_execution_service
     env_file:
       - .env.docker
@@ -97,7 +109,9 @@ services:
       - SENTINEL_ENVIRONMENT=${SENTINEL_ENVIRONMENT}
 
   data_service:
-    build: ./data_service
+    build:
+      context: .
+      dockerfile: data_service/Dockerfile
     container_name: sentinel_data_service
     env_file:
       - .env.docker
@@ -109,6 +123,21 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - SENTINEL_ENVIRONMENT=${SENTINEL_ENVIRONMENT}
+
+  sentinel_rust_core:
+    build:
+      context: .
+      dockerfile: sentinel_rust_core/Dockerfile
+    container_name: sentinel_rust_core
+    ports:
+      - "8088:8088"
+    environment:
+      - RUST_LOG=info
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8088/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   sentinel_postgres_data:
