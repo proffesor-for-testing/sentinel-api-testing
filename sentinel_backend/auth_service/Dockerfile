@@ -9,18 +9,19 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
-COPY pyproject.toml .
+COPY sentinel_backend/pyproject.toml ./
 
-# Install Python dependencies
-RUN pip install poetry
-RUN poetry config virtualenvs.create false && poetry install --no-root
+# Install dependencies only (not the package itself yet)
+RUN pip install fastapi uvicorn sqlalchemy asyncpg psycopg2-binary pgvector alembic prance openapi-core pyyaml pytest pytest-asyncio httpx schedule openai pyjwt bcrypt python-multipart email-validator python-dotenv pydantic pydantic-settings Faker
 
 # Copy application code
-COPY config/ /app/config
-COPY auth_service/ .
+COPY . .
+
+# Now install the package in development mode
+RUN pip install -e .
 
 # Expose port
 EXPOSE ${AUTH_SERVICE_PORT:-8000}
 
 # Run the application
-CMD uvicorn main:app --host ${SENTINEL_NETWORK_HOST:-0.0.0.0} --port ${AUTH_SERVICE_PORT:-8000} --reload
+CMD ["uvicorn", "sentinel_backend.auth_service.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

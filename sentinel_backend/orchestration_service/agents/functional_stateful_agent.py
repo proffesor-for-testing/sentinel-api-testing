@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from .base_agent import BaseAgent, AgentTask, AgentResult
-from config.settings import get_application_settings
+from sentinel_backend.config.settings import get_application_settings
 
 
 class DependencyType(Enum):

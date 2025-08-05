@@ -11,7 +11,7 @@ import logging
 from enum import Enum
 
 # Import configuration
-from config.settings import get_security_settings, get_application_settings
+from sentinel_backend.config.settings import get_security_settings, get_application_settings
 
 # Get configuration
 security_settings = get_security_settings()

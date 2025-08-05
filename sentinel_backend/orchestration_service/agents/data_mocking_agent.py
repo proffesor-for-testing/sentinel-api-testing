@@ -16,7 +16,7 @@ from faker.providers import BaseProvider
 import uuid
 
 from .base_agent import BaseAgent
-from config.settings import get_application_settings
+from sentinel_backend.config.settings import get_application_settings
 
 # Get configuration
 app_settings = get_application_settings()

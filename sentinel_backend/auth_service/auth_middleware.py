@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Any
 import logging
 
 # Import configuration
-from config.settings import get_service_settings
+from sentinel_backend.config.settings import get_service_settings
 
 # Get configuration
 service_settings = get_service_settings()
