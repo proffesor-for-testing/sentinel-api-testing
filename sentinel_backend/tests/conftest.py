@@ -48,7 +48,7 @@ def app_settings():
 async def test_engine(database_settings):
     """Create test database engine."""
     engine = create_async_engine(
-        database_settings.database_url,
+        database_settings.url,
         pool_size=database_settings.pool_size,
         max_overflow=database_settings.max_overflow,
         pool_timeout=database_settings.pool_timeout,

@@ -2,128 +2,38 @@
 
 ## 1. Current Focus
 
-**🚀 PHASE 5 IN PROGRESS!** The project has successfully begun **Phase 5 (Enterprise Readiness)** with major CI/CD integration and data mocking capabilities implemented:
+**🚀 PLATFORM EVOLUTION: PHASE 1 COMPLETE!** The `ruv-swarm` integration and agentic core refinement are finished. The project is now ready for Phase 2.
 
-✅ **CI/CD Integration Complete** - Full CLI tool with GitHub Actions, GitLab CI, and Jenkins templates
-✅ **Intelligent Data Mocking Agent** - Schema-aware mock data generation with multiple strategies
-✅ **Enterprise CLI Features** - Test execution, data generation, validation, and reporting capabilities
-
-**Recently Completed Phase 5 Components:**
-- **Sentinel CLI**: Complete command-line interface for CI/CD integration with test execution, data generation, validation, and multiple output formats (JSON, JUnit XML, HTML)
-- **CI/CD Templates**: Production-ready templates for GitHub Actions, GitLab CI, and Jenkins with security gates, parallel execution, and comprehensive reporting
-- **Data Mocking Agent**: Intelligent mock data generation with realistic, edge case, boundary, and invalid data strategies
-- **Enhanced Orchestration**: Updated orchestration service to support data generation alongside test generation
-- **Test Case Management UI**: Complete collaborative test case management with editing, bulk operations, selection, tagging, and enhanced filtering capabilities
-
-**Recently Completed Phase 4 Tasks:**
-- **Historical Trend Analysis Service**: Implemented comprehensive historical analysis with real database queries for failure rates and latency trends, including anomaly detection using statistical analysis, predictive quality insights with linear regression, and comprehensive quality analysis by agent type
-- **Advanced Analytics Dashboards**: Created sophisticated React-based analytics dashboard with four main sections: Historical Trends (failure rate and latency visualization), Anomaly Detection (statistical anomaly identification), Predictive Insights (quality trend predictions), and Quality Insights (agent performance analysis and recommendations)
-
-**Current Phase 5 Focus:**
-- **Configuration Modularization Initiative**: **COMPLETED** - Comprehensive configuration modularization achieved with 90%+ completion. All services and agents updated to use centralized configuration. Core infrastructure: Pydantic BaseSettings system, environment-specific config files, Docker configuration, security validation. Testing infrastructure: pytest configuration, Docker test environment, comprehensive fixtures. Validation & error handling: configuration validation, error reporting, management CLI tool.
-- **Open Source License**: **COMPLETED** - MIT License added to make the project open source with proper licensing and contribution guidelines in README.md.
-
-**Remaining Phase 5 Tasks:**
-- Finalize user and technical documentation
-- Complete remaining security hardening features
-- Add configuration reference documentation
-- Create deployment configuration examples
-
-**Recently Completed RBAC Implementation:**
-- **Authentication Service**: Complete JWT-based authentication service with user management, role definitions, and permission-based access control
-- **Role System**: Four-tier role hierarchy (Admin, Manager, Tester, Viewer) with granular permissions for specifications, test cases, test suites, test runs, user management, and analytics
-- **Authentication Middleware**: Reusable middleware for FastAPI services with token validation, permission checking, and role-based access control
-- **API Gateway Integration**: Full integration of RBAC into the API Gateway with protected endpoints and authentication flow
-- **User Management**: Complete user CRUD operations with role assignment, profile management, and secure password handling
-- **Demo Script**: Comprehensive RBAC demonstration script showcasing authentication, authorization, and role-based permissions
+✅ **Phase 1: `ruv-swarm` Integration & Core Refinement (COMPLETE):**
+  - ✅ **`sentinel-rust-core` Service Created:** A new Rust-based microservice now serves as the high-performance agentic core.
+  - ✅ **Python Agents Ported to Rust:** Core agent logic has been successfully migrated to Rust, leveraging the `ruv-swarm` framework.
+  - ✅ **Orchestration Service Updated:** The Python backend is now fully decoupled from agent implementation, delegating tasks to the Rust core.
+  - ✅ **Docker Environment Stabilized:** All services, including the new Rust core, are stable and integrated within the Docker environment.
 
 ## 2. Recent Changes & Decisions
 
-- **Phase 4 COMPLETED:** Successfully implemented all major Phase 4 security and performance testing components.
-- **Security-Auth-Agent Features:**
-  - **BOLA Testing:** Broken Object Level Authorization vulnerability detection with parameter manipulation
-  - **Function-Level Authorization:** Tests for privilege escalation and unauthorized endpoint access
-  - **Authentication Bypass:** Header manipulation, IP spoofing, and method override bypass attempts
-  - **Comprehensive Auth Scenarios:** No auth, invalid tokens, expired tokens, and low-privilege user testing
-- **Security-Injection-Agent Features:**
-  - **Prompt Injection:** LLM-specific attacks including instruction override, conversation hijacking, and system message injection
-  - **SQL Injection:** Boolean-based, union-based, time-based, and destructive SQL injection payloads
-  - **NoSQL Injection:** MongoDB operator injection, regex attacks, and JavaScript injection in NoSQL contexts
-  - **Command Injection:** Command chaining, pipe injection, backtick execution, and remote payload attempts
-- **Performance-Planner-Agent Features:**
-  - **Load Testing:** Standard, critical path, and data-intensive load scenarios with configurable virtual users
-  - **Stress Testing:** Breaking point detection with gradual ramp-up and recovery validation
-  - **Spike Testing:** Traffic spike simulation with baseline and spike user configurations
-  - **k6/JMeter Integration:** Automated generation of performance test scripts and configurations
-  - **System-Wide Testing:** Workflow-based performance testing across multiple endpoints
-- **Orchestration Service Enhancement:** Updated to support all six agent types with proper security and performance tagging
-- **Phase 4 Demo Script:** Created `demo_phase4.py` with comprehensive SecureBank API specification for security and performance testing
-- **Agent Integration:** Successfully integrated all Phase 4 agents into the existing orchestration and data services
+- **Architectural Shift:** The agentic layer has been successfully migrated from a Python prototype to a production-grade Rust implementation using `ruv-swarm`.
+- **Decoupled Architecture:** The Orchestration Service now acts as a high-level task manager, fully decoupled from the agent implementation details. This allows the agentic system to be scaled and updated independently.
+- **Hybrid Model Deprecated:** The temporary hybrid execution model has been removed in favor of the full Rust implementation for all core agents.
 
 ## 3. Next Steps
 
-With most Phase 5 components completed, the remaining focus is on finalizing enterprise readiness:
-
-1.  **Role-Based Access Control (RBAC):**
-    - Design user authentication and authorization system
-    - Implement role-based permissions for test case management
-    - Add user management interface and access control middleware
-    - Integrate RBAC with existing collaborative features
-
-2.  **Documentation Finalization:**
-    - Complete user documentation with tutorials and guides
-    - Finalize technical documentation for deployment
-    - Create API documentation for enterprise integration
-    - Develop troubleshooting and maintenance guides
-
-3.  **Advanced Analytics (Future Enhancement):**
-    - Implement historical trend analysis service
-    - Build advanced analytics dashboards
-    - Add predictive quality insights and anomaly detection
-    - Enhance reporting with machine learning insights
-
-4.  **Production Readiness:**
-    - Optimize performance and scalability
-    - Add monitoring and observability features
-    - Create deployment automation scripts
-    - Implement backup and disaster recovery procedures
+1.  **Phase 2 Kick-off: Enhance Production Readiness & Observability:**
+    -   **Implement Observability Stack:** Introduce structured logging (JSON), correlation IDs, Prometheus for metrics, and Jaeger for distributed tracing.
+    -   **Decouple with Message Broker:** Integrate RabbitMQ for asynchronous communication between the Orchestration Service and the `sentinel-rust-core` service.
+    -   **Standardize Database & Security:** Adopt an `alembic upgrade head` deployment step and add standard security headers via API Gateway middleware.
+2.  **Performance Benchmarking:**
+    -   Conduct a comprehensive performance benchmark to quantify the improvements gained from the Rust implementation.
+    -   Compare latency, throughput, and resource utilization against the previous Python-based system.
 
 ## 4. Active Decisions & Considerations
 
-- **Phase 4 Success:** All major Phase 4 components have been successfully implemented, providing comprehensive security and performance testing capabilities.
-- **Agent Architecture Scalability:** The modular agent architecture has proven highly scalable, now supporting six different agent types across functional, security, and performance domains.
-- **Security Testing Maturity:** The platform now provides enterprise-grade security testing with OWASP Top 10 coverage and LLM-specific vulnerability detection.
-- **Performance Testing Integration:** k6 and JMeter script generation enables seamless integration with existing performance testing workflows.
-- **Comprehensive Testing Coverage:** The platform now covers the full spectrum of API testing: functional, security, and performance.
-- **LLM Provider:** An initial LLM provider needs to be selected for development and testing. OpenAI is a strong candidate due to its robust API and function-calling capabilities.
-- **Enterprise Readiness:** Ready to begin Phase 5 focusing on enterprise features, CI/CD integration, and production deployment capabilities.
+- **Performance Benchmarking:** Once the core agents are ported, a performance benchmark should be conducted to quantify the improvements gained from the Rust implementation.
+- **Error Handling & Resilience:** Further work is needed to enhance error handling and resilience in the communication between the Python and Rust services.
+- **Feature Parity:** Ensure that the ported Rust agents have full feature parity with the original Python implementations.
 
 ## 5. Technical Implementation Notes
 
-- **Agent Integration Pattern:** Successfully established and scaled the pattern for integrating new agents, now supporting six different agent types
-- **Security Testing Architecture:** Implemented comprehensive security testing with BOLA, injection, and authentication bypass capabilities
-- **Performance Testing Framework:** Built complete performance testing framework with k6/JMeter script generation and multiple test scenario types
-- **Enhanced Tagging System:** Extended tagging system to support security and performance test categorization
-- **Vulnerability Detection:** Advanced vulnerability detection patterns for modern security threats including LLM-specific attacks
-- **Performance Analysis:** Intelligent performance analysis with API complexity assessment and load pattern recommendations
-- **Frontend Architecture:** Established comprehensive React application ready for security and performance test result visualization
-- **Demonstration Capabilities:** Created comprehensive demo scripts showcasing all Phase 4 capabilities with realistic banking API scenarios
-- **Phase 4 Completion:** All deliverables completed including three new specialized agents with full orchestration integration
-
-## 6. Phase 4 Achievements Summary
-
-**✅ PHASE 4 COMPLETED** - All major deliverables successfully implemented:
-
-1. **Security-Auth-Agent**: BOLA, function-level authorization, and authentication bypass testing
-2. **Security-Injection-Agent**: Comprehensive injection vulnerability testing including prompt injection for LLM-backed APIs
-3. **Performance-Planner-Agent**: Complete performance testing framework with load, stress, and spike testing capabilities
-
-The platform now provides enterprise-grade API testing capabilities across all domains:
-- **Functional Testing:** Positive, negative, and stateful workflow testing
-- **Security Testing:** Authentication, authorization, and injection vulnerability detection
-- **Performance Testing:** Load, stress, and spike testing with automated script generation
-- **Comprehensive Coverage:** Full spectrum API testing with specialized agents for each domain
-- **Enterprise Integration:** k6/JMeter compatibility and performance test script generation
-- **Advanced Vulnerability Detection:** Modern security threats including LLM-specific attacks
-
-**Ready for Phase 5: Enterprise Readiness and CI/CD Integration**
+- **Rust Dependencies:** `actix-web` is used for the web server, `serde` for serialization, and `async-trait` for the agent trait.
+- **Configuration:** The Orchestration Service uses a `RUST_CORE_URL` environment variable to locate the Rust service.
+- **Code Structure:** The new Rust code is organized into `agents`, `types`, and `utils` modules within the `sentinel-rust-core` service.

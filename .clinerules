@@ -178,7 +178,43 @@ The configuration modularization initiative has been successfully completed acro
 
 4. **Ask about GitHub Push**: At the end of every completed task, ask the user if all changes should be pushed to GitHub
 
-## 7. Memory Bank Updates
+## 12. Branch Management Protocol
+
+**MANDATORY WORKFLOW for all tasks:**
+
+1. **Create Task Branch**: Before starting any new task, create a new branch from main:
+   - Branch naming convention: `task/brief-description` or `feature/brief-description`
+   - Examples: `task/add-analytics-dashboard`, `feature/rbac-implementation`, `fix/database-connection`
+   - Always branch from the latest main branch
+
+2. **Work in Branch**: Perform all task-related work in the dedicated branch:
+   - Make commits frequently with clear, descriptive messages following the Git Commit Guidelines
+   - Keep commits focused and atomic - each commit should represent a logical unit of work
+   - Test changes thoroughly before committing
+
+3. **Complete Task in Branch**: When the task is complete:
+   - Ensure all changes are committed to the task branch
+   - Verify that all tests pass and the application works as expected
+   - Update documentation and memory bank files as required by Task Completion Protocol
+
+4. **Create Pull Request**: After task completion:
+   - Push the task branch to the remote repository
+   - Create a Pull Request (PR) from the task branch to main
+   - Include a clear description of changes, testing performed, and any breaking changes
+   - Reference any related issues or tasks in the PR description
+
+5. **Branch Cleanup**: After PR is merged:
+   - Delete the local task branch: `git branch -d task/branch-name`
+   - Delete the remote task branch if not automatically cleaned up
+
+**Branch Management Best Practices:**
+- **Single Purpose**: Each branch should focus on a single task or feature
+- **Short-Lived**: Keep branches short-lived to minimize merge conflicts
+- **Regular Updates**: If working on long-running tasks, regularly rebase or merge from main
+- **Clear Naming**: Use descriptive branch names that clearly indicate the task or feature
+- **No Direct Main Commits**: Never commit directly to main - always use branches and PRs
+
+## 13. Memory Bank Updates
 
 -   The Memory Bank is the single source of truth. It MUST be updated after any significant architectural decision, feature implementation, or change in project direction.
 -   `progress.md` should be updated at the end of every major work session to reflect the current state of the project.

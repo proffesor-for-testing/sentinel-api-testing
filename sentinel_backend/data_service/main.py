@@ -8,10 +8,10 @@ from sqlalchemy.orm import selectinload
 import sys
 import os
 
-from config.settings import get_database_settings, get_application_settings
+from sentinel_backend.config.settings import get_database_settings, get_application_settings
 
-from models import Base, TestCase, TestSuite, TestSuiteEntry, TestRun, TestResult
-from schemas import (
+from sentinel_backend.data_service.models import Base, TestCase, TestSuite, TestSuiteEntry, TestRun, TestResult
+from sentinel_backend.data_service.schemas import (
     TestCaseCreate, TestCaseResponse, TestCaseSummary,
     TestSuiteCreate, TestSuiteResponse, TestSuiteSummary,
     TestSuiteEntryCreate, TestSuiteEntryResponse,

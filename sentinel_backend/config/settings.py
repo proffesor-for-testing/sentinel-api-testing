@@ -51,7 +51,7 @@ class ServiceSettings(BaseSettings):
     
     # Service URLs
     auth_service_url: str = Field(
-        default="http://auth_service:8005",
+        default="http://auth_service:8000",
         description="Authentication service URL"
     )
     spec_service_url: str = Field(
@@ -69,6 +69,10 @@ class ServiceSettings(BaseSettings):
     execution_service_url: str = Field(
         default="http://execution_service:8003",
         description="Execution service URL"
+    )
+    rust_core_service_url: str = Field(
+        default="http://sentinel-rust-core:8088",
+        description="Rust core service URL"
     )
     
     # Service timeouts

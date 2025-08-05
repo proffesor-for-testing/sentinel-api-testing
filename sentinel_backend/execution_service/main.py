@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 
 # Import configuration
-from config.settings import get_settings, get_service_settings, get_application_settings, get_network_settings
+from sentinel_backend.config.settings import get_settings, get_service_settings, get_application_settings, get_network_settings
 
 # Get configuration
 settings = get_settings()

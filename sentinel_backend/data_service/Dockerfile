@@ -5,18 +5,17 @@ FROM python:3.10-slim
 WORKDIR /app
 ENV PYTHONPATH /app
 
-# Install poetry
-RUN pip install poetry
-
 # Copy the dependency files to the working directory
-COPY pyproject.toml ./
+COPY sentinel_backend/pyproject.toml ./
 
-# Install project dependencies
-RUN poetry config virtualenvs.create false && poetry install --no-root
+# Install dependencies only (not the package itself yet)
+RUN pip install fastapi uvicorn sqlalchemy asyncpg psycopg2-binary pgvector alembic prance openapi-core pyyaml pytest pytest-asyncio httpx schedule openai pyjwt bcrypt python-multipart email-validator python-dotenv pydantic pydantic-settings Faker
 
 # Copy the content of the local src directory to the working directory
-COPY config/ /app/config
-COPY data_service/ .
+COPY . .
+
+# Now install the package in development mode
+RUN pip install -e .
 
 # Command to run the application
-CMD uvicorn main:app --host ${SENTINEL_NETWORK_HOST:-0.0.0.0} --port ${DATA_SERVICE_PORT:-8004}
+CMD ["uvicorn", "sentinel_backend.data_service.main:app", "--host", "0.0.0.0", "--port", "8004", "--reload"]

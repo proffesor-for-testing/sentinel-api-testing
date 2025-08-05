@@ -10,10 +10,10 @@ from prance import ResolvingParser
 from openapi_core import Spec
 import sys
 
-from config.settings import get_database_settings, get_application_settings
+from sentinel_backend.config.settings import get_database_settings, get_application_settings
 
-from models import Base, ApiSpecification
-from schemas import (
+from sentinel_backend.spec_service.models import Base, ApiSpecification
+from sentinel_backend.spec_service.schemas import (
     SpecificationCreate,
     SpecificationResponse,
     SpecificationSummary,

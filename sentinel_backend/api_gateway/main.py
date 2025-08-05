@@ -6,8 +6,8 @@ import os
 import logging
 import sys
 
-from config.settings import get_service_settings, get_application_settings, get_network_settings
-from auth_middleware import get_current_user, require_permission, Permissions, optional_auth
+from sentinel_backend.config.settings import get_service_settings, get_application_settings, get_network_settings
+from sentinel_backend.auth_service.auth_middleware import get_current_user, require_permission, Permissions, optional_auth
 
 # Get configuration settings
 service_settings = get_service_settings()

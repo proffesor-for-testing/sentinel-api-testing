@@ -17,12 +17,15 @@ Here is the final, prioritized action plan that integrates all recommendations w
 *   [x] **Create a `sentinel-rust-core` Service:**
     *   **Action:** Develop a new Rust-based microservice using `actix-web` or a similar framework.
     *   **Purpose:** This service will act as the bridge between Sentinel's Python backend and the `ruv-swarm` Rust library. It will expose a simple REST API for the Orchestration Service to call (e.g., `POST /swarm/orchestrate`).
-*   [ ] **Port Python Agents to Rust:**
+*   [x] **Port Python Agents to Rust:**
     *   **Action:** Re-implement the logic from the existing Python agents (Functional-Positive, Security-Auth, etc.) as specialized agents within the new `sentinel-rust-core` service, implementing the `ruv-swarm` `Agent` trait.
     *   **Strategy:** Leverage the "Skills" abstraction. Common logic (like data generation) should be implemented in shared Rust modules, and each agent will be composed of these skills.
-*   [ ] **Update the Orchestration Service:**
+*   [x] **Update the Orchestration Service:**
     *   **Action:** Remove the direct Python agent imports. The Orchestration Service's role will now be to translate API testing requests into high-level tasks and send them to the new `sentinel-rust-core` service.
     *   **Benefit:** This fully decouples the core logic of Sentinel from the agent implementation, allowing the agentic system to be scaled and updated independently.
+*   [ ] **Fix Docker Environment:**
+    *   **Action:** Resolve the `ModuleNotFoundError` and other startup issues when running the services with `docker-compose`.
+    *   **Purpose:** Ensure a stable and reliable development environment for all services.
 
 ### Phase 2: Enhance Production Readiness & Observability
 

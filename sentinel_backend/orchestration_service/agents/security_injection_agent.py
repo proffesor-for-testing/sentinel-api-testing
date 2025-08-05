@@ -12,7 +12,7 @@ from typing import Dict, List, Any, Optional
 import re
 import base64
 from .base_agent import BaseAgent
-from config.settings import get_application_settings
+from sentinel_backend.config.settings import get_application_settings
 
 logger = logging.getLogger(__name__)
 

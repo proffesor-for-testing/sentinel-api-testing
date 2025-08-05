@@ -1,0 +1,116 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: sentinel_db
+    env_file:
+      - sentinel_backend/.env.docker
+    ports:
+      - "5432:5432"
+    volumes:
+      - sentinel_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api_gateway:
+    build:
+      context: .
+      dockerfile: sentinel_backend/api_gateway/Dockerfile
+    container_name: sentinel_api_gateway
+    env_file:
+      - sentinel_backend/.env.docker
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth_service
+      - spec_service
+      - orchestration_service
+      - data_service
+      - sentinel_rust_core
+  auth_service:
+    build:
+      context: .
+      dockerfile: sentinel_backend/auth_service/Dockerfile
+    container_name: sentinel_auth_service
+    env_file:
+      - sentinel_backend/.env.docker
+    working_dir: /app
+    ports:
+      - "8005:8000"
+
+  spec_service:
+    build:
+      context: .
+      dockerfile: sentinel_backend/spec_service/Dockerfile
+    container_name: sentinel_spec_service
+    env_file:
+      - sentinel_backend/.env.docker
+    working_dir: /app
+    ports:
+      - "8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  orchestration_service:
+    build:
+      context: .
+      dockerfile: sentinel_backend/orchestration_service/Dockerfile
+    container_name: sentinel_orchestration_service
+    env_file:
+      - sentinel_backend/.env.docker
+    working_dir: /app
+    ports:
+      - "8002:8002"
+    depends_on:
+      - execution_service
+      - data_service
+      - sentinel_rust_core
+
+  execution_service:
+    build:
+      context: .
+      dockerfile: sentinel_backend/execution_service/Dockerfile
+    container_name: sentinel_execution_service
+    env_file:
+      - sentinel_backend/.env.docker
+    working_dir: /app
+    ports:
+      - "8003:8003"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  data_service:
+    build:
+      context: .
+      dockerfile: sentinel_backend/data_service/Dockerfile
+    container_name: sentinel_data_service
+    env_file:
+      - sentinel_backend/.env.docker
+    working_dir: /app
+    ports:
+      - "8004:8004"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  sentinel_rust_core:
+    build:
+      context: .
+      dockerfile: sentinel_backend/sentinel_rust_core/Dockerfile
+    container_name: sentinel_rust_core
+    ports:
+      - "8088:8088"
+    environment:
+      - RUST_LOG=info
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8088/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  sentinel_postgres_data:
