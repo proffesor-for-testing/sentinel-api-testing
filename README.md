@@ -161,11 +161,18 @@ The project follows a phased implementation approach:
 - ⬜ Production deployment documentation
 
 ### Phase 6: Platform Evolution (🚀 IN PROGRESS)
-*   [x] **Create `sentinel-rust-core` Service:** Foundational Rust service with `ruv-swarm` integration.
-*   [ ] **Port Python Agents to Rust:** Re-implement agent logic in Rust for performance and scalability.
-*   [ ] **Enhance Observability:** Implement structured logging, metrics, and tracing.
-*   [ ] **Decouple Services:** Introduce a message broker for asynchronous communication.
-*   [ ] **Modernize Frontend:** Adopt modern state-management and data-fetching libraries.
+*   [x] **Integrate `ruv-swarm` and Refine the Agentic Core (Phase 1):**
+    *   [x] **Create `sentinel-rust-core` Service:** Developed a new Rust-based microservice to act as a bridge to the `ruv-swarm` framework.
+    *   [x] **Port Python Agents to Rust:** Re-implemented core agent logic in Rust, leveraging the `ruv-swarm` `Agent` trait for high performance.
+    *   [x] **Update the Orchestration Service:** Decoupled the Python backend from agent implementation by delegating tasks to the new Rust core.
+    *   [x] **Fix Docker Environment:** Resolved startup issues and stabilized the multi-service Docker environment.
+*   [ ] **Enhance Production Readiness & Observability (Phase 2):**
+    *   [ ] Implement a full observability stack (structured logging, metrics, tracing).
+    *   [ ] Decouple services with a message broker (RabbitMQ).
+    *   [ ] Standardize database migrations and security headers.
+*   [ ] **Modernize the Frontend & Foster Community (Phase 3):**
+    *   [ ] Modernize the frontend architecture (Redux Toolkit, React Query).
+    *   [ ] Build a welcoming open-source community (`CONTRIBUTING.md`, issue templates).
 
 ## 🛠️ Development
 
