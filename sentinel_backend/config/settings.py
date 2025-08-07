@@ -85,6 +85,21 @@ class ServiceSettings(BaseSettings):
         case_sensitive = False
 
 
+class MessageBrokerSettings(BaseSettings):
+    """Message broker configuration settings."""
+    
+    url: str = Field(
+        default="amqp://guest:guest@message_broker:5672/",
+        description="Message broker connection URL"
+    )
+    task_queue_name: str = Field(default="sentinel_task_queue", description="Task queue name")
+    result_queue_name: str = Field(default="sentinel_result_queue", description="Result queue name")
+    
+    class Config:
+        env_prefix = "SENTINEL_BROKER_"
+        case_sensitive = False
+
+
 class SecuritySettings(BaseSettings):
     """Security configuration settings."""
     
@@ -274,6 +289,7 @@ class Settings(BaseSettings):
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     network: NetworkSettings = Field(default_factory=NetworkSettings)
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
+    broker: MessageBrokerSettings = Field(default_factory=MessageBrokerSettings)
     
     # Global settings
     config_file: Optional[str] = Field(default=None, description="Configuration file path")
@@ -372,3 +388,8 @@ def get_network_settings() -> NetworkSettings:
 def get_application_settings() -> ApplicationSettings:
     """Get application settings."""
     return get_settings().application
+
+
+def get_broker_settings() -> MessageBrokerSettings:
+    """Get message broker settings."""
+    return get_settings().broker

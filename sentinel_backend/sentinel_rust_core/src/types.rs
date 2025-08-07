@@ -10,7 +10,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentTask {
     pub task_id: String,
-    pub spec_id: i32,
+    pub spec_id: String,  // Changed from i32 to String to match Python side
     pub agent_type: String,
     pub parameters: HashMap<String, serde_json::Value>,
     pub target_environment: Option<String>,

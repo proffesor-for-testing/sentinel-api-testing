@@ -13,8 +13,12 @@ serde_json = "1.0"
 async-trait = "0.1"
 rand = "0.8"
 uuid = { version = "1.0", features = ["v4"] }
+futures-util = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
 
 # RUV Swarm Dependencies
 ruv-swarm-core = "0.2.0"
 ruv-swarm-agents = "0.2.0"
+
+# AMQP for RabbitMQ
+lapin = "2.1.1"

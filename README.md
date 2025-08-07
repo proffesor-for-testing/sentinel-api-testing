@@ -16,6 +16,7 @@ The platform is built upon the **ruv-FANN** and **ruv-swarm** frameworks, enabli
 - **Data & Analytics Service** (Port 8004): Manages data persistence and analytics
 - **PostgreSQL Database** (Port 5432): Data storage with pgvector extension
 - **Sentinel Rust Core** (Port 8088): High-performance agentic core powered by `ruv-swarm`
+- **RabbitMQ Message Broker** (Port 5672/15672): Asynchronous task queue for decoupled service communication
 - **Prometheus** (Port 9090): Metrics collection and monitoring
 - **Jaeger** (Port 16686): Distributed tracing and request flow visualization
 
@@ -209,7 +210,13 @@ The project follows a phased implementation approach:
         - Jaeger distributed tracing with OpenTelemetry integration
         - Docker Compose integration with Prometheus and Jaeger services
         - Comprehensive end-to-end testing for validation
-    *   [ ] Decouple services with a message broker (RabbitMQ).
+    *   [x] **Decouple services with a message broker (RabbitMQ)**: ✅ COMPLETED
+        - RabbitMQ integrated into Docker Compose infrastructure
+        - Message broker configuration added to centralized settings
+        - Publisher implementation in Orchestration Service
+        - Consumer implementation in Sentinel Rust Core
+        - Asynchronous task processing with durable queues
+        - Test suite for message broker integration
     *   [ ] Standardize database migrations and security headers.
 *   [ ] **Modernize the Frontend & Foster Community (Phase 3):**
     *   [ ] Modernize the frontend architecture (Redux Toolkit, React Query).
@@ -349,7 +356,32 @@ SENTINEL_NETWORK_JAEGER_AGENT_PORT=6831
 # Structured logging
 SENTINEL_APP_LOG_LEVEL=INFO
 SENTINEL_APP_LOG_FORMAT=json  # json or text
+
+# Message Broker configuration
+SENTINEL_BROKER_URL=amqp://guest:guest@message_broker:5672/
+SENTINEL_BROKER_TASK_QUEUE_NAME=sentinel_task_queue
+SENTINEL_BROKER_RESULT_QUEUE_NAME=sentinel_result_queue
 ```
+
+### Message Broker Architecture
+
+The platform uses RabbitMQ for asynchronous task processing:
+
+- **Task Queue**: The Orchestration Service publishes agent tasks to RabbitMQ
+- **Consumer**: The Sentinel Rust Core consumes tasks from the queue
+- **Durability**: Messages persist across service restarts
+- **Scalability**: Multiple Rust Core instances can consume from the same queue
+
+To test the message broker integration:
+```bash
+python3 test_rabbitmq_integration.py
+```
+
+This validates:
+- ✅ RabbitMQ connection and queue management
+- ✅ Task publishing from Python services
+- ✅ Task consumption by Rust Core
+- ✅ Message persistence and durability
 
 For production deployments:
 1. Configure external Jaeger collector for trace aggregation

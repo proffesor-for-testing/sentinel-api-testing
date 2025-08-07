@@ -84,7 +84,7 @@ The project has successfully completed Phases 1-4 and is now in Phase 5 (Enterpr
 | Fix Docker Environment                             | ✅ Done     | Resolved startup issues and stabilized the Docker environment.        |
 | **Phase 2: Production Readiness**                  | 🔄 **In Progress** |                                                                       |
 | Enhance Observability                              | ✅ Done     | **COMPLETED**: Implemented comprehensive observability stack with structured logging (structlog), correlation ID tracking, Prometheus metrics, and Jaeger distributed tracing. All services instrumented, Docker integration complete, and end-to-end tests passing. |
-| Decouple Services w/ Message Broker                | ⬜ To Do    | Integrate RabbitMQ for asynchronous communication.                    |
+| Decouple Services w/ Message Broker                | ✅ Done     | **COMPLETED**: Integrated RabbitMQ for asynchronous communication. Added message broker to Docker Compose, implemented publisher in Orchestration Service, consumer in Rust Core, with durable queues and comprehensive testing. |
 | Standardize DB Migrations & Security               | ⬜ To Do    | Adopt `alembic upgrade head` and add standard security headers.       |
 | **Phase 3: Frontend & Community**                  | ⬜ **To Do**  |                                                                       |
 | Modernize Frontend Architecture                    | ⬜ To Do    | Adopt Redux Toolkit, React Query, and a BFF endpoint.                 |

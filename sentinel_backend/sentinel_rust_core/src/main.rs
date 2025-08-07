@@ -6,6 +6,10 @@ mod agents;
 mod types;
 
 use agents::AgentOrchestrator;
+use futures_util::stream::StreamExt;
+use lapin::{
+    options::*, types::FieldTable, Connection, ConnectionProperties,
+};
 use types::{OrchestrationRequest, OrchestrationResponse};
 
 #[derive(Serialize)]
@@ -123,6 +127,80 @@ async fn generate_mock_data(
     Ok(HttpResponse::Ok().json(response))
 }
 
+async fn setup_rabbitmq_consumer(orchestrator: web::Data<AgentOrchestrator>) {
+    // Add retry logic for RabbitMQ connection
+    let addr = std::env::var("AMQP_ADDR").unwrap_or_else(|_| "amqp://guest:guest@message_broker:5672/%2f".into());
+    
+    // Retry connection with backoff
+    let mut retry_count = 0;
+    let max_retries = 10;
+    let mut conn = None;
+    
+    while retry_count < max_retries {
+        match Connection::connect(&addr, ConnectionProperties::default()).await {
+            Ok(c) => {
+                conn = Some(c);
+                break;
+            }
+            Err(e) => {
+                println!("⚠️ Failed to connect to RabbitMQ (attempt {}/{}): {}", retry_count + 1, max_retries, e);
+                retry_count += 1;
+                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+            }
+        }
+    }
+    
+    let conn = match conn {
+        Some(c) => c,
+        None => {
+            println!("❌ Failed to connect to RabbitMQ after {} attempts", max_retries);
+            return;
+        }
+    };
+    
+    let channel = conn.create_channel().await.expect("Failed to create channel");
+
+    let queue_name = "sentinel_task_queue";
+    let _queue = channel
+        .queue_declare(
+            queue_name,
+            QueueDeclareOptions {
+                durable: true,
+                ..Default::default()
+            },
+            FieldTable::default(),
+        )
+        .await
+        .expect("Failed to declare queue");
+
+    let mut consumer = channel
+        .basic_consume(
+            queue_name,
+            "sentinel_rust_consumer",
+            BasicConsumeOptions::default(),
+            FieldTable::default(),
+        )
+        .await
+        .expect("Failed to create consumer");
+
+    println!("🐇 Started RabbitMQ consumer on queue '{}'", queue_name);
+
+    while let Some(delivery) = consumer.next().await {
+        let delivery = delivery.expect("error in consumer");
+        let data = std::str::from_utf8(&delivery.data).unwrap();
+        let request: OrchestrationRequest = serde_json::from_str(data).expect("Failed to deserialize task");
+        
+        println!("Received task: {:?}", request.task.task_id);
+        
+        let _ = orchestrator.execute_task(request.task, request.api_spec).await;
+        
+        delivery
+            .ack(BasicAckOptions::default())
+            .await
+            .expect("Failed to ack message");
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     println!("🚀 Starting Sentinel Rust Core Service...");
@@ -133,7 +211,15 @@ async fn main() -> std::io::Result<()> {
     let available_agents = orchestrator.available_agents();
     
     println!("✅ Available agents: {:?}", available_agents);
-    println!("🌐 Starting HTTP server on 127.0.0.1:8088");
+
+    // Spawn the RabbitMQ consumer as a background task
+    let orchestrator_clone = orchestrator.clone();
+    tokio::spawn(async move {
+        println!("🔄 Starting RabbitMQ consumer task...");
+        setup_rabbitmq_consumer(orchestrator_clone).await;
+    });
+
+    println!("🌐 Starting HTTP server on 0.0.0.0:8088");
 
     HttpServer::new(move || {
         App::new()
@@ -144,7 +230,7 @@ async fn main() -> std::io::Result<()> {
             .service(execute_agent)
             .service(generate_mock_data)
     })
-    .bind("127.0.0.1:8088")?
+    .bind("0.0.0.0:8088")?
     .run()
     .await
 }

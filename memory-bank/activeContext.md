@@ -12,10 +12,19 @@
 
 🔄 **Phase 2: Production Readiness (IN PROGRESS):**
   - ✅ **Observability Stack Implemented:** Complete observability solution with structured logging (structlog), correlation ID tracking, Prometheus metrics, and Jaeger distributed tracing.
-  - ⬜ **Message Broker Integration:** Next task - integrate RabbitMQ for asynchronous communication.
+  - ✅ **Message Broker Integration:** COMPLETED - RabbitMQ integrated for asynchronous communication with durable queues.
   - ⬜ **Database & Security Standardization:** Pending - adopt alembic migrations and security headers.
 
 ## 2. Recent Changes & Decisions
+
+- **Message Broker Integration Complete:** RabbitMQ successfully integrated:
+  - RabbitMQ added to Docker Compose infrastructure
+  - Message broker configuration added to centralized settings
+  - Publisher implementation in Orchestration Service (`broker.py`)
+  - Consumer implementation in Sentinel Rust Core with retry logic
+  - Fixed type compatibility issues (spec_id: i32 → String)
+  - Comprehensive test suite validates end-to-end message flow
+  - Durable queues ensure message persistence across restarts
 
 - **Observability Implementation Complete:** All Python services now have:
   - Structured JSON logging with `structlog` for better log aggregation and analysis
@@ -26,6 +35,7 @@
   - Comprehensive end-to-end testing script for validation
 
 - **Configuration Updates:**
+  - Added MessageBrokerSettings to centralized configuration
   - Added Jaeger host/port settings to NetworkSettings configuration
   - Created centralized logging and tracing configuration modules
   - All services properly configured for observability in Docker environment
@@ -34,7 +44,7 @@
 
 1.  **Complete Phase 2: Production Readiness:**
     -   ✅ ~~**Implement Observability Stack**~~ **COMPLETED**
-    -   **Decouple with Message Broker:** Integrate RabbitMQ for asynchronous communication between the Orchestration Service and the `sentinel-rust-core` service.
+    -   ✅ ~~**Decouple with Message Broker**~~ **COMPLETED** - RabbitMQ fully integrated
     -   **Standardize Database & Security:** Adopt an `alembic upgrade head` deployment step and add standard security headers via API Gateway middleware.
 2.  **Performance Benchmarking:**
     -   Conduct a comprehensive performance benchmark to quantify the improvements gained from the Rust implementation.
@@ -48,6 +58,7 @@
 
 ## 5. Technical Implementation Notes
 
-- **Rust Dependencies:** `actix-web` is used for the web server, `serde` for serialization, and `async-trait` for the agent trait.
+- **Rust Dependencies:** `actix-web` is used for the web server, `serde` for serialization, `async-trait` for the agent trait, and `lapin` for RabbitMQ integration.
 - **Configuration:** The Orchestration Service uses a `RUST_CORE_URL` environment variable to locate the Rust service.
 - **Code Structure:** The new Rust code is organized into `agents`, `types`, and `utils` modules within the `sentinel-rust-core` service.
+- **Message Broker:** RabbitMQ handles asynchronous task distribution with durable queues for reliability.

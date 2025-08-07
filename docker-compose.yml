@@ -29,6 +29,7 @@ services:
       - orchestration_service
       - data_service
       - sentinel_rust_core
+
   auth_service:
     build:
       context: .
@@ -68,6 +69,7 @@ services:
       - execution_service
       - data_service
       - sentinel_rust_core
+      - message_broker
 
   execution_service:
     build:
@@ -108,6 +110,24 @@ services:
       - RUST_LOG=info
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8088/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      - message_broker
+
+  message_broker:
+    image: rabbitmq:3-management
+    container_name: sentinel_message_broker
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    env_file:
+      - sentinel_backend/.env.docker
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -153,3 +173,4 @@ services:
 volumes:
   sentinel_postgres_data:
   prometheus_data:
+  rabbitmq_data:
