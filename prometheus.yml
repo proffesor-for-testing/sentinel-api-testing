@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'api_gateway'
+    static_configs:
+      - targets: ['api_gateway:8000']
+    metrics_path: '/metrics'
+
+  - job_name: 'auth_service'
+    static_configs:
+      - targets: ['auth_service:8000']
+    metrics_path: '/metrics'
+
+  - job_name: 'spec_service'
+    static_configs:
+      - targets: ['spec_service:8001']
+    metrics_path: '/metrics'
+
+  - job_name: 'orchestration_service'
+    static_configs:
+      - targets: ['orchestration_service:8002']
+    metrics_path: '/metrics'
+
+  - job_name: 'execution_service'
+    static_configs:
+      - targets: ['execution_service:8003']
+    metrics_path: '/metrics'
+
+  - job_name: 'data_service'
+    static_configs:
+      - targets: ['data_service:8004']
+    metrics_path: '/metrics'

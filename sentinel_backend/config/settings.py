@@ -168,6 +168,10 @@ class NetworkSettings(BaseSettings):
     health_check_enabled: bool = Field(default=True, description="Enable health checks")
     health_check_path: str = Field(default="/health", description="Health check endpoint path")
     
+    # Jaeger settings
+    jaeger_agent_host: str = Field(default="localhost", description="Jaeger agent host")
+    jaeger_agent_port: int = Field(default=6831, description="Jaeger agent port")
+    
     class Config:
         env_prefix = "SENTINEL_NETWORK_"
         case_sensitive = False

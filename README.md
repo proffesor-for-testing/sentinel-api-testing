@@ -16,6 +16,8 @@ The platform is built upon the **ruv-FANN** and **ruv-swarm** frameworks, enabli
 - **Data & Analytics Service** (Port 8004): Manages data persistence and analytics
 - **PostgreSQL Database** (Port 5432): Data storage with pgvector extension
 - **Sentinel Rust Core** (Port 8088): High-performance agentic core powered by `ruv-swarm`
+- **Prometheus** (Port 9090): Metrics collection and monitoring
+- **Jaeger** (Port 16686): Distributed tracing and request flow visualization
 
 ## 🤖 Specialized Agents
 
@@ -69,6 +71,39 @@ The platform employs a workforce of specialized AI agents:
 Once running, you can access the interactive API documentation:
 - API Gateway: http://localhost:8000/docs
 - Each service also exposes its own `/docs` endpoint
+
+### Observability & Monitoring
+
+The platform includes comprehensive observability features:
+
+- **Prometheus Metrics**: http://localhost:9090
+  - View service metrics and health status
+  - Query time-series data for performance analysis
+  - Monitor request rates, latencies, and error rates
+
+- **Jaeger Tracing**: http://localhost:16686
+  - Visualize distributed request flows across services
+  - Analyze service dependencies and bottlenecks
+  - Debug complex multi-service interactions
+
+- **Structured Logging**: All services output JSON-formatted logs with:
+  - Correlation IDs for request tracking
+  - Service context and metadata
+  - Error details and stack traces
+
+### Testing Observability
+
+Run the comprehensive observability test suite:
+```bash
+python test_observability_e2e.py
+```
+
+This validates:
+- ✅ All services are healthy and responding
+- ✅ Correlation ID propagation across services
+- ✅ Prometheus metrics exposure
+- ✅ Jaeger trace collection
+- ✅ End-to-end request flow tracking
 
 ## 📁 Project Structure
 
@@ -166,8 +201,14 @@ The project follows a phased implementation approach:
     *   [x] **Port Python Agents to Rust:** Re-implemented core agent logic in Rust, leveraging the `ruv-swarm` `Agent` trait for high performance.
     *   [x] **Update the Orchestration Service:** Decoupled the Python backend from agent implementation by delegating tasks to the new Rust core.
     *   [x] **Fix Docker Environment:** Resolved startup issues and stabilized the multi-service Docker environment.
-*   [ ] **Enhance Production Readiness & Observability (Phase 2):**
-    *   [ ] Implement a full observability stack (structured logging, metrics, tracing).
+*   [x] **Enhance Production Readiness & Observability (Phase 2 - IN PROGRESS):**
+    *   [x] **Implement a full observability stack**: ✅ COMPLETED
+        - Structured JSON logging with `structlog` for better log aggregation
+        - Correlation ID middleware for request tracking across all services
+        - Prometheus metrics with `prometheus-fastapi-instrumentator`
+        - Jaeger distributed tracing with OpenTelemetry integration
+        - Docker Compose integration with Prometheus and Jaeger services
+        - Comprehensive end-to-end testing for validation
     *   [ ] Decouple services with a message broker (RabbitMQ).
     *   [ ] Standardize database migrations and security headers.
 *   [ ] **Modernize the Frontend & Foster Community (Phase 3):**
@@ -292,6 +333,29 @@ For production deployments:
 2. **Use environment variables**: Never commit secrets to version control
 3. **Validate configuration**: The system validates configuration on startup
 4. **Monitor configuration**: Enable configuration audit logging
+
+### Observability Configuration
+
+The platform includes comprehensive observability settings:
+
+```python
+# Jaeger tracing configuration
+SENTINEL_NETWORK_JAEGER_AGENT_HOST=localhost
+SENTINEL_NETWORK_JAEGER_AGENT_PORT=6831
+
+# Prometheus metrics
+# Metrics are automatically exposed on /metrics endpoint for all services
+
+# Structured logging
+SENTINEL_APP_LOG_LEVEL=INFO
+SENTINEL_APP_LOG_FORMAT=json  # json or text
+```
+
+For production deployments:
+1. Configure external Jaeger collector for trace aggregation
+2. Set up Prometheus scraping and alerting rules
+3. Use log aggregation tools (ELK, Splunk) for centralized logging
+4. Enable correlation ID propagation for distributed debugging
 
 ### Database Setup
 

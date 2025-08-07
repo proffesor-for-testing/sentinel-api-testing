@@ -1,31 +1,64 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
 import httpx
 import os
-import logging
-import sys
-
+import structlog
+import uuid
+from prometheus_fastapi_instrumentator import Instrumentator
+from sentinel_backend.config.logging_config import setup_logging
+from sentinel_backend.config.tracing_config import setup_tracing
 from sentinel_backend.config.settings import get_service_settings, get_application_settings, get_network_settings
 from sentinel_backend.auth_service.auth_middleware import get_current_user, require_permission, Permissions, optional_auth
+
+# Set up structured logging
+setup_logging()
 
 # Get configuration settings
 service_settings = get_service_settings()
 app_settings = get_application_settings()
 network_settings = get_network_settings()
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, app_settings.log_level),
-    format=app_settings.log_format
-)
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 app = FastAPI(
     title="Sentinel API Gateway",
     description="Main entry point for the Sentinel AI-powered API testing platform",
     version=app_settings.app_version
 )
+
+# Instrument for Prometheus
+Instrumentator().instrument(app).expose(app)
+
+# Set up Jaeger tracing
+setup_tracing(app, "api-gateway")
+
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next):
+    """
+    Injects a correlation ID into every request and log context.
+    """
+    correlation_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
+    
+    # Bind the correlation ID to the logger context for this request
+    structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
+
+    response = await call_next(request)
+    
+    # Add the correlation ID to the response headers
+    response.headers["X-Correlation-ID"] = correlation_id
+    
+    return response
+
+
+def get_correlation_id_headers(request: Request) -> Dict[str, str]:
+    """
+    Get correlation ID from request to propagate to downstream services.
+    """
+    correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
+    if correlation_id:
+        return {"X-Correlation-ID": correlation_id}
+    return {}
 
 
 # Request/Response Models
@@ -117,7 +150,7 @@ async def health_check():
     async with httpx.AsyncClient(timeout=service_settings.health_check_timeout) as client:
         for service_name, service_url in services.items():
             try:
-                response = await client.get(f"{service_url}/")
+                response = await client.get(f"{service_url}/") # No correlation ID for health checks
                 health_status["services"][service_name] = {
                     "status": "healthy" if response.status_code == 200 else "unhealthy",
                     "response_time_ms": int(response.elapsed.total_seconds() * 1000)
@@ -150,7 +183,7 @@ async def complete_testing_flow(request: EndToEndTestRequest):
         
         # Step 1: Upload API specification
         logger.info("Step 1: Uploading API specification")
-        spec_response = await upload_specification(SpecificationUploadRequest(
+        spec_response = await upload_specification(fastapi_request, SpecificationUploadRequest(
             raw_spec=request.raw_spec,
             source_filename=request.source_filename
         ))
@@ -159,7 +192,7 @@ async def complete_testing_flow(request: EndToEndTestRequest):
         
         # Step 2: Generate test cases
         logger.info("Step 2: Generating test cases")
-        generation_response = await generate_tests(TestGenerationRequest(
+        generation_response = await generate_tests(fastapi_request, TestGenerationRequest(
             spec_id=spec_id,
             agent_types=request.agent_types,
             target_environment=request.target_environment
@@ -168,10 +201,10 @@ async def complete_testing_flow(request: EndToEndTestRequest):
         
         # Step 3: Get generated test cases and create a suite
         logger.info("Step 3: Creating test suite")
-        test_cases = await get_test_cases_for_spec(spec_id)
+        test_cases = await get_test_cases_for_spec(fastapi_request, spec_id)
         test_case_ids = [tc["id"] for tc in test_cases]
         
-        suite_response = await create_test_suite(TestSuiteCreateRequest(
+        suite_response = await create_test_suite(fastapi_request, TestSuiteCreateRequest(
             name=f"Generated Tests - {request.source_filename or 'API'}",
             description="Auto-generated test suite from complete flow",
             test_case_ids=test_case_ids
@@ -181,7 +214,7 @@ async def complete_testing_flow(request: EndToEndTestRequest):
         
         # Step 4: Execute tests
         logger.info("Step 4: Executing tests")
-        execution_response = await run_tests(TestRunRequest(
+        execution_response = await run_tests(fastapi_request, TestRunRequest(
             suite_id=suite_id,
             target_environment=request.target_environment
         ))
@@ -190,7 +223,7 @@ async def complete_testing_flow(request: EndToEndTestRequest):
         
         # Step 5: Get detailed results
         logger.info("Step 5: Fetching detailed results")
-        results = await get_test_run_results(run_id)
+        results = await get_test_run_results(fastapi_request, run_id)
         
         return {
             "message": "Complete testing flow executed successfully",
@@ -215,15 +248,18 @@ async def complete_testing_flow(request: EndToEndTestRequest):
 # Individual API endpoints
 @app.post("/api/v1/specifications")
 async def upload_specification(
+    fastapi_request: Request,
     request: SpecificationUploadRequest,
     auth_data: Dict[str, Any] = Depends(require_permission(Permissions.SPEC_CREATE))
 ):
     """Upload and parse an API specification."""
+    headers = get_correlation_id_headers(fastapi_request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.post(
                 f"{service_settings.spec_service_url}/api/v1/specifications",
-                json=request.dict()
+                json=request.dict(),
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -235,12 +271,14 @@ async def upload_specification(
 
 @app.get("/api/v1/specifications")
 async def list_specifications(
+    request: Request,
     auth_data: Dict[str, Any] = Depends(require_permission(Permissions.SPEC_READ))
 ):
     """List all uploaded API specifications."""
+    headers = get_correlation_id_headers(request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.get(f"{service_settings.spec_service_url}/api/v1/specifications")
+            response = await client.get(f"{service_settings.spec_service_url}/api/v1/specifications", headers=headers)
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -250,11 +288,12 @@ async def list_specifications(
 
 
 @app.get("/api/v1/specifications/{spec_id}")
-async def get_specification(spec_id: int):
+async def get_specification(request: Request, spec_id: int):
     """Get a specific API specification."""
+    headers = get_correlation_id_headers(request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.get(f"{service_settings.spec_service_url}/api/v1/specifications/{spec_id}")
+            response = await client.get(f"{service_settings.spec_service_url}/api/v1/specifications/{spec_id}", headers=headers)
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -264,13 +303,15 @@ async def get_specification(spec_id: int):
 
 
 @app.post("/api/v1/generate-tests")
-async def generate_tests(request: TestGenerationRequest):
+async def generate_tests(fastapi_request: Request, request: TestGenerationRequest):
     """Generate test cases using AI agents."""
+    headers = get_correlation_id_headers(fastapi_request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.post(
                 f"{service_settings.orchestration_service_url}/generate-tests",
-                json=request.dict()
+                json=request.dict(),
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -281,15 +322,16 @@ async def generate_tests(request: TestGenerationRequest):
 
 
 @app.get("/api/v1/test-cases")
-async def list_test_cases(spec_id: Optional[int] = None):
+async def list_test_cases(request: Request, spec_id: Optional[int] = None):
     """List test cases, optionally filtered by specification ID."""
+    headers = get_correlation_id_headers(request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             url = f"{service_settings.data_service_url}/api/v1/test-cases"
             if spec_id:
                 url += f"?spec_id={spec_id}"
             
-            response = await client.get(url)
+            response = await client.get(url, headers=headers)
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -298,22 +340,25 @@ async def list_test_cases(spec_id: Optional[int] = None):
             raise HTTPException(status_code=503, detail="Data service is unavailable")
 
 
-async def get_test_cases_for_spec(spec_id: int) -> List[Dict[str, Any]]:
+async def get_test_cases_for_spec(request: Request, spec_id: int) -> List[Dict[str, Any]]:
     """Helper function to get test cases for a specific specification."""
+    headers = get_correlation_id_headers(request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
-        response = await client.get(f"{service_settings.data_service_url}/api/v1/test-cases?spec_id={spec_id}")
+        response = await client.get(f"{service_settings.data_service_url}/api/v1/test-cases?spec_id={spec_id}", headers=headers)
         response.raise_for_status()
         return response.json()
 
 
 @app.post("/api/v1/test-suites")
-async def create_test_suite(request: TestSuiteCreateRequest):
+async def create_test_suite(fastapi_request: Request, request: TestSuiteCreateRequest):
     """Create a new test suite."""
+    headers = get_correlation_id_headers(fastapi_request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.post(
                 f"{service_settings.data_service_url}/api/v1/test-suites",
-                json=request.dict()
+                json=request.dict(),
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -324,11 +369,12 @@ async def create_test_suite(request: TestSuiteCreateRequest):
 
 
 @app.get("/api/v1/test-suites")
-async def list_test_suites():
+async def list_test_suites(request: Request):
     """List all test suites."""
+    headers = get_correlation_id_headers(request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.get(f"{service_settings.data_service_url}/api/v1/test-suites")
+            response = await client.get(f"{service_settings.data_service_url}/api/v1/test-suites", headers=headers)
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -338,13 +384,15 @@ async def list_test_suites():
 
 
 @app.post("/api/v1/test-runs")
-async def run_tests(request: TestRunRequest):
+async def run_tests(fastapi_request: Request, request: TestRunRequest):
     """Execute a test suite against a target environment."""
+    headers = get_correlation_id_headers(fastapi_request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.post(
                 f"{service_settings.execution_service_url}/test-runs",
-                json=request.dict()
+                json=request.dict(),
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -355,11 +403,12 @@ async def run_tests(request: TestRunRequest):
 
 
 @app.get("/api/v1/test-runs")
-async def list_test_runs():
+async def list_test_runs(request: Request):
     """List all test runs."""
+    headers = get_correlation_id_headers(request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.get(f"{service_settings.data_service_url}/api/v1/test-runs")
+            response = await client.get(f"{service_settings.data_service_url}/api/v1/test-runs", headers=headers)
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -369,11 +418,12 @@ async def list_test_runs():
 
 
 @app.get("/api/v1/test-runs/{run_id}")
-async def get_test_run(run_id: int):
+async def get_test_run(request: Request, run_id: int):
     """Get details of a specific test run."""
+    headers = get_correlation_id_headers(request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.get(f"{service_settings.execution_service_url}/test-runs/{run_id}")
+            response = await client.get(f"{service_settings.execution_service_url}/test-runs/{run_id}", headers=headers)
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -382,20 +432,22 @@ async def get_test_run(run_id: int):
             raise HTTPException(status_code=503, detail="Execution service is unavailable")
 
 
-async def get_test_run_results(run_id: int) -> Dict[str, Any]:
+async def get_test_run_results(request: Request, run_id: int) -> Dict[str, Any]:
     """Helper function to get detailed test run results."""
+    headers = get_correlation_id_headers(request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
-        response = await client.get(f"{service_settings.execution_service_url}/test-runs/{run_id}")
+        response = await client.get(f"{service_settings.execution_service_url}/test-runs/{run_id}", headers=headers)
         response.raise_for_status()
         return response.json()
 
 
 @app.get("/api/v1/test-runs/{run_id}/results")
-async def get_test_run_results_endpoint(run_id: int):
+async def get_test_run_results_endpoint(request: Request, run_id: int):
     """Get detailed results for a test run."""
+    headers = get_correlation_id_headers(request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.get(f"{service_settings.data_service_url}/api/v1/test-runs/{run_id}/results")
+            response = await client.get(f"{service_settings.data_service_url}/api/v1/test-runs/{run_id}/results", headers=headers)
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -406,13 +458,15 @@ async def get_test_run_results_endpoint(run_id: int):
 
 # Authentication Endpoints
 @app.post("/auth/login")
-async def login(request: UserLogin):
+async def login(fastapi_request: Request, request: UserLogin):
     """Authenticate user and return access token."""
+    headers = get_correlation_id_headers(fastapi_request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.post(
                 f"{service_settings.auth_service_url}/auth/login",
-                json=request.dict()
+                json=request.dict(),
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -424,16 +478,19 @@ async def login(request: UserLogin):
 
 @app.post("/auth/register")
 async def register(
+    fastapi_request: Request,
     request: UserCreate,
     auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_CREATE))
 ):
     """Register a new user (admin only)."""
+    headers = get_correlation_id_headers(fastapi_request)
+    headers["Authorization"] = f"Bearer {auth_data.get('token', '')}"
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.post(
                 f"{service_settings.auth_service_url}/auth/register",
                 json=request.dict(),
-                headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -451,16 +508,19 @@ async def get_profile(auth_data: Dict[str, Any] = Depends(get_current_user)):
 
 @app.put("/auth/profile")
 async def update_profile(
+    fastapi_request: Request,
     request: UserUpdate,
     auth_data: Dict[str, Any] = Depends(get_current_user)
 ):
     """Update current user's profile."""
+    headers = get_correlation_id_headers(fastapi_request)
+    headers["Authorization"] = f"Bearer {auth_data.get('token', '')}"
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.put(
                 f"{service_settings.auth_service_url}/auth/profile",
                 json=request.dict(),
-                headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -472,14 +532,17 @@ async def update_profile(
 
 @app.get("/auth/users")
 async def list_users(
+    request: Request,
     auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_READ))
 ):
     """List all users (requires user read permission)."""
+    headers = get_correlation_id_headers(request)
+    headers["Authorization"] = f"Bearer {auth_data.get('token', '')}"
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.get(
                 f"{service_settings.auth_service_url}/auth/users",
-                headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -491,15 +554,18 @@ async def list_users(
 
 @app.get("/auth/users/{user_id}")
 async def get_user(
+    request: Request,
     user_id: int,
     auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_READ))
 ):
     """Get a specific user by ID."""
+    headers = get_correlation_id_headers(request)
+    headers["Authorization"] = f"Bearer {auth_data.get('token', '')}"
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.get(
                 f"{service_settings.auth_service_url}/auth/users/{user_id}",
-                headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -511,17 +577,20 @@ async def get_user(
 
 @app.put("/auth/users/{user_id}")
 async def update_user(
+    fastapi_request: Request,
     user_id: int,
     request: UserUpdate,
     auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_UPDATE))
 ):
     """Update a user (admin only)."""
+    headers = get_correlation_id_headers(fastapi_request)
+    headers["Authorization"] = f"Bearer {auth_data.get('token', '')}"
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.put(
                 f"{service_settings.auth_service_url}/auth/users/{user_id}",
                 json=request.dict(),
-                headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -533,15 +602,18 @@ async def update_user(
 
 @app.delete("/auth/users/{user_id}")
 async def delete_user(
+    request: Request,
     user_id: int,
     auth_data: Dict[str, Any] = Depends(require_permission(Permissions.USER_DELETE))
 ):
     """Delete a user (admin only)."""
+    headers = get_correlation_id_headers(request)
+    headers["Authorization"] = f"Bearer {auth_data.get('token', '')}"
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.delete(
                 f"{service_settings.auth_service_url}/auth/users/{user_id}",
-                headers={"Authorization": f"Bearer {auth_data.get('token', '')}"}
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -552,11 +624,12 @@ async def delete_user(
 
 
 @app.get("/auth/roles")
-async def list_roles():
+async def list_roles(request: Request):
     """List all available roles and their permissions."""
+    headers = get_correlation_id_headers(request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.get(f"{service_settings.auth_service_url}/auth/roles")
+            response = await client.get(f"{service_settings.auth_service_url}/auth/roles", headers=headers)
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:

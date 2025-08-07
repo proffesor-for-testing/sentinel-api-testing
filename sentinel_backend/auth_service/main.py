@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
@@ -7,28 +7,36 @@ from datetime import datetime, timedelta
 import jwt
 import bcrypt
 import os
-import logging
+import structlog
+import uuid
 from enum import Enum
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Import configuration
 from sentinel_backend.config.settings import get_security_settings, get_application_settings
+from sentinel_backend.config.logging_config import setup_logging
+from sentinel_backend.config.tracing_config import setup_tracing
+
+# Set up structured logging
+setup_logging()
 
 # Get configuration
 security_settings = get_security_settings()
 app_settings = get_application_settings()
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, app_settings.log_level),
-    format=app_settings.log_format
-)
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 app = FastAPI(
     title="Sentinel Authentication Service",
     description="Authentication and authorization service for the Sentinel platform",
     version="1.0.0"
 )
+
+# Instrument for Prometheus
+Instrumentator().instrument(app).expose(app)
+
+# Set up Jaeger tracing
+setup_tracing(app, "auth-service")
 
 # CORS middleware
 app.add_middleware(
@@ -38,6 +46,23 @@ app.add_middleware(
     allow_methods=security_settings.cors_allow_methods,
     allow_headers=security_settings.cors_allow_headers,
 )
+
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next):
+    """
+    Injects a correlation ID into every request and log context.
+    """
+    correlation_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
+    
+    # Bind the correlation ID to the logger context for this request
+    structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
+
+    response = await call_next(request)
+    
+    # Add the correlation ID to the response headers
+    response.headers["X-Correlation-ID"] = correlation_id
+    
+    return response
 
 # Configuration from centralized settings
 JWT_SECRET_KEY = security_settings.jwt_secret_key
