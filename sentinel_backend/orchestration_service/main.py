@@ -16,6 +16,7 @@ from sentinel_backend.orchestration_service.agents.security_auth_agent import Se
 from sentinel_backend.orchestration_service.agents.security_injection_agent import SecurityInjectionAgent
 from sentinel_backend.orchestration_service.agents.performance_planner_agent import PerformancePlannerAgent
 from sentinel_backend.orchestration_service.agents.data_mocking_agent import DataMockingAgent
+from sentinel_backend.orchestration_service.broker import publish_task
 
 # Import configuration
 from sentinel_backend.config.settings import get_settings, get_service_settings, get_application_settings
@@ -107,72 +108,46 @@ async def root():
 
 
 async def execute_rust_agent(request: Request, agent_type: str, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
-    """
-    Execute an agent using the Rust core service.
-    
-    Args:
-        agent_type: The type of agent to execute
-        task: The agent task
-        api_spec: The API specification
-        
-    Returns:
-        AgentResult from the Rust agent execution
-    """
-    correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
-    headers = {"X-Correlation-ID": correlation_id} if correlation_id else {}
-    try:
-        async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
-            request_data = {
-                "task": {
-                    "task_id": task.task_id,
-                    "spec_id": task.spec_id,
-                    "agent_type": agent_type,
-                    "parameters": task.parameters,
-                    "target_environment": task.target_environment
-                },
-                "api_spec": api_spec
-            }
-            
-            response = await client.post(
-                f"{RUST_CORE_URL}/swarm/agents/{agent_type}/execute",
-                json=request_data,
-                headers=headers
-            )
-            
-            if response.status_code == 200:
-                result_data = response.json()
-                rust_result = result_data["result"]
-                
-                # Convert Rust result to Python AgentResult
-                return AgentResult(
-                    task_id=rust_result["task_id"],
-                    agent_type=rust_result["agent_type"],
-                    status=rust_result["status"],
-                    test_cases=rust_result.get("test_cases", []),
-                    metadata=rust_result.get("metadata", {}),
-                    error_message=rust_result.get("error_message")
-                )
-            else:
-                logger.error(f"Rust agent execution failed: {response.status_code} - {response.text}")
-                return AgentResult(
-                    task_id=task.task_id,
-                    agent_type=agent_type,
-                    status="failed",
-                    test_cases=[],
-                    metadata={},
-                    error_message=f"Rust agent execution failed: {response.status_code}"
-                )
-                
-    except Exception as e:
-        logger.error(f"Error executing Rust agent {agent_type}: {str(e)}")
-        return AgentResult(
-            task_id=task.task_id,
-            agent_type=agent_type,
-            status="failed",
-            test_cases=[],
-            metadata={},
-            error_message=f"Rust agent execution error: {str(e)}"
-        )
+   """
+   Publish a task for a Rust agent to the message broker.
+   
+   Args:
+       agent_type: The type of agent to execute
+       task: The agent task
+       api_spec: The API specification
+       
+   Returns:
+       An AgentResult indicating the task has been queued.
+   """
+   request_data = {
+       "task": {
+           "task_id": task.task_id,
+           "spec_id": task.spec_id,
+           "agent_type": agent_type,
+           "parameters": task.parameters,
+           "target_environment": task.target_environment
+       },
+       "api_spec": api_spec
+   }
+
+   if publish_task(request_data):
+       return AgentResult(
+           task_id=task.task_id,
+           agent_type=agent_type,
+           status="queued",
+           test_cases=[],
+           metadata={"message": "Task has been queued for processing by the Rust core."},
+           error_message=None
+       )
+   else:
+       return AgentResult(
+           task_id=task.task_id,
+           agent_type=agent_type,
+           status="failed",
+           test_cases=[],
+           metadata={},
+           error_message="Failed to publish task to the message broker."
+       )
 
 
 async def check_rust_core_availability() -> bool:

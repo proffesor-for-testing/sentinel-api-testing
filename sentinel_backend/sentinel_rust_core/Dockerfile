@@ -1,6 +1,6 @@
 # ---- Builder Stage ----
 # Use the official Rust image as a build environment.
-FROM rust:1.82 as builder
+FROM rust:latest as builder
 
 # Set the working directory.
 WORKDIR /usr/src/sentinel_rust_core
