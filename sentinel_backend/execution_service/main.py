@@ -1,15 +1,21 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
 import os
 import uuid
 import httpx
 import asyncio
-import logging
+import structlog
 from datetime import datetime
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Import configuration
 from sentinel_backend.config.settings import get_settings, get_service_settings, get_application_settings, get_network_settings
+from sentinel_backend.config.logging_config import setup_logging
+from sentinel_backend.config.tracing_config import setup_tracing
+
+# Set up structured logging
+setup_logging()
 
 # Get configuration
 settings = get_settings()
@@ -17,14 +23,32 @@ service_settings = get_service_settings()
 app_settings = get_application_settings()
 network_settings = get_network_settings()
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, app_settings.log_level),
-    format=app_settings.log_format
-)
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 app = FastAPI(title="Sentinel Execution Service")
+
+# Instrument for Prometheus
+Instrumentator().instrument(app).expose(app)
+
+# Set up Jaeger tracing
+setup_tracing(app, "execution-service")
+
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next):
+    """
+    Injects a correlation ID into every request and log context.
+    """
+    correlation_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
+    
+    # Bind the correlation ID to the logger context for this request
+    structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
+
+    response = await call_next(request)
+    
+    # Add the correlation ID to the response headers
+    response.headers["X-Correlation-ID"] = correlation_id
+    
+    return response
 
 
 class TestRunRequest(BaseModel):
@@ -63,7 +87,7 @@ async def root():
 
 
 @app.post("/test-runs", response_model=TestRunResponse)
-async def execute_test_run(request: TestRunRequest):
+async def execute_test_run(fastapi_request: Request, request: TestRunRequest):
     """
     Execute a test suite against a target environment.
     
@@ -74,22 +98,22 @@ async def execute_test_run(request: TestRunRequest):
         logger.info(f"Starting test run for suite_id: {request.suite_id}")
         
         # Create a new test run record
-        run_id = await create_test_run(request.suite_id, request.target_environment)
+        run_id = await create_test_run(fastapi_request, request.suite_id, request.target_environment)
         if not run_id:
             raise HTTPException(status_code=500, detail="Failed to create test run")
         
         # Fetch test cases for the suite
-        test_cases = await fetch_test_cases(request.suite_id)
+        test_cases = await fetch_test_cases(fastapi_request, request.suite_id)
         if not test_cases:
             raise HTTPException(status_code=404, detail="No test cases found for suite")
         
         logger.info(f"Executing {len(test_cases)} test cases for run {run_id}")
         
         # Execute test cases
-        results = await execute_test_cases(test_cases, request.target_environment)
+        results = await execute_test_cases(fastapi_request, test_cases, request.target_environment)
         
         # Store results
-        await store_test_results(run_id, results)
+        await store_test_results(fastapi_request, run_id, results)
         
         # Calculate summary statistics
         passed = sum(1 for r in results if r.status == "passed")
@@ -98,7 +122,7 @@ async def execute_test_run(request: TestRunRequest):
         
         # Update test run status
         final_status = "completed" if errors == 0 else "failed"
-        await update_test_run_status(run_id, final_status)
+        await update_test_run_status(fastapi_request, run_id, final_status)
         
         logger.info(f"Test run {run_id} completed: {passed} passed, {failed} failed, {errors} errors")
         
@@ -117,8 +141,10 @@ async def execute_test_run(request: TestRunRequest):
         raise HTTPException(status_code=500, detail=f"Test execution failed: {str(e)}")
 
 
-async def create_test_run(suite_id: int, target_environment: str) -> Optional[int]:
+async def create_test_run(request: Request, suite_id: int, target_environment: str) -> Optional[int]:
     """Create a new test run record in the database."""
+    correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
+    headers = {"X-Correlation-ID": correlation_id} if correlation_id else {}
     try:
         async with httpx.AsyncClient() as client:
             run_data = {
@@ -131,7 +157,8 @@ async def create_test_run(suite_id: int, target_environment: str) -> Optional[in
             response = await client.post(
                 f"{service_settings.data_service_url}/api/v1/test-runs",
                 json=run_data,
-                timeout=service_settings.service_timeout
+                timeout=service_settings.service_timeout,
+                headers=headers
             )
             
             if response.status_code in [200, 201]:
@@ -146,12 +173,15 @@ async def create_test_run(suite_id: int, target_environment: str) -> Optional[in
         return None
 
 
-async def fetch_test_cases(suite_id: int) -> List[Dict[str, Any]]:
+async def fetch_test_cases(request: Request, suite_id: int) -> List[Dict[str, Any]]:
     """Fetch test cases for a given suite."""
+    correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
+    headers = {"X-Correlation-ID": correlation_id} if correlation_id else {}
     try:
         async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
             response = await client.get(
-                f"{service_settings.data_service_url}/api/v1/test-suites/{suite_id}/cases"
+                f"{service_settings.data_service_url}/api/v1/test-suites/{suite_id}/cases",
+                headers=headers
             )
             
             if response.status_code == 200:
@@ -166,7 +196,8 @@ async def fetch_test_cases(suite_id: int) -> List[Dict[str, Any]]:
 
 
 async def execute_test_cases(
-    test_cases: List[Dict[str, Any]], 
+    request: Request,
+    test_cases: List[Dict[str, Any]],
     target_environment: str
 ) -> List[TestCaseResult]:
     """
@@ -179,13 +210,14 @@ async def execute_test_cases(
     
     async with httpx.AsyncClient(timeout=app_settings.test_execution_timeout) as client:
         for test_case in test_cases:
-            result = await execute_single_test_case(client, test_case, target_environment)
+            result = await execute_single_test_case(request, client, test_case, target_environment)
             results.append(result)
     
     return results
 
 
 async def execute_single_test_case(
+    request: Request,
     client: httpx.AsyncClient,
     test_case: Dict[str, Any],
     target_environment: str
@@ -199,6 +231,9 @@ async def execute_single_test_case(
         endpoint = test_definition.get("endpoint", "")
         method = test_definition.get("method", "GET").upper()
         headers = test_definition.get("headers", {})
+        correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
+        if correlation_id:
+            headers["X-Correlation-ID"] = correlation_id
         query_params = test_definition.get("query_params", {})
         body = test_definition.get("body")
         expected_status = test_definition.get("expected_status", 200)
@@ -282,8 +317,10 @@ async def validate_assertion(assertion: Dict[str, Any], response: httpx.Response
     return None
 
 
-async def store_test_results(run_id: int, results: List[TestCaseResult]) -> bool:
+async def store_test_results(request: Request, run_id: int, results: List[TestCaseResult]) -> bool:
     """Store test results in the database."""
+    correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
+    headers = {"X-Correlation-ID": correlation_id} if correlation_id else {}
     try:
         async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
             for result in results:
@@ -304,7 +341,8 @@ async def store_test_results(run_id: int, results: List[TestCaseResult]) -> bool
                 
                 response = await client.post(
                     f"{service_settings.data_service_url}/api/v1/test-results",
-                    json=result_data
+                    json=result_data,
+                    headers=headers
                 )
                 
                 if response.status_code not in [200, 201]:
@@ -318,8 +356,10 @@ async def store_test_results(run_id: int, results: List[TestCaseResult]) -> bool
         return False
 
 
-async def update_test_run_status(run_id: int, status: str) -> bool:
+async def update_test_run_status(request: Request, run_id: int, status: str) -> bool:
     """Update the status of a test run."""
+    correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
+    headers = {"X-Correlation-ID": correlation_id} if correlation_id else {}
     try:
         async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
             update_data = {
@@ -329,7 +369,8 @@ async def update_test_run_status(run_id: int, status: str) -> bool:
             
             response = await client.patch(
                 f"{service_settings.data_service_url}/api/v1/test-runs/{run_id}",
-                json=update_data
+                json=update_data,
+                headers=headers
             )
             
             return response.status_code in [200, 204]
@@ -340,17 +381,19 @@ async def update_test_run_status(run_id: int, status: str) -> bool:
 
 
 @app.get("/test-runs/{run_id}")
-async def get_test_run_status(run_id: int):
+async def get_test_run_status(request: Request, run_id: int):
     """Get the status and results of a test run."""
+    correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
+    headers = {"X-Correlation-ID": correlation_id} if correlation_id else {}
     try:
         async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
             # Get run details
-            run_response = await client.get(f"{service_settings.data_service_url}/api/v1/test-runs/{run_id}")
+            run_response = await client.get(f"{service_settings.data_service_url}/api/v1/test-runs/{run_id}", headers=headers)
             if run_response.status_code != 200:
                 raise HTTPException(status_code=404, detail="Test run not found")
             
             # Get run results
-            results_response = await client.get(f"{service_settings.data_service_url}/api/v1/test-runs/{run_id}/results")
+            results_response = await client.get(f"{service_settings.data_service_url}/api/v1/test-runs/{run_id}/results", headers=headers)
             
             run_data = run_response.json()
             results_data = results_response.json() if results_response.status_code == 200 else []

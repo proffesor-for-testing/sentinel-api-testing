@@ -112,5 +112,44 @@ services:
       timeout: 5s
       retries: 5
 
+  # Observability Services
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sentinel_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    depends_on:
+      - api_gateway
+      - auth_service
+      - spec_service
+      - orchestration_service
+      - execution_service
+      - data_service
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: sentinel_jaeger
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
+      - "9411:9411"
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true
+
 volumes:
   sentinel_postgres_data:
+  prometheus_data:

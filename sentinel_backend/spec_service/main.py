@@ -2,15 +2,20 @@ import os
 import json
 import yaml
 from typing import List
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, Request
 from sqlalchemy import create_engine, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import sessionmaker
 from prance import ResolvingParser
 from openapi_core import Spec
 import sys
+import structlog
+import uuid
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from sentinel_backend.config.settings import get_database_settings, get_application_settings
+from sentinel_backend.config.logging_config import setup_logging
+from sentinel_backend.config.tracing_config import setup_tracing
 
 from sentinel_backend.spec_service.models import Base, ApiSpecification
 from sentinel_backend.spec_service.schemas import (
@@ -24,11 +29,38 @@ from sentinel_backend.spec_service.schemas import (
 db_settings = get_database_settings()
 app_settings = get_application_settings()
 
+# Set up structured logging
+setup_logging()
+logger = structlog.get_logger(__name__)
+
 app = FastAPI(
     title="Sentinel Specification Service",
     description="Service for ingesting, parsing, and managing API specifications",
     version=app_settings.app_version
 )
+
+# Instrument for Prometheus
+Instrumentator().instrument(app).expose(app)
+
+# Set up Jaeger tracing
+setup_tracing(app, "spec-service")
+
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next):
+    """
+    Injects a correlation ID into every request and log context.
+    """
+    correlation_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
+    
+    # Bind the correlation ID to the logger context for this request
+    structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
+
+    response = await call_next(request)
+    
+    # Add the correlation ID to the response headers
+    response.headers["X-Correlation-ID"] = correlation_id
+    
+    return response
 
 # Create async engine and session with configuration
 engine = create_async_engine(

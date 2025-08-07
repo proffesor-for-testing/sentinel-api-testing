@@ -219,3 +219,12 @@ The configuration modularization initiative has been successfully completed acro
 -   The Memory Bank is the single source of truth. It MUST be updated after any significant architectural decision, feature implementation, or change in project direction.
 -   `progress.md` should be updated at the end of every major work session to reflect the current state of the project.
 -   `activeContext.md` should be reviewed and updated at the beginning of every work session to align on the immediate next steps.
+
+## 14. Testing Protocol
+
+**MANDATORY TESTING for all code and configuration changes:**
+
+1.  **Identify Testing Strategy**: After implementing any change, identify and propose a testing strategy to validate the changes. This may include unit, integration, or end-to-end tests.
+2.  **Run Existing Tests**: Always run the existing test suite to ensure no regressions have been introduced.
+3.  **Implement New Tests**: Add new tests to cover the new functionality or configuration. For observability, this includes verifying log formats, metric exposure, and trace propagation.
+4.  **Confirm Success**: Confirm that all tests (new and existing) pass before considering a task complete.

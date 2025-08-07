@@ -23,7 +23,7 @@ Here is the final, prioritized action plan that integrates all recommendations w
 *   [x] **Update the Orchestration Service:**
     *   **Action:** Remove the direct Python agent imports. The Orchestration Service's role will now be to translate API testing requests into high-level tasks and send them to the new `sentinel-rust-core` service.
     *   **Benefit:** This fully decouples the core logic of Sentinel from the agent implementation, allowing the agentic system to be scaled and updated independently.
-*   [ ] **Fix Docker Environment:**
+*   [x] **Fix Docker Environment:**
     *   **Action:** Resolve the `ModuleNotFoundError` and other startup issues when running the services with `docker-compose`.
     *   **Purpose:** Ensure a stable and reliable development environment for all services.
 

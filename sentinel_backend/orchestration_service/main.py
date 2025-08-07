@@ -1,12 +1,14 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import os
 import uuid
 import httpx
-import logging
+import structlog
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from sentinel_backend.orchestration_service.agents.base_agent import AgentTask, AgentResult
+from sentinel_backend.config.tracing_config import setup_tracing
 from sentinel_backend.orchestration_service.agents.functional_positive_agent import FunctionalPositiveAgent
 from sentinel_backend.orchestration_service.agents.functional_negative_agent import FunctionalNegativeAgent
 from sentinel_backend.orchestration_service.agents.functional_stateful_agent import FunctionalStatefulAgent
@@ -17,20 +19,42 @@ from sentinel_backend.orchestration_service.agents.data_mocking_agent import Dat
 
 # Import configuration
 from sentinel_backend.config.settings import get_settings, get_service_settings, get_application_settings
+from sentinel_backend.config.logging_config import setup_logging
+
+# Set up structured logging
+setup_logging()
 
 # Get configuration
 settings = get_settings()
 service_settings = get_service_settings()
 app_settings = get_application_settings()
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, app_settings.log_level),
-    format=app_settings.log_format
-)
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 app = FastAPI(title="Sentinel Orchestration Service")
+
+# Instrument for Prometheus
+Instrumentator().instrument(app).expose(app)
+
+# Set up Jaeger tracing
+setup_tracing(app, "orchestration-service")
+
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next):
+    """
+    Injects a correlation ID into every request and log context.
+    """
+    correlation_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
+    
+    # Bind the correlation ID to the logger context for this request
+    structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
+
+    response = await call_next(request)
+    
+    # Add the correlation ID to the response headers
+    response.headers["X-Correlation-ID"] = correlation_id
+    
+    return response
 
 # Rust Core Integration
 RUST_CORE_URL = getattr(service_settings, 'rust_core_service_url', 'http://127.0.0.1:8088')
@@ -82,7 +106,7 @@ async def root():
     return {"message": "Sentinel Orchestration Service is running"}
 
 
-async def execute_rust_agent(agent_type: str, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
+async def execute_rust_agent(request: Request, agent_type: str, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
     """
     Execute an agent using the Rust core service.
     
@@ -94,6 +118,8 @@ async def execute_rust_agent(agent_type: str, task: AgentTask, api_spec: Dict[st
     Returns:
         AgentResult from the Rust agent execution
     """
+    correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
+    headers = {"X-Correlation-ID": correlation_id} if correlation_id else {}
     try:
         async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
             request_data = {
@@ -109,7 +135,8 @@ async def execute_rust_agent(agent_type: str, task: AgentTask, api_spec: Dict[st
             
             response = await client.post(
                 f"{RUST_CORE_URL}/swarm/agents/{agent_type}/execute",
-                json=request_data
+                json=request_data,
+                headers=headers
             )
             
             if response.status_code == 200:
@@ -164,7 +191,7 @@ async def check_rust_core_availability() -> bool:
 
 
 @app.post("/generate-tests", response_model=TestGenerationResponse)
-async def generate_tests(request: TestGenerationRequest):
+async def generate_tests(fastapi_request: Request, request: TestGenerationRequest):
     """
     Generate test cases using specified agents.
     
@@ -184,7 +211,7 @@ async def generate_tests(request: TestGenerationRequest):
             logger.info("Rust core service not available - using Python agents only")
         
         # Fetch the API specification from the Spec Service
-        api_spec = await fetch_api_specification(request.spec_id)
+        api_spec = await fetch_api_specification(fastapi_request, request.spec_id)
         if not api_spec:
             raise HTTPException(status_code=404, detail="API specification not found")
         
@@ -220,7 +247,7 @@ async def generate_tests(request: TestGenerationRequest):
             
             if use_rust:
                 logger.info(f"Using Rust agent for {agent_type}")
-                result = await execute_rust_agent(agent_type, agent_task, api_spec)
+                result = await execute_rust_agent(fastapi_request, agent_type, agent_task, api_spec)
             else:
                 if agent_type not in python_agents:
                     logger.warning(f"Unknown agent type: {agent_type}")
@@ -232,7 +259,7 @@ async def generate_tests(request: TestGenerationRequest):
             
             # Store test cases in the Data Service
             if result.status == "success" and result.test_cases:
-                await store_test_cases(request.spec_id, agent_type, result.test_cases)
+                await store_test_cases(fastapi_request, request.spec_id, agent_type, result.test_cases)
                 total_test_cases += len(result.test_cases)
             
             agent_results.append({
@@ -259,7 +286,7 @@ async def generate_tests(request: TestGenerationRequest):
 
 
 @app.post("/generate-data", response_model=DataGenerationResponse)
-async def generate_data(request: DataGenerationRequest):
+async def generate_data(fastapi_request: Request, request: DataGenerationRequest):
     """
     Generate mock data using the Data Mocking Agent.
     
@@ -275,7 +302,7 @@ async def generate_data(request: DataGenerationRequest):
         use_rust = rust_available and "data-mocking" in RUST_AVAILABLE_AGENTS
         
         # Fetch the API specification from the Spec Service
-        api_spec = await fetch_api_specification(request.spec_id)
+        api_spec = await fetch_api_specification(fastapi_request, request.spec_id)
         if not api_spec:
             raise HTTPException(status_code=404, detail="API specification not found")
         
@@ -296,6 +323,8 @@ async def generate_data(request: DataGenerationRequest):
             )
             
             # Execute using Rust core
+            correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
+            headers = {"X-Correlation-ID": correlation_id} if correlation_id else {}
             try:
                 async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
                     request_data = {
@@ -311,7 +340,8 @@ async def generate_data(request: DataGenerationRequest):
                     
                     response = await client.post(
                         f"{RUST_CORE_URL}/swarm/mock-data",
-                        json=request_data
+                        json=request_data,
+                        headers=headers
                     )
                     
                     if response.status_code == 200:
@@ -372,7 +402,7 @@ async def generate_data(request: DataGenerationRequest):
         raise HTTPException(status_code=500, detail=f"Data generation failed: {str(e)}")
 
 
-async def fetch_api_specification(spec_id: int) -> Optional[Dict[str, Any]]:
+async def fetch_api_specification(request: Request, spec_id: int) -> Optional[Dict[str, Any]]:
     """
     Fetch an API specification from the Spec Service.
     
@@ -382,9 +412,11 @@ async def fetch_api_specification(spec_id: int) -> Optional[Dict[str, Any]]:
     Returns:
         The parsed API specification or None if not found
     """
+    correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
+    headers = {"X-Correlation-ID": correlation_id} if correlation_id else {}
     try:
         async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
-            response = await client.get(f"{service_settings.spec_service_url}/api/v1/specifications/{spec_id}")
+            response = await client.get(f"{service_settings.spec_service_url}/api/v1/specifications/{spec_id}", headers=headers)
             
             if response.status_code == 200:
                 spec_data = response.json()
@@ -400,7 +432,7 @@ async def fetch_api_specification(spec_id: int) -> Optional[Dict[str, Any]]:
         return None
 
 
-async def store_test_cases(spec_id: int, agent_type: str, test_cases: list[Dict[str, Any]]) -> bool:
+async def store_test_cases(request: Request, spec_id: int, agent_type: str, test_cases: list[Dict[str, Any]]) -> bool:
     """
     Store generated test cases in the Data Service.
     
@@ -412,6 +444,8 @@ async def store_test_cases(spec_id: int, agent_type: str, test_cases: list[Dict[
     Returns:
         True if successful, False otherwise
     """
+    correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
+    headers = {"X-Correlation-ID": correlation_id} if correlation_id else {}
     try:
         async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
             for test_case in test_cases:
@@ -440,7 +474,8 @@ async def store_test_cases(spec_id: int, agent_type: str, test_cases: list[Dict[
                 
                 response = await client.post(
                     f"{service_settings.data_service_url}/api/v1/test-cases",
-                    json=test_case_data
+                    json=test_case_data,
+                    headers=headers
                 )
                 
                 if response.status_code not in [200, 201]:
