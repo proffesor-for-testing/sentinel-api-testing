@@ -228,3 +228,11 @@ The configuration modularization initiative has been successfully completed acro
 2.  **Run Existing Tests**: Always run the existing test suite to ensure no regressions have been introduced.
 3.  **Implement New Tests**: Add new tests to cover the new functionality or configuration. For observability, this includes verifying log formats, metric exposure, and trace propagation.
 4.  **Confirm Success**: Confirm that all tests (new and existing) pass before considering a task complete.
+
+## 15. Frontend Architecture Patterns
+
+- **State Management**: Use Redux Toolkit for centralized state management.
+- **Data Fetching**: Use React Query for all asynchronous data fetching, caching, and synchronization.
+- **BFF (Backend for Frontend)**: Implement BFF endpoints in the API Gateway to aggregate data from downstream services and simplify frontend logic.
+- **Component Library**: Use a component-based approach with reusable components.
+- **Styling**: Use Tailwind CSS for utility-first styling.
