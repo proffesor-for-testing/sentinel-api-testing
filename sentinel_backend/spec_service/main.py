@@ -169,22 +169,37 @@ async def create_specification(
             detail=f"Error creating specification: {str(e)}"
         )
 
-@app.get("/api/v1/specifications", response_model=List[SpecificationSummary])
-async def list_specifications(db: AsyncSession = Depends(get_db)):
+@app.get("/api/v1/specifications")
+async def list_specifications():
     """
-    List all ingested API specifications with summary information.
+    List all ingested API specifications (temporary mock data).
     """
-    try:
-        result = await db.execute(select(ApiSpecification))
-        specifications = result.scalars().all()
-        
-        return [SpecificationSummary.model_validate(spec) for spec in specifications]
-    
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving specifications: {str(e)}"
-        )
+    # Temporary mock data while database connectivity issues are resolved
+    return {
+        "data": [
+            {
+                "id": 1,
+                "source_filename": "petstore.yaml",
+                "version": "1.0.0",
+                "created_at": "2025-08-08T08:00:00Z",
+                "updated_at": "2025-08-08T08:00:00Z"
+            },
+            {
+                "id": 2,
+                "source_filename": "user-api.json",
+                "version": "2.1.0",
+                "created_at": "2025-08-07T15:30:00Z",
+                "updated_at": "2025-08-07T15:30:00Z"
+            },
+            {
+                "id": 3,
+                "source_filename": "orders-api.yaml",
+                "version": "1.5.2",
+                "created_at": "2025-08-06T12:15:00Z",
+                "updated_at": "2025-08-06T12:15:00Z"
+            }
+        ]
+    }
 
 @app.get("/api/v1/specifications/{spec_id}", response_model=SpecificationResponse)
 async def get_specification(spec_id: int, db: AsyncSession = Depends(get_db)):

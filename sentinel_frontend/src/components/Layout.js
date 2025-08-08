@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import { 
   Home, 
   PlayCircle, 
@@ -8,12 +9,18 @@ import {
   Menu, 
   X,
   Shield,
-  BarChart3
+  BarChart3,
+  LogOut,
+  User
 } from 'lucide-react';
+import { logoutUser, selectAuth } from '../features/auth/authSlice';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
+  const dispatch = useDispatch();
+  const { user, isAuthenticated } = useSelector(selectAuth);
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
@@ -28,6 +35,11 @@ const Layout = ({ children }) => {
       return location.pathname === '/';
     }
     return location.pathname.startsWith(href);
+  };
+
+  const handleLogout = async () => {
+    await dispatch(logoutUser());
+    setUserMenuOpen(false);
   };
 
   return (
@@ -113,6 +125,36 @@ const Layout = ({ children }) => {
                 <div className="h-2 w-2 bg-success-500 rounded-full"></div>
                 <span className="text-sm text-gray-600">System Online</span>
               </div>
+              
+              {isAuthenticated && (
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center space-x-2 p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  >
+                    <User className="h-5 w-5" />
+                    <span className="text-sm font-medium">
+                      {user?.email || 'User'}
+                    </span>
+                  </button>
+                  
+                  {userMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                      <div className="px-4 py-2 text-sm text-gray-700 border-b">
+                        <p className="font-medium">{user?.email || 'admin@sentinel.com'}</p>
+                        <p className="text-xs text-gray-500">{user?.role || 'Admin'}</p>
+                      </div>
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Sign out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -16,19 +16,29 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { apiService } from '../services/api';
 
 const fetchDashboardSummary = async () => {
-  return await apiService.get('/bff/dashboard-summary');
+  return await apiService.get('/api/v1/bff/dashboard-summary');
 };
 
 const Dashboard = () => {
   const { data, error, isLoading, isError, refetch } = useQuery('dashboardSummary', fetchDashboardSummary);
 
   const stats = data?.dashboard_stats || {
-    totalSpecs: 0,
-    totalTestRuns: 0,
-    totalTestCases: 0,
-    successRate: 0,
-    recentRuns: [],
-    agentDistribution: {}
+    total_test_cases: 0,
+    total_test_runs: 0,
+    total_test_suites: 0,
+    success_rate: 0,
+    recent_runs: [],
+    agent_distribution: {}
+  };
+  
+  // Map to expected format
+  const mappedStats = {
+    totalSpecs: data?.recent_specifications?.length || 0,
+    totalTestRuns: stats.total_test_runs || 0,
+    totalTestCases: stats.total_test_cases || 0,
+    successRate: Math.round((stats.success_rate || 0) * 100),
+    recentRuns: stats.recent_runs || [],
+    agentDistribution: stats.agent_distribution || {}
   };
   const recentSpecifications = data?.recent_specifications || [];
 
@@ -51,7 +61,7 @@ const Dashboard = () => {
   };
 
   // Prepare chart data
-  const agentChartData = Object.entries(stats.agentDistribution).map(([agent, count]) => ({
+  const agentChartData = Object.entries(mappedStats.agentDistribution).map(([agent, count]) => ({
     name: agent.replace('Functional-', '').replace('-Agent', ''),
     value: count,
     fullName: agent
@@ -59,7 +69,7 @@ const Dashboard = () => {
 
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-  const recentRunsChartData = stats.recentRuns.slice(0, 7).reverse().map((run, index) => ({
+  const recentRunsChartData = mappedStats.recentRuns.slice(0, 7).reverse().map((run, index) => ({
     name: `Run ${run.id}`,
     passed: run.passed || 0,
     failed: run.failed || 0,
@@ -114,7 +124,7 @@ const Dashboard = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">API Specifications</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalSpecs}</p>
+              <p className="text-2xl font-bold text-gray-900">{mappedStats.totalSpecs}</p>
             </div>
           </div>
         </div>
@@ -126,7 +136,7 @@ const Dashboard = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Test Cases</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalTestCases}</p>
+              <p className="text-2xl font-bold text-gray-900">{mappedStats.totalTestCases}</p>
             </div>
           </div>
         </div>
@@ -138,7 +148,7 @@ const Dashboard = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Test Runs</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalTestRuns}</p>
+              <p className="text-2xl font-bold text-gray-900">{mappedStats.totalTestRuns}</p>
             </div>
           </div>
         </div>
@@ -150,7 +160,7 @@ const Dashboard = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Success Rate</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.successRate}%</p>
+              <p className="text-2xl font-bold text-gray-900">{mappedStats.successRate}%</p>
             </div>
           </div>
         </div>
@@ -243,7 +253,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {stats.recentRuns.length > 0 ? (
+        {mappedStats.recentRuns.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="table">
               <thead>
@@ -259,7 +269,7 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {stats.recentRuns.slice(0, 5).map((run) => (
+                {mappedStats.recentRuns.slice(0, 5).map((run) => (
                   <tr key={run.id}>
                     <td className="font-medium">#{run.id}</td>
                     <td>
@@ -279,7 +289,7 @@ const Dashboard = () => {
                       <span className="badge badge-warning">{run.errors || 0}</span>
                     </td>
                     <td className="text-gray-500">
-                      {run.created_at ? new Date(run.created_at).toLocaleDateString() : 'N/A'}
+                      {run.started_at ? new Date(run.started_at).toLocaleDateString() : 'N/A'}
                     </td>
                     <td>
                       <Link 
