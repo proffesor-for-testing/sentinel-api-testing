@@ -1,16 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.status import HTTP_200_OK
 import httpx
+import asyncio
 
-from auth_service.auth_middleware import get_current_user_optional
-from config.settings import get_service_settings
+from sentinel_backend.auth_service.auth_middleware import optional_auth
+from sentinel_backend.config.settings import get_service_settings
 
 router = APIRouter()
 service_settings = get_service_settings()
 
 
 @router.get("/dashboard-summary", status_code=HTTP_200_OK)
-async def get_dashboard_summary(current_user: dict = Depends(get_current_user_optional)):
+async def get_dashboard_summary(current_user: dict = Depends(optional_auth)):
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             # Fetch data from downstream services in parallel
