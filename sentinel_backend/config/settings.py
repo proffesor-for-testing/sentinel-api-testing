@@ -360,8 +360,8 @@ def get_settings() -> Settings:
     """
     # Determine environment from environment variable
     env = os.getenv("SENTINEL_ENVIRONMENT", "development").lower()
-    
-    return Settings(environment=env)
+    settings = Settings(environment=env)
+    return settings
 
 
 # Convenience function to get specific setting sections
