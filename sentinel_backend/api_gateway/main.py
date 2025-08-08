@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
 import httpx
@@ -26,6 +27,15 @@ app = FastAPI(
     title="Sentinel API Gateway",
     description="Main entry point for the Sentinel AI-powered API testing platform",
     version=app_settings.app_version
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Frontend development server
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Instrument for Prometheus
@@ -294,7 +304,7 @@ async def upload_specification(
 @app.get("/api/v1/specifications")
 async def list_specifications(
     request: Request,
-    auth_data: Dict[str, Any] = Depends(require_permission(Permissions.SPEC_READ))
+    current_user: dict = Depends(optional_auth)
 ):
     """List all uploaded API specifications."""
     headers = get_correlation_id_headers(request)

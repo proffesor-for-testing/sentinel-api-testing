@@ -9,10 +9,17 @@ const api = axios.create({
   },
 });
 
-// Request interceptor for logging
+// Request interceptor for logging and auth token
 api.interceptors.request.use(
   (config) => {
     console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    
+    // Add auth token if it exists
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
     return config;
   },
   (error) => {
@@ -153,6 +160,34 @@ export const apiService = {
   async runCompleteFlow(flowData) {
     const response = await api.post('/api/v1/test-complete-flow', flowData);
     return response.data;
+  },
+
+  // Dashboard
+  async getDashboardSummary() {
+    const response = await api.get('/api/v1/bff/dashboard-summary');
+    return response.data;
+  },
+
+  // Authentication
+  async login(credentials) {
+    const response = await api.post('/auth/login', credentials);
+    return response.data;
+  },
+
+  async logout() {
+    // Logout is handled client-side by removing the token
+    localStorage.removeItem('auth_token');
+    return { message: 'Logged out successfully' };
+  },
+
+  async getCurrentUser() {
+    const response = await api.get('/auth/profile');
+    return response.data;
+  },
+
+  async refreshToken() {
+    // Token refresh not implemented in backend yet
+    throw new Error('Token refresh not implemented');
   },
 
 };

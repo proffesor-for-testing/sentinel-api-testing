@@ -1029,6 +1029,40 @@ async def get_quality_insights(
             detail=f"Error generating quality insights: {str(e)}"
         )
 
+@app.get("/api/v1/dashboard-stats")
+async def get_dashboard_stats():
+    """Get dashboard statistics for the BFF service (temporary mock data)."""
+    # Temporary mock data while database connectivity issues are resolved
+    return {
+        "data": {
+            "total_test_cases": 23,
+            "total_test_suites": 5,
+            "total_test_runs": 127,
+            "success_rate": 0.87,
+            "avg_response_time_ms": 145,
+            "recent_runs": [
+                {
+                    "id": 1,
+                    "status": "passed",
+                    "started_at": "2025-08-08T10:30:00Z",
+                    "suite_id": 1
+                },
+                {
+                    "id": 2,
+                    "status": "failed",
+                    "started_at": "2025-08-08T09:15:00Z",
+                    "suite_id": 2
+                },
+                {
+                    "id": 3,
+                    "status": "passed",
+                    "started_at": "2025-08-08T08:45:00Z",
+                    "suite_id": 1
+                }
+            ]
+        }
+    }
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
