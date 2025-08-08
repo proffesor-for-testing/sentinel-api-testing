@@ -229,6 +229,57 @@ The configuration modularization initiative has been successfully completed acro
 3.  **Implement New Tests**: Add new tests to cover the new functionality or configuration. For observability, this includes verifying log formats, metric exposure, and trace propagation.
 4.  **Confirm Success**: Confirm that all tests (new and existing) pass before considering a task complete.
 
+## 15. Documentation Structure
+
+**Comprehensive Documentation Organization:**
+
+The project maintains a structured documentation portal in the `/docs` directory with the following organization:
+
+1. **User Guide** (`/docs/user-guide/`)
+   - Quick Start Guide
+   - API Specifications Management
+   - Test Types and Strategies
+   - CI/CD Integration
+   - Web Interface Usage
+   - Role-Based Access Control
+
+2. **Technical Guide** (`/docs/technical-guide/`)
+   - Architecture Overview
+   - Service Components
+   - Agent Implementation
+   - Database Design
+   - Configuration Management
+   - Security Architecture
+   - Observability Stack
+
+3. **API Reference** (`/docs/api-reference/`)
+   - Complete REST API documentation
+   - Authentication and authorization
+   - Request/response examples
+   - Error codes and handling
+   - SDK libraries usage
+
+4. **Deployment Guide** (`/docs/deployment/`)
+   - System requirements
+   - Docker deployment
+   - Kubernetes deployment
+   - Cloud platform deployments
+   - Production configuration
+   - Scaling strategies
+
+5. **Troubleshooting Guide** (`/docs/troubleshooting/`)
+   - Common issues and solutions
+   - Debugging techniques
+   - Performance optimization
+   - FAQ
+
+**Documentation Standards:**
+- All documentation must be in Markdown format
+- Include code examples where applicable
+- Maintain navigation links between related documents
+- Update documentation when features change
+- Include troubleshooting sections for complex topics
+
 ## 15. Frontend Architecture Patterns
 
 - **State Management**: Use Redux Toolkit for centralized state management.
