@@ -42,11 +42,12 @@
 
 ## 3. Next Steps
 
-1.  **Complete Phase 2: Production Readiness:**
-    -   ✅ ~~**Implement Observability Stack**~~ **COMPLETED**
-    -   ✅ ~~**Decouple with Message Broker**~~ **COMPLETED** - RabbitMQ fully integrated
-    -   ✅ ~~**Standardize Database & Security:**~~ **COMPLETED**
-2.  **Performance Benchmarking:**
+1.  **Complete Phase 3: Frontend & Community:**
+    -   ✅ **Build Open-Source Community:** **COMPLETED** - Created `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and issue/PR templates.
+    -   ⬜ **Modernize Frontend Architecture:** Adopt Redux Toolkit, React Query, and a BFF endpoint.
+2.  **Finalize Documentation:**
+    -   ⬜ **Finalize User & Technical Documentation:** Complete the final documentation for the project.
+3.  **Performance Benchmarking:**
     -   Conduct a comprehensive performance benchmark to quantify the improvements gained from the Rust implementation.
     -   Compare latency, throughput, and resource utilization against the previous Python-based system.
 

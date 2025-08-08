@@ -56,5 +56,6 @@ Here is the final, prioritized action plan that integrates all recommendations w
 
 *   [ ] **Modernize the Frontend Architecture:**
     *   **Action:** Integrate **Redux Toolkit** for state management and **React Query** for server-state and data fetching. Create a **BFF endpoint** on the API Gateway to simplify data aggregation for the UI.
-*   [ ] **Build a Welcoming Open-Source Community:**
+*   [x] **Build a Welcoming Open-Source Community:**
     *   **Action:** Create `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md` files. Add **GitHub Issue/PR templates** and enhance the CI pipeline with automated **linting, formatting, and contributor welcomes**.
+    *   **Status:** ✅ **COMPLETED** - Created `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and issue/PR templates.
