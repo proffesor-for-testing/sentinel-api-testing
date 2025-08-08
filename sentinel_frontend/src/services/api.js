@@ -37,6 +37,27 @@ api.interceptors.response.use(
 
 // API service methods
 export const apiService = {
+  // Generic methods for react-query
+  async get(url, params = {}) {
+    const response = await api.get(url, { params });
+    return response.data;
+  },
+
+  async post(url, data) {
+    const response = await api.post(url, data);
+    return response.data;
+  },
+
+  async put(url, data) {
+    const response = await api.put(url, data);
+    return response.data;
+  },
+
+  async delete(url) {
+    const response = await api.delete(url);
+    return response.data;
+  },
+
   // Health check
   async getHealth() {
     const response = await api.get('/health');
@@ -134,58 +155,6 @@ export const apiService = {
     return response.data;
   },
 
-  // Dashboard Analytics
-  async getDashboardStats() {
-    try {
-      const [specs, testRuns, testCases] = await Promise.all([
-        this.getSpecifications(),
-        this.getTestRuns(),
-        this.getTestCases()
-      ]);
-
-      // Calculate statistics
-      const totalSpecs = specs.length;
-      const totalTestRuns = testRuns.length;
-      const totalTestCases = testCases.length;
-
-      // Recent test runs (last 10)
-      const recentRuns = testRuns
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        .slice(0, 10);
-
-      // Success rate calculation
-      const completedRuns = testRuns.filter(run => run.status === 'completed');
-      const successfulRuns = completedRuns.filter(run => run.passed > 0 && run.failed === 0);
-      const successRate = completedRuns.length > 0 ? 
-        Math.round((successfulRuns.length / completedRuns.length) * 100) : 0;
-
-      // Test case distribution by agent type
-      const agentDistribution = testCases.reduce((acc, testCase) => {
-        const agentType = testCase.agent_type || 'Unknown';
-        acc[agentType] = (acc[agentType] || 0) + 1;
-        return acc;
-      }, {});
-
-      return {
-        totalSpecs,
-        totalTestRuns,
-        totalTestCases,
-        successRate,
-        recentRuns,
-        agentDistribution
-      };
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-      return {
-        totalSpecs: 0,
-        totalTestRuns: 0,
-        totalTestCases: 0,
-        successRate: 0,
-        recentRuns: [],
-        agentDistribution: {}
-      };
-    }
-  }
 };
 
 export default api;

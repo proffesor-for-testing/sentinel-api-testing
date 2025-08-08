@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Activity, 
-  FileText, 
-  TestTube, 
-  PlayCircle, 
+import { useQuery } from 'react-query';
+import {
+  Activity,
+  FileText,
+  TestTube,
+  PlayCircle,
   TrendingUp,
   AlertCircle,
   CheckCircle,
@@ -14,35 +15,22 @@ import {
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { apiService } from '../services/api';
 
+const fetchDashboardSummary = async () => {
+  return await apiService.get('/bff/dashboard-summary');
+};
+
 const Dashboard = () => {
-  const [stats, setStats] = useState({
+  const { data, error, isLoading, isError, refetch } = useQuery('dashboardSummary', fetchDashboardSummary);
+
+  const stats = data?.dashboard_stats || {
     totalSpecs: 0,
     totalTestRuns: 0,
     totalTestCases: 0,
     successRate: 0,
     recentRuns: [],
     agentDistribution: {}
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.getDashboardStats();
-      setStats(data);
-      setError(null);
-    } catch (err) {
-      console.error('Error loading dashboard data:', err);
-      setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
   };
+  const recentSpecifications = data?.recent_specifications || [];
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -78,7 +66,7 @@ const Dashboard = () => {
     errors: run.errors || 0
   }));
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="spinner"></div>
@@ -87,16 +75,16 @@ const Dashboard = () => {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="bg-danger-50 border border-danger-200 rounded-md p-4">
         <div className="flex">
           <AlertCircle className="h-5 w-5 text-danger-400" />
           <div className="ml-3">
             <h3 className="text-sm font-medium text-danger-800">Error</h3>
-            <p className="text-sm text-danger-700 mt-1">{error}</p>
-            <button 
-              onClick={loadDashboardData}
+            <p className="text-sm text-danger-700 mt-1">{error.message}</p>
+            <button
+              onClick={refetch}
               className="btn btn-sm btn-danger mt-2"
             >
               Retry

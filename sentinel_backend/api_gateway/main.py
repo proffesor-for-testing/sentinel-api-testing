@@ -10,6 +10,7 @@ from sentinel_backend.config.logging_config import setup_logging
 from sentinel_backend.config.tracing_config import setup_tracing
 from sentinel_backend.config.settings import get_service_settings, get_application_settings, get_network_settings
 from sentinel_backend.auth_service.auth_middleware import get_current_user, require_permission, Permissions, optional_auth
+from sentinel_backend.api_gateway.bff_service import router as bff_router
 
 # Set up structured logging
 setup_logging()
@@ -642,6 +643,8 @@ async def delete_user(
             raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
         except httpx.RequestError:
             raise HTTPException(status_code=503, detail="Authentication service is unavailable")
+
+app.include_router(bff_router, prefix="/api/v1/bff", tags=["BFF"])
 
 
 @app.get("/auth/roles")
