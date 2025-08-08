@@ -461,13 +461,56 @@ This project follows the patterns and preferences outlined in `.clinerules`. Key
 
 ## 📚 Documentation
 
-Comprehensive documentation is maintained in the `memory-bank/` directory:
+### 📖 Comprehensive Documentation Portal
 
-- **Project Brief**: Overall project scope and objectives
-- **System Patterns**: Architectural decisions and patterns
-- **Agent Specifications**: Detailed agent capabilities and workflows
-- **Database Schema**: Complete data model design
-- **API Design**: Internal REST API specifications
+The Sentinel platform now includes extensive documentation covering all aspects of usage, deployment, and development:
+
+#### [**📘 Complete Documentation Index**](docs/index.md)
+Your starting point for all Sentinel documentation.
+
+#### Core Documentation Sections:
+
+- **[User Guide](docs/user-guide/index.md)** - Complete guide for using Sentinel
+  - [Quick Start Guide](docs/user-guide/quick-start.md) - Get up and running in minutes
+  - [Managing API Specifications](docs/user-guide/specifications.md) - Upload and manage OpenAPI specs
+  - [Understanding Test Types](docs/user-guide/test-types.md) - Learn about different testing approaches
+  - [CI/CD Integration](docs/user-guide/cicd-integration.md) - Integrate with your DevOps pipeline
+
+- **[Technical Guide](docs/technical-guide/index.md)** - In-depth technical documentation
+  - [Architecture Overview](docs/technical-guide/architecture.md) - System design and components
+  - Service components and interactions
+  - Agent implementation details
+  - Database schema and models
+
+- **[API Reference](docs/api-reference/index.md)** - Complete API documentation
+  - REST API endpoints with examples
+  - Authentication and authorization
+  - Code examples in multiple languages
+  - SDK libraries and usage
+
+- **[Deployment Guide](docs/deployment/index.md)** - Production deployment instructions
+  - Docker and Kubernetes deployment
+  - Cloud platform deployments (AWS, GCP, Azure)
+  - Scaling strategies
+  - Security hardening
+
+- **[Troubleshooting Guide](docs/troubleshooting/index.md)** - Diagnose and resolve issues
+  - Common problems and solutions
+  - Debugging techniques
+  - Performance optimization
+  - FAQ
+
+#### Memory Bank Documentation:
+
+Additional technical documentation is maintained in the `memory-bank/` directory:
+
+- **[Project Brief](memory-bank/projectbrief.md)**: Overall project scope and objectives
+- **[System Patterns](memory-bank/systemPatterns.md)**: Architectural decisions and patterns
+- **[Agent Specifications](memory-bank/agent-specifications.md)**: Detailed agent capabilities and workflows
+- **[Database Schema](memory-bank/database-schema.md)**: Complete data model design
+- **[API Design](memory-bank/api-design.md)**: Internal REST API specifications
+- **[Progress Tracking](memory-bank/progress.md)**: Implementation roadmap and status
+- **[Active Context](memory-bank/activeContext.md)**: Current development focus
 
 ## 🔮 Future Vision
 
