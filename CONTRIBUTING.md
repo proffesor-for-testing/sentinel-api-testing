@@ -235,10 +235,10 @@ def test_should_create_test_case_with_valid_data():
 
 ## Community
 
-- **Discord:** [Join our Discord server](https://discord.gg/sentinel-api) (placeholder)
+
 - **Discussions:** Use GitHub Discussions for general questions
 - **Stack Overflow:** Tag questions with `sentinel-api-testing`
-- **Twitter:** Follow [@SentinelAPI](https://twitter.com/SentinelAPI) (placeholder)
+
 
 ## Recognition
 
