@@ -82,18 +82,10 @@ async def get_db() -> AsyncSession:
         finally:
             await session.close()
 
-async def create_tables():
-    """Create database tables if they don't exist"""
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-    except Exception as e:
-        print(f"Warning: Could not connect to database: {e}")
-        print("Service will run without database persistence")
-
 @app.on_event("startup")
 async def startup_event():
-    await create_tables()
+    # It's now handled by Alembic
+    pass
 
 @app.get("/")
 async def root():
