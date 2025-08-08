@@ -429,20 +429,35 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🤝 Contributing
 
-This project is open source and welcomes contributions! This project follows the patterns and preferences outlined in `.clinerules`. Key principles:
+We welcome contributions from the community! Whether you're a developer, a tester, or just an enthusiast, there are many ways to get involved.
 
-- **Modularity**: Develop within the microservices architecture
-- **Agent Specialization**: Create specialized agents for new testing types
-- **Specification-Driven**: All development driven by API specifications
-- **Hybrid AI**: Combine deterministic algorithms with LLM capabilities
+Before you start, please read our [**Code of Conduct**](CODE_OF_CONDUCT.md) to understand our community standards.
 
 ### How to Contribute
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add: Amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+For a detailed guide on how to contribute, set up your development environment, and follow our style guidelines, please see our [**Contributing Guide**](CONTRIBUTING.md).
+
+Here's a quick overview of the process:
+
+1.  **Find an issue** to work on or propose a new feature. Check out issues labeled `good first issue` for a great place to start.
+2.  **Fork the repository** and create a new branch for your work.
+3.  **Make your changes**, following the project's coding and style guidelines.
+4.  **Write tests** to cover your changes and ensure existing tests pass.
+5.  **Submit a Pull Request** with a clear description of your changes.
+
+We use GitHub issues to track bugs and feature requests. Please use our issue templates when creating a new issue:
+
+-   [**Report a Bug**](https://github.com/proffesor-for-testing/sentinel-api-testing/issues/new?template=bug_report.md)
+-   [**Request a Feature**](https://github.com/proffesor-for-testing/sentinel-api-testing/issues/new?template=feature_request.md)
+
+### Key Principles
+
+This project follows the patterns and preferences outlined in `.clinerules`. Key principles include:
+
+-   **Modularity**: Develop within the microservices architecture.
+-   **Agent Specialization**: Create specialized agents for new testing types.
+-   **Specification-Driven**: All development is driven by API specifications.
+-   **Hybrid AI**: Combine deterministic algorithms with LLM capabilities.
 
 ## 📚 Documentation
 

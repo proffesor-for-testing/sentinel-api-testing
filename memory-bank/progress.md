@@ -88,4 +88,4 @@ The project has successfully completed Phases 1-4 and is now in Phase 5 (Enterpr
 | Standardize DB Migrations & Security               | ✅ Done     | Adopted `alembic` for DB migrations and added standard security headers to the API gateway. |
 | **Phase 3: Frontend & Community**                  | ⬜ **To Do**  |                                                                       |
 | Modernize Frontend Architecture                    | ⬜ To Do    | Adopt Redux Toolkit, React Query, and a BFF endpoint.                 |
-| Build Open-Source Community                        | ⬜ To Do    | Create `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and issue templates.  |
+| Build Open-Source Community                        | ✅ Done     | Created `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and issue/PR templates. |
