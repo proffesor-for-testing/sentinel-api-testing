@@ -1,0 +1,33 @@
+# E2E Test Container with Playwright
+FROM mcr.microsoft.com/playwright:v1.40.0-focal
+
+# Set working directory
+WORKDIR /app
+
+# Install Node.js 18
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Install Playwright browsers (they're included in the base image but this ensures latest)
+RUN npx playwright install --with-deps
+
+# Set environment variables
+ENV NODE_ENV=test
+ENV CI=true
+ENV REACT_APP_API_URL=http://test_api_gateway:8000
+ENV PLAYWRIGHT_HEADLESS=true
+
+# Copy source code and test files
+COPY . .
+
+# Create test results directory
+RUN mkdir -p /app/test-results /app/playwright-report
+
+# Default command for E2E tests
+CMD ["npx", "playwright", "test", "--reporter=html"]

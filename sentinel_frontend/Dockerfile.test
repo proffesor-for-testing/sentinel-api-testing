@@ -1,0 +1,44 @@
+# Frontend Test Container
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for Playwright
+RUN apk add --no-cache \
+    chromium \
+    chromium-chromedriver \
+    firefox \
+    webkit2gtk \
+    && rm -rf /var/cache/apk/*
+
+# Install global dependencies
+RUN npm install -g npm@latest
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production=false
+
+# Install additional test dependencies
+RUN npm install --save-dev \
+    @testing-library/jest-dom \
+    @testing-library/react \
+    @testing-library/user-event \
+    jest-environment-jsdom \
+    @types/jest
+
+# Set environment variables
+ENV NODE_ENV=test
+ENV CI=true
+ENV REACT_APP_API_URL=http://test_api_gateway:8000
+
+# Copy source code
+COPY . .
+
+# Create test reports directory
+RUN mkdir -p /app/coverage /app/test-results
+
+# Default command for unit/component tests
+CMD ["npm", "run", "test:coverage"]

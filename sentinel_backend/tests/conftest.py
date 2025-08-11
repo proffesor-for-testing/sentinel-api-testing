@@ -22,6 +22,15 @@ from config.settings import get_database_settings, get_service_settings, get_app
 # Set testing environment
 os.environ["SENTINEL_ENVIRONMENT"] = "testing"
 
+# Configure pytest markers
+def pytest_configure(config):
+    """Register custom markers."""
+    config.addinivalue_line("markers", "unit: mark test as a unit test")
+    config.addinivalue_line("markers", "integration: mark test as an integration test")
+    config.addinivalue_line("markers", "e2e: mark test as an end-to-end test")
+    config.addinivalue_line("markers", "slow: mark test as slow running")
+    config.addinivalue_line("markers", "auth: mark test as requiring authentication")
+
 @pytest.fixture(scope="session")
 def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     """Create an instance of the default event loop for the test session."""

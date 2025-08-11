@@ -164,7 +164,7 @@ services:
     networks:
       - sentinel_test_network
 
-  # Test Runner Service
+  # Backend Test Runner Service
   test_runner:
     build:
       context: .
@@ -184,10 +184,75 @@ services:
     networks:
       - sentinel_test_network
 
+  # Frontend Test Runner Service
+  frontend_test_runner:
+    build:
+      context: ../sentinel_frontend
+      dockerfile: Dockerfile.test
+    container_name: sentinel_frontend_test_runner
+    environment:
+      - NODE_ENV=test
+      - CI=true
+      - REACT_APP_API_URL=http://test_api_gateway:8000
+    volumes:
+      - ../sentinel_frontend:/app
+      - frontend_test_reports:/app/coverage
+    command: ["npm", "run", "test:coverage"]
+    networks:
+      - sentinel_test_network
+
+  # E2E Test Runner Service
+  e2e_test_runner:
+    build:
+      context: ../sentinel_frontend
+      dockerfile: Dockerfile.e2e
+    container_name: sentinel_e2e_test_runner
+    environment:
+      - NODE_ENV=test
+      - CI=true
+      - REACT_APP_API_URL=http://test_api_gateway:8000
+      - PLAYWRIGHT_HEADLESS=true
+    volumes:
+      - ../sentinel_frontend:/app
+      - e2e_test_reports:/app/test-results
+    depends_on:
+      test_api_gateway:
+        condition: service_healthy
+      frontend_test_runner:
+        condition: service_completed_successfully
+    command: ["npx", "playwright", "test", "--reporter=html"]
+    networks:
+      - sentinel_test_network
+
+  # Test Data Loader Service (Optional - for loading test fixtures)
+  test_data_loader:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: sentinel_test_data_loader
+    environment:
+      - SENTINEL_ENVIRONMENT=testing
+    env_file:
+      - config/testing.env
+    volumes:
+      - ./tests/fixtures:/app/fixtures
+    depends_on:
+      test_db:
+        condition: service_healthy
+    command: ["python", "-c", "print('Test data loader - customize as needed')"]
+    networks:
+      - sentinel_test_network
+    profiles:
+      - fixtures
+
 volumes:
   test_db_data:
     driver: local
   test_reports:
+    driver: local
+  frontend_test_reports:
+    driver: local
+  e2e_test_reports:
     driver: local
 
 networks:

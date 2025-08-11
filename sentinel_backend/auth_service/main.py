@@ -13,9 +13,9 @@ from enum import Enum
 from prometheus_fastapi_instrumentator import Instrumentator
 
 # Import configuration
-from sentinel_backend.config.settings import get_security_settings, get_application_settings
-from sentinel_backend.config.logging_config import setup_logging
-from sentinel_backend.config.tracing_config import setup_tracing
+from config.settings import get_security_settings, get_application_settings
+from config.logging_config import setup_logging
+from config.tracing_config import setup_tracing
 
 # Set up structured logging
 setup_logging()
@@ -226,7 +226,7 @@ def decode_access_token(token: str) -> dict:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired"
         )
-    except jwt.JWTError:
+    except jwt.PyJWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"

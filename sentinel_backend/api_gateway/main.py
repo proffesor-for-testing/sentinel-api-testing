@@ -7,11 +7,11 @@ import os
 import structlog
 import uuid
 from prometheus_fastapi_instrumentator import Instrumentator
-from sentinel_backend.config.logging_config import setup_logging
-from sentinel_backend.config.tracing_config import setup_tracing
-from sentinel_backend.config.settings import get_service_settings, get_application_settings, get_network_settings
-from sentinel_backend.auth_service.auth_middleware import get_current_user, require_permission, Permissions, optional_auth
-from sentinel_backend.api_gateway.bff_service import router as bff_router
+from config.logging_config import setup_logging
+from config.tracing_config import setup_tracing
+from config.settings import get_service_settings, get_application_settings, get_network_settings
+from auth_service.auth_middleware import get_current_user, require_permission, Permissions, optional_auth
+from api_gateway.bff_service import router as bff_router
 
 # Set up structured logging
 setup_logging()
@@ -91,6 +91,15 @@ def get_correlation_id_headers(request: Request) -> Dict[str, str]:
     if correlation_id:
         return {"X-Correlation-ID": correlation_id}
     return {}
+
+
+def get_json_data(request):
+    """
+    Helper to get JSON data from either a dict or Pydantic model.
+    """
+    if hasattr(request, 'dict'):
+        return request.dict()
+    return request
 
 
 # Request/Response Models
@@ -199,7 +208,7 @@ async def health_check():
 
 # Phase 2 MVP: Complete End-to-End Flow
 @app.post("/api/v1/test-complete-flow")
-async def complete_testing_flow(request: EndToEndTestRequest):
+async def complete_testing_flow(fastapi_request: Request, request: EndToEndTestRequest):
     """
     Complete end-to-end testing flow for Phase 2 MVP.
     
@@ -288,9 +297,11 @@ async def upload_specification(
     headers = get_correlation_id_headers(fastapi_request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
+            json_data = get_json_data(request)
+            
             response = await client.post(
                 f"{service_settings.spec_service_url}/api/v1/specifications",
-                json=request.dict(),
+                json=json_data,
                 headers=headers
             )
             response.raise_for_status()
@@ -340,9 +351,11 @@ async def generate_tests(fastapi_request: Request, request: TestGenerationReques
     headers = get_correlation_id_headers(fastapi_request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
+            json_data = get_json_data(request)
+            
             response = await client.post(
                 f"{service_settings.orchestration_service_url}/generate-tests",
-                json=request.dict(),
+                json=json_data,
                 headers=headers
             )
             response.raise_for_status()
@@ -387,9 +400,11 @@ async def create_test_suite(fastapi_request: Request, request: TestSuiteCreateRe
     headers = get_correlation_id_headers(fastapi_request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
+            json_data = get_json_data(request)
+            
             response = await client.post(
                 f"{service_settings.data_service_url}/api/v1/test-suites",
-                json=request.dict(),
+                json=json_data,
                 headers=headers
             )
             response.raise_for_status()
@@ -421,9 +436,11 @@ async def run_tests(fastapi_request: Request, request: TestRunRequest):
     headers = get_correlation_id_headers(fastapi_request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
+            json_data = get_json_data(request)
+            
             response = await client.post(
                 f"{service_settings.execution_service_url}/test-runs",
-                json=request.dict(),
+                json=json_data,
                 headers=headers
             )
             response.raise_for_status()
@@ -497,7 +514,7 @@ async def login(fastapi_request: Request, request: UserLogin):
         try:
             response = await client.post(
                 f"{service_settings.auth_service_url}/auth/login",
-                json=request.dict(),
+                json=get_json_data(request),
                 headers=headers
             )
             response.raise_for_status()
@@ -521,7 +538,7 @@ async def register(
         try:
             response = await client.post(
                 f"{service_settings.auth_service_url}/auth/register",
-                json=request.dict(),
+                json=get_json_data(request),
                 headers=headers
             )
             response.raise_for_status()
@@ -551,7 +568,7 @@ async def update_profile(
         try:
             response = await client.put(
                 f"{service_settings.auth_service_url}/auth/profile",
-                json=request.dict(),
+                json=get_json_data(request),
                 headers=headers
             )
             response.raise_for_status()
@@ -621,7 +638,7 @@ async def update_user(
         try:
             response = await client.put(
                 f"{service_settings.auth_service_url}/auth/users/{user_id}",
-                json=request.dict(),
+                json=get_json_data(request),
                 headers=headers
             )
             response.raise_for_status()
