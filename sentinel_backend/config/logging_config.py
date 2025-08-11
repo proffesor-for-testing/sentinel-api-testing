@@ -1,7 +1,7 @@
 import logging
 import sys
 import structlog
-from sentinel_backend.config.settings import get_application_settings
+from config.settings import get_application_settings
 
 def setup_logging():
     """

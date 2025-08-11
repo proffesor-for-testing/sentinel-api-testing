@@ -6,7 +6,7 @@ FROM rust:latest as builder
 WORKDIR /usr/src/sentinel_rust_core
 
 # Copy the Cargo manifest and lock file.
-COPY sentinel_backend/sentinel_rust_core/Cargo.toml ./
+COPY sentinel_rust_core/Cargo.toml ./
 
 # Create a dummy src directory with a main.rs file to cache dependencies.
 # This layer will only be rebuilt if Cargo.toml or Cargo.lock changes.
@@ -15,7 +15,7 @@ RUN cargo build --release
 RUN rm -f target/release/deps/sentinel_rust_core*
 
 # Copy the actual source code.
-COPY sentinel_backend/sentinel_rust_core/src ./src
+COPY sentinel_rust_core/src ./src
 
 # Build the application.
 RUN cargo build --release

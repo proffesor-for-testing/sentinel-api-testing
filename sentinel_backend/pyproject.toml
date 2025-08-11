@@ -5,7 +5,28 @@ description = "Backend services for the Sentinel AI Agentic API Testing Platform
 authors = ["Cline"]
 
 [[tool.poetry.packages]]
-include = "sentinel_backend"
+include = "auth_service"
+
+[[tool.poetry.packages]]
+include = "api_gateway"
+
+[[tool.poetry.packages]]
+include = "spec_service"
+
+[[tool.poetry.packages]]
+include = "orchestration_service"
+
+[[tool.poetry.packages]]
+include = "execution_service"
+
+[[tool.poetry.packages]]
+include = "data_service"
+
+[[tool.poetry.packages]]
+include = "config"
+
+[[tool.poetry.packages]]
+include = "tests"
 
 [tool.poetry.dependencies]
 python = "^3.10"

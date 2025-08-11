@@ -6,7 +6,7 @@ WORKDIR /app
 ENV PYTHONPATH /app
 
 # Copy the dependency files to the working directory
-COPY sentinel_backend/pyproject.toml ./
+COPY pyproject.toml ./
 
 # Install dependencies only (not the package itself yet)
 RUN pip install fastapi uvicorn sqlalchemy asyncpg psycopg2-binary pgvector alembic prance openapi-core pyyaml pytest pytest-asyncio httpx schedule openai pyjwt bcrypt python-multipart email-validator python-dotenv pydantic pydantic-settings Faker

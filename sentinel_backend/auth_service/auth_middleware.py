@@ -9,9 +9,11 @@ import httpx
 import os
 from typing import Dict, List, Optional, Any
 import logging
+import structlog
+from enum import Enum
 
 # Import configuration
-from sentinel_backend.config.settings import get_service_settings
+from config.settings import get_service_settings
 
 # Get configuration
 service_settings = get_service_settings()
@@ -37,9 +39,19 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
+            # Get correlation ID from context
+            headers = {"Authorization": f"Bearer {token}"}
+            try:
+                context_vars = structlog.contextvars.get_contextvars()
+                correlation_id = context_vars.get("correlation_id")
+                if correlation_id:
+                    headers["X-Correlation-ID"] = correlation_id
+            except:
+                pass  # If no correlation ID context, continue without it
+                
             response = await client.post(
                 f"{service_settings.auth_service_url}/auth/validate",
-                headers={"Authorization": f"Bearer {token}"}
+                headers=headers
             )
             
             if response.status_code == 401:
@@ -54,17 +66,31 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
                     detail="Authentication service unavailable"
                 )
             
-            auth_data = response.json()
-            return {
-                "user": auth_data["user"],
-                "permissions": auth_data["permissions"]
-            }
+            try:
+                auth_data = response.json()
+                return {
+                    "user": auth_data["user"],
+                    "token": token,
+                    "permissions": auth_data["permissions"]
+                }
+            except (ValueError, KeyError) as e:
+                logger.error(f"Malformed response from auth service: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Authentication service returned invalid response"
+                )
             
+        except httpx.TimeoutException:
+            logger.error("Authentication service timeout")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Auth service timeout"
+            )
         except httpx.RequestError:
             logger.error("Failed to connect to authentication service")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Authentication service unavailable"
+                detail="Auth service unavailable"
             )
 
 def require_permission(permission: str):
@@ -78,6 +104,12 @@ def require_permission(permission: str):
         FastAPI dependency function
     """
     async def permission_checker(auth_data: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
+        if auth_data is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required"
+            )
+            
         user_permissions = auth_data.get("permissions", [])
         
         if permission not in user_permissions:
@@ -202,7 +234,7 @@ class AuthMiddleware:
 auth_middleware = AuthMiddleware()
 
 # Common permission constants for easy import
-class Permissions:
+class Permissions(str, Enum):
     """Common permission constants."""
     
     # Specification permissions
