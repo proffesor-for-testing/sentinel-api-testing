@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from fastapi import status
 import bcrypt
 
-from auth_service.app_factory import create_auth_app, create_test_app_with_users, AuthConfig
+from sentinel_backend.auth_service.app_factory import create_auth_app, create_test_app_with_users, AuthConfig
 
 
 class TestAuthWithFactory:

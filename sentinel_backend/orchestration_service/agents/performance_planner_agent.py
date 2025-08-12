@@ -31,7 +31,7 @@ class PerformancePlannerAgent(BaseAgent):
     """
     
     def __init__(self):
-        super().__init__()
+        super().__init__("performance-planner")
         self.agent_type = "performance-planner"
         self.description = "Performance agent focused on generating comprehensive test plans and load scenarios"
         
@@ -42,7 +42,7 @@ class PerformancePlannerAgent(BaseAgent):
         self.ramp_up_time = getattr(app_settings, 'performance_ramp_up_time', 30)
         self.think_time = getattr(app_settings, 'performance_think_time', 1)
     
-    def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Generate performance test cases and configurations.
         

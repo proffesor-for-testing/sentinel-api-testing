@@ -17,7 +17,7 @@ from sqlalchemy.orm import sessionmaker
 from fastapi import FastAPI
 
 # Import configuration
-from config.settings import get_database_settings, get_service_settings, get_application_settings
+from sentinel_backend.config.settings import get_database_settings, get_service_settings, get_application_settings
 
 # Set testing environment
 os.environ["SENTINEL_ENVIRONMENT"] = "testing"

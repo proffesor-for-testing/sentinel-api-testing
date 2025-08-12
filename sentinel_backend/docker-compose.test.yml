@@ -32,12 +32,12 @@ services:
     env_file:
       - config/testing.env
     ports:
-      - "18005:8000"
+      - "18005:8005"
     depends_on:
       test_db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8005/')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -54,12 +54,12 @@ services:
     env_file:
       - config/testing.env
     ports:
-      - "18001:8000"
+      - "18001:8001"
     depends_on:
       test_db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -76,14 +76,14 @@ services:
     env_file:
       - config/testing.env
     ports:
-      - "18002:8000"
+      - "18002:8002"
     depends_on:
       test_spec_service:
         condition: service_healthy
       test_data_service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -100,12 +100,12 @@ services:
     env_file:
       - config/testing.env
     ports:
-      - "18003:8000"
+      - "18003:8003"
     depends_on:
       test_data_service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -122,12 +122,12 @@ services:
     env_file:
       - config/testing.env
     ports:
-      - "18004:8000"
+      - "18004:8004"
     depends_on:
       test_db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -157,7 +157,7 @@ services:
       test_data_service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -175,7 +175,7 @@ services:
     env_file:
       - config/testing.env
     volumes:
-      - .:/app
+      - .:/app/sentinel_backend
       - test_reports:/app/test_reports
     depends_on:
       test_api_gateway:

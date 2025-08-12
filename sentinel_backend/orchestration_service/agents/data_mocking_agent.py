@@ -73,7 +73,7 @@ class DataMockingAgent(BaseAgent):
     """
     
     def __init__(self):
-        super().__init__()
+        super().__init__("data-mocking")
         self.agent_type = "data-mocking"
         self.fake = Faker()
         self.fake.add_provider(APIProvider)

@@ -10,7 +10,7 @@ import tempfile
 from typing import Dict, Any, Optional
 from pathlib import Path
 
-from config.settings import (
+from sentinel_backend.config.settings import (
     get_database_settings,
     get_service_settings,
     get_application_settings,

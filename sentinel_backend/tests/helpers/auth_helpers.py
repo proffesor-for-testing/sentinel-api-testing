@@ -105,12 +105,15 @@ class MockAuthService:
     
     def add_default_users(self):
         """Add default test users."""
+        from datetime import datetime
         self.add_user({
             "id": 1,
             "email": "admin@sentinel.com",
             "full_name": "Admin User",
             "role": "admin",
-            "is_active": True
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "last_login": datetime.utcnow()
         }, "admin123")
         
         self.add_user({
@@ -118,7 +121,9 @@ class MockAuthService:
             "email": "tester@sentinel.com",
             "full_name": "Test User",
             "role": "tester",
-            "is_active": True
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "last_login": None
         }, "tester123")
         
         self.add_user({
@@ -126,7 +131,9 @@ class MockAuthService:
             "email": "viewer@sentinel.com",
             "full_name": "Viewer User",
             "role": "viewer",
-            "is_active": True
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "last_login": None
         }, "viewer123")
     
     def add_user(self, user_data: Dict[str, Any], password: str):

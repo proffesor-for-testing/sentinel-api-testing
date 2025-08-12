@@ -30,7 +30,7 @@ class SecurityAuthAgent(BaseAgent):
     """
     
     def __init__(self):
-        super().__init__()
+        super().__init__("security-auth")
         self.agent_type = "security-auth"
         self.description = "Security agent focused on authentication and authorization vulnerabilities"
         
@@ -40,7 +40,7 @@ class SecurityAuthAgent(BaseAgent):
         self.default_test_timeout = getattr(app_settings, 'security_test_timeout', 30)
         self.enable_aggressive_testing = getattr(app_settings, 'security_enable_aggressive_testing', False)
     
-    def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Generate security test cases focused on authentication and authorization.
         
@@ -67,6 +67,12 @@ class SecurityAuthAgent(BaseAgent):
                         
                         # Generate authentication bypass tests
                         test_cases.extend(self._generate_auth_bypass_tests(path, method, operation_spec))
+            
+            # If LLM is enabled, generate sophisticated auth attack vectors
+            if self.llm_enabled and paths:
+                logger.info("Generating LLM-enhanced security auth test cases")
+                llm_tests = await self._generate_llm_auth_tests(list(paths.items())[:3], spec_data)
+                test_cases.extend(llm_tests)
             
             logger.info(f"Generated {len(test_cases)} security authentication test cases")
             return test_cases
@@ -457,3 +463,69 @@ class SecurityAuthAgent(BaseAgent):
             {'value': '../admin', 'description': 'Path traversal attempt'},
             {'value': 'null', 'description': 'Null string access'},
         ]
+    
+    async def _generate_llm_auth_tests(
+        self,
+        paths: List[Tuple[str, Dict]],
+        spec_data: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate sophisticated auth attack vectors using LLM.
+        
+        LLM can understand context and generate more targeted auth attacks.
+        """
+        if not self.llm_enabled:
+            return []
+        
+        test_cases = []
+        
+        for path, operations in paths:
+            # Create prompt for auth vulnerability testing
+            prompt = f"""Generate sophisticated authentication/authorization test cases for this API endpoint:
+
+Path: {path}
+Operations: {', '.join(operations.keys())}
+
+Generate test cases that:
+1. Test for BOLA (Broken Object Level Authorization) vulnerabilities
+2. Attempt privilege escalation
+3. Test JWT token manipulation
+4. Check for insecure direct object references
+5. Test role-based access control bypass
+
+Focus on realistic attack vectors that might bypass common auth implementations."""
+
+            system_prompt = """You are a security expert specializing in API authentication vulnerabilities.
+Generate sophisticated test cases that identify auth weaknesses.
+Focus on OWASP API Security Top 10 vulnerabilities."""
+
+            # Get LLM-generated test cases
+            llm_response = await self.enhance_with_llm(
+                {'path': path, 'operations': operations},
+                prompt,
+                system_prompt=system_prompt,
+                temperature=0.7
+            )
+            
+            # Convert to test cases
+            if isinstance(llm_response, list):
+                for test_data in llm_response[:3]:  # Limit to 3 per endpoint
+                    if isinstance(test_data, dict):
+                        test_case = {
+                            'test_name': f"[LLM] {test_data.get('name', 'Auth vulnerability test')}",
+                            'test_type': 'security-auth',
+                            'test_subtype': test_data.get('subtype', 'auth-bypass'),
+                            'method': test_data.get('method', 'GET'),
+                            'path': path,
+                            'headers': test_data.get('headers', {}),
+                            'body': test_data.get('body'),
+                            'expected_status_codes': test_data.get('expected_status', [401, 403]),
+                            'security_check': {
+                                'type': test_data.get('attack_type', 'auth'),
+                                'description': test_data.get('description', 'LLM-generated auth test')
+                            },
+                            'tags': ['security', 'auth', 'llm-generated']
+                        }
+                        test_cases.append(test_case)
+        
+        return test_cases

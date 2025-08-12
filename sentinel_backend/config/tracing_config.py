@@ -4,7 +4,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.resources import Resource
-from config.settings import get_network_settings
+from sentinel_backend.config.settings import get_network_settings
 
 def setup_tracing(app, service_name: str):
     """

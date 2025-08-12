@@ -123,6 +123,15 @@ class FunctionalStatefulAgent(BaseAgent):
                 test_case = self._convert_scenario_to_test_case(scenario)
                 test_cases.append(test_case)
             
+            # Step 5: If LLM is enabled, generate additional complex workflows
+            if self.llm_enabled and workflow_patterns:
+                self.logger.info("Generating LLM-enhanced stateful workflows")
+                llm_scenarios = await self._generate_llm_workflows(workflow_patterns[:2], api_spec)
+                for scenario in llm_scenarios:
+                    test_case = self._convert_scenario_to_test_case(scenario)
+                    test_case['description'] = f"[LLM] {test_case.get('description', 'Complex workflow')}"
+                    test_cases.append(test_case)
+            
             self.logger.info(f"Generated {len(test_cases)} stateful test cases")
             
             return AgentResult(
@@ -136,7 +145,10 @@ class FunctionalStatefulAgent(BaseAgent):
                     "total_scenarios": len(test_scenarios),
                     "total_test_cases": len(test_cases),
                     "generation_strategy": "sodg_based_stateful_workflows",
-                    "supported_patterns": [p["type"] for p in workflow_patterns]
+                    "supported_patterns": [p["type"] for p in workflow_patterns],
+                    "llm_enhanced": self.llm_enabled,
+                    "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
+                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
                 }
             )
             
@@ -984,3 +996,59 @@ class FunctionalStatefulAgent(BaseAgent):
             'assertions': assertions,
             'tags': ['functional', 'stateful', 'multi-step', 'workflow']
         }
+    
+    async def _generate_llm_workflows(
+        self,
+        workflow_patterns: List[Dict[str, Any]],
+        api_spec: Dict[str, Any]
+    ) -> List[StatefulTestScenario]:
+        """
+        Generate complex stateful workflows using LLM.
+        
+        LLM can understand business logic and create more realistic
+        multi-step test scenarios.
+        """
+        if not self.llm_enabled:
+            return []
+        
+        scenarios = []
+        
+        for pattern in workflow_patterns:
+            # Create prompt for complex workflow generation
+            prompt = f"""Generate a complex multi-step test workflow for this API pattern:
+
+Pattern Type: {pattern['type']}
+Operations involved: {', '.join([op['operation_id'] for op in pattern.get('operations', [])])}
+
+Create a realistic business workflow that:
+1. Tests the complete lifecycle of resources
+2. Validates state transitions
+3. Includes data dependencies between steps
+4. Tests edge cases in workflows
+
+Return a sequence of API calls with state management."""
+
+            system_prompt = """You are an expert in API workflow testing.
+Generate complex, realistic test scenarios that validate business logic across multiple API calls.
+Focus on state management and data dependencies between operations."""
+
+            # Get LLM-generated workflow
+            llm_response = await self.enhance_with_llm(
+                pattern,
+                prompt,
+                system_prompt=system_prompt,
+                temperature=0.6
+            )
+            
+            # Convert to StatefulTestScenario
+            if isinstance(llm_response, dict):
+                scenario = StatefulTestScenario(
+                    scenario_id=f"llm_workflow_{len(scenarios)+1}",
+                    description=llm_response.get('description', 'LLM-generated complex workflow'),
+                    operations=llm_response.get('operations', []),
+                    state_variables=llm_response.get('state_variables', {}),
+                    cleanup_operations=llm_response.get('cleanup_operations', [])
+                )
+                scenarios.append(scenario)
+        
+        return scenarios

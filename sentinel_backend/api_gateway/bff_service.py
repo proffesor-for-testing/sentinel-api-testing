@@ -3,8 +3,8 @@ from starlette.status import HTTP_200_OK
 import httpx
 import asyncio
 
-from auth_service.auth_middleware import optional_auth
-from config.settings import get_service_settings
+from sentinel_backend.auth_service.auth_middleware import optional_auth
+from sentinel_backend.config.settings import get_service_settings
 
 router = APIRouter()
 service_settings = get_service_settings()

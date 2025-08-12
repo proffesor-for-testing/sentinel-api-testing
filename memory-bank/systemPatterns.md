@@ -50,5 +50,7 @@ The platform's intelligence originates from its deep understanding of API contra
 The agents employ a hybrid approach that combines the strengths of deterministic algorithms and probabilistic Large Language Models (LLMs).
 
 - **Deterministic Foundation:** For tasks like boundary value analysis, agents use proven, classical algorithms to guarantee coverage of specific, known edge cases.
+- **Multi-Vendor LLM Support:** The platform features a comprehensive abstraction layer supporting 6+ LLM providers (Anthropic Claude, OpenAI, Google Gemini 2.5, Mistral, Ollama, vLLM) with automatic fallback, cost tracking, and response caching.
 - **LLM-Powered Creativity:** This deterministic baseline is then augmented by LLMs, which are used to generate a wider, more creative, and more realistic set of test data and scenarios that a purely algorithmic approach would miss.
+- **Provider Flexibility:** Agents can leverage different models based on requirements - Claude Sonnet 4 for balanced performance, GPT-4 Turbo for complex reasoning, Gemini 2.5 Pro for massive context windows (2M tokens), or local models via Ollama for zero-cost/offline operation.
 - **Example:** The `Functional-Negative-Agent` first performs Boundary Value Analysis and then uses an LLM to generate creatively malformed and unexpected payloads. This fusion provides both rigor and comprehensive coverage.

@@ -52,6 +52,17 @@ class FunctionalPositiveAgent(BaseAgent):
                 endpoint_tests = await self._generate_endpoint_tests(endpoint, api_spec)
                 test_cases.extend(endpoint_tests)
             
+            # If LLM is enabled, enhance some test cases with creative variants
+            if self.llm_enabled and test_cases:
+                self.logger.info("Enhancing test cases with LLM-generated variants")
+                enhanced_count = min(5, len(test_cases) // 3)  # Enhance up to 1/3 of tests, max 5
+                for i in range(enhanced_count):
+                    original_test = test_cases[i]
+                    variant = await self.generate_creative_variant(original_test, "realistic")
+                    if variant:
+                        variant["description"] = f"[LLM Enhanced] {variant.get('description', 'Creative variant')}"
+                        test_cases.append(variant)
+            
             self.logger.info(f"Generated {len(test_cases)} positive test cases")
             
             return AgentResult(
@@ -62,7 +73,10 @@ class FunctionalPositiveAgent(BaseAgent):
                 metadata={
                     "total_endpoints": len(endpoints),
                     "total_test_cases": len(test_cases),
-                    "generation_strategy": "schema_based_with_realistic_data"
+                    "generation_strategy": "schema_based_with_realistic_data",
+                    "llm_enhanced": self.llm_enabled,
+                    "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
+                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
                 }
             )
             
@@ -138,6 +152,17 @@ class FunctionalPositiveAgent(BaseAgent):
         body = None
         if method in ["POST", "PUT", "PATCH"] and endpoint["requestBody"]:
             body = self._generate_request_body(endpoint["requestBody"], api_spec)
+            
+            # Optionally enhance body with LLM for more realistic data
+            if self.llm_enabled and body:
+                enhanced_body = await self.enhance_with_llm(
+                    body,
+                    "Make this test data more realistic and business-appropriate while maintaining the same structure",
+                    system_prompt="You are generating test data for API testing. Return valid JSON that matches the original structure.",
+                    temperature=0.5
+                )
+                if isinstance(enhanced_body, dict):
+                    body = enhanced_body
         
         # Determine expected status code
         expected_status = self._get_expected_success_status(operation["responses"], method)

@@ -62,6 +62,23 @@ cd sentinel_frontend
 npm run test                    # Run tests
 ```
 
+### Test Execution Guidelines
+**IMPORTANT**: Always run tests in Docker to ensure consistent environment:
+```bash
+cd sentinel_backend
+./run_tests.sh -d              # Run all tests in Docker
+./run_tests.sh -d -t unit      # Run only unit tests in Docker
+./run_tests.sh -d -t integration # Run only integration tests in Docker
+
+# Rebuild test Docker image after dependency changes
+docker-compose -f docker-compose.test.yml build test_runner
+```
+
+**Current Test Status** (as of latest fixes):
+- **96.3% pass rate** (208/216 tests passing)
+- 8 remaining failures are known issues with integration/rust tests
+- All critical unit tests passing
+
 ### Rust Core Development
 ```bash
 # Navigate to Rust core
@@ -74,6 +91,103 @@ cargo run
 # Run tests
 cargo test
 ```
+
+## LLM Integration
+
+### Multi-Provider Support
+The platform includes a comprehensive LLM abstraction layer supporting multiple providers with automatic fallback capabilities. All AI agents can leverage LLM capabilities while maintaining backward compatibility.
+
+### Default Configuration
+The platform uses **Anthropic's Claude Sonnet 4** as the default LLM provider for all AI agents. This provides:
+- Excellent balance of performance and cost
+- 200k token context window
+- Strong reasoning capabilities
+- Vision support for multimodal testing
+
+To use the default configuration, simply set:
+```bash
+export SENTINEL_APP_ANTHROPIC_API_KEY=your-anthropic-api-key
+```
+
+### Supported Providers
+
+#### Commercial Providers
+- **OpenAI**: GPT-4 Turbo, GPT-4, GPT-3.5 Turbo
+- **Anthropic**: Claude Opus 4.1/4, Claude Sonnet 4, Claude Haiku 3.5
+- **Google**: Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini 2.0 Flash
+- **Mistral**: Mistral Large, Mistral Small 3, Codestral
+
+#### Open Source Models (via Ollama)
+- **DeepSeek**: DeepSeek-R1 (671B/70B/32B variants)
+- **Meta Llama**: Llama 3.3 70B, Llama 3.1 (405B/70B/8B)
+- **Alibaba Qwen**: Qwen 2.5 (72B/32B/7B), Qwen 2.5 Coder
+- **Others**: Mistral 7B, Phi-3 14B, Gemma 2 27B, Command R 35B
+
+### Switching Providers
+You can easily switch to other providers:
+```bash
+# OpenAI
+export SENTINEL_APP_LLM_PROVIDER=openai
+export SENTINEL_APP_OPENAI_API_KEY=your-key
+export SENTINEL_APP_LLM_MODEL=gpt-4-turbo
+
+# Google Gemini
+export SENTINEL_APP_LLM_PROVIDER=google
+export SENTINEL_APP_GOOGLE_API_KEY=your-key
+export SENTINEL_APP_LLM_MODEL=gemini-2.5-pro
+
+# Mistral
+export SENTINEL_APP_LLM_PROVIDER=mistral
+export SENTINEL_APP_MISTRAL_API_KEY=your-key
+export SENTINEL_APP_LLM_MODEL=mistral-large
+
+# Local (Ollama)
+export SENTINEL_APP_LLM_PROVIDER=ollama
+export SENTINEL_APP_LLM_MODEL=llama3.3:70b
+export SENTINEL_APP_OLLAMA_BASE_URL=http://localhost:11434
+
+# Disable LLM (deterministic only)
+export SENTINEL_APP_LLM_PROVIDER=none
+```
+
+### Advanced Features
+
+#### Fallback Chain
+Configure automatic fallback to secondary providers:
+```bash
+export SENTINEL_APP_LLM_FALLBACK_ENABLED=true
+export SENTINEL_APP_LLM_FALLBACK_PROVIDERS=anthropic,openai,ollama
+```
+
+#### Cost Management
+Track and limit LLM usage costs:
+```bash
+export SENTINEL_APP_LLM_COST_TRACKING_ENABLED=true
+export SENTINEL_APP_LLM_BUDGET_LIMIT=100.0  # USD
+export SENTINEL_APP_LLM_BUDGET_ALERT_THRESHOLD=0.8
+```
+
+#### Response Caching
+Enable caching to reduce API calls:
+```bash
+export SENTINEL_APP_LLM_CACHE_ENABLED=true
+export SENTINEL_APP_LLM_CACHE_TTL=3600  # 1 hour
+export SENTINEL_APP_LLM_CACHE_MAX_SIZE=1000
+```
+
+### Validating LLM Configuration
+Use the validation script to test your LLM setup:
+```bash
+cd sentinel_backend
+poetry run python scripts/validate_llm_config.py
+```
+
+This will:
+- Check environment configuration
+- Validate API keys
+- Test primary and fallback providers
+- Verify agent LLM integration
+- Provide recommendations for any issues
 
 ## Architecture Overview
 
@@ -143,6 +257,22 @@ SENTINEL_SERVICE_SERVICE_TIMEOUT=60
 # Security
 SENTINEL_SECURITY_JWT_SECRET_KEY=your-secret-key
 SENTINEL_SECURITY_JWT_EXPIRATION_HOURS=24
+
+# LLM Configuration (Multi-Vendor Support)
+SENTINEL_APP_LLM_PROVIDER=anthropic  # Options: anthropic, openai, google, mistral, ollama, vllm, none
+SENTINEL_APP_LLM_MODEL=claude-sonnet-4  # Default model for the provider
+SENTINEL_APP_ANTHROPIC_API_KEY=sk-ant-...  # Anthropic API key
+SENTINEL_APP_OPENAI_API_KEY=sk-...  # OpenAI API key
+SENTINEL_APP_GOOGLE_API_KEY=...  # Google API key
+SENTINEL_APP_MISTRAL_API_KEY=...  # Mistral API key
+SENTINEL_APP_LLM_TEMPERATURE=0.5
+SENTINEL_APP_LLM_MAX_TOKENS=2000
+SENTINEL_APP_LLM_FALLBACK_ENABLED=true  # Enable automatic provider fallback
+SENTINEL_APP_LLM_FALLBACK_PROVIDERS=anthropic,openai,ollama  # Fallback chain
+
+# For local models (Ollama/vLLM)
+SENTINEL_APP_OLLAMA_BASE_URL=http://localhost:11434
+SENTINEL_APP_VLLM_BASE_URL=http://localhost:8000
 
 # Observability
 SENTINEL_NETWORK_JAEGER_AGENT_HOST=localhost

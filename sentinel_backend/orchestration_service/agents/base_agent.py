@@ -3,6 +3,8 @@ Base Agent class for all Sentinel testing agents.
 
 This module provides the foundational structure that all specialized agents inherit from.
 It defines the common interface and shared functionality for the agent ecosystem.
+
+Now enhanced with optional LLM capabilities that can be enabled via configuration.
 """
 
 from abc import ABC, abstractmethod
@@ -40,11 +42,16 @@ class BaseAgent(ABC):
     Each agent is responsible for a specific type of test generation or analysis.
     Agents follow the "ephemeral" pattern - they are spawned for a specific task,
     execute it, and then dissolve.
+    
+    Now supports optional LLM enhancement based on configuration.
     """
     
     def __init__(self, agent_type: str):
         self.agent_type = agent_type
         self.logger = logging.getLogger(f"agent.{agent_type}")
+        self.llm_provider = None
+        self.llm_enabled = False
+        self._initialize_llm_if_configured()
     
     @abstractmethod
     async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
@@ -153,5 +160,179 @@ class BaseAgent(ABC):
                     example_obj[prop_name] = self._get_schema_example(prop_schema)
             
             return example_obj
+        
+        return None
+    
+    def _initialize_llm_if_configured(self):
+        """Initialize LLM provider if configured in settings."""
+        try:
+            from sentinel_backend.config.settings import get_application_settings
+            from sentinel_backend.llm_providers import LLMProviderFactory, LLMConfig
+            from sentinel_backend.llm_providers.base_provider import LLMProvider
+            
+            app_settings = get_application_settings()
+            
+            # Check if LLM is configured and should be enabled
+            if not app_settings.llm_provider or app_settings.llm_provider == "none":
+                self.logger.debug("LLM provider not configured or disabled")
+                return
+            
+            # Get API key for the provider
+            api_key = self._get_api_key_for_provider(app_settings)
+            if not api_key and app_settings.llm_provider not in ["ollama", "vllm"]:
+                self.logger.warning(f"No API key found for provider {app_settings.llm_provider}")
+                return
+            
+            # Create LLM configuration
+            config = LLMConfig(
+                provider=LLMProvider(app_settings.llm_provider),
+                model=app_settings.llm_model,
+                api_key=api_key,
+                api_base=self._get_api_base_for_provider(app_settings),
+                temperature=app_settings.llm_temperature,
+                max_tokens=app_settings.llm_max_tokens,
+                top_p=app_settings.llm_top_p,
+                timeout=app_settings.llm_timeout,
+                max_retries=app_settings.llm_max_retries,
+                cache_enabled=app_settings.llm_cache_enabled,
+                cache_ttl=app_settings.llm_cache_ttl
+            )
+            
+            # Create provider with fallback if enabled
+            if app_settings.llm_fallback_enabled:
+                self.llm_provider = LLMProviderFactory.create_with_fallback(
+                    primary_config=config,
+                    app_settings=app_settings
+                )
+            else:
+                self.llm_provider = LLMProviderFactory.create_provider(config)
+            
+            self.llm_enabled = True
+            self.logger.info(f"LLM provider initialized: {config.provider.value} with model {config.model}")
+            
+        except Exception as e:
+            self.logger.debug(f"LLM initialization skipped or failed: {e}")
+            self.llm_enabled = False
+    
+    def _get_api_key_for_provider(self, app_settings) -> Optional[str]:
+        """Get API key for the configured provider."""
+        provider_key_map = {
+            "openai": "openai_api_key",
+            "anthropic": "anthropic_api_key",
+            "google": "google_api_key",
+            "mistral": "mistral_api_key"
+        }
+        
+        key_attr = provider_key_map.get(app_settings.llm_provider)
+        if key_attr:
+            return getattr(app_settings, key_attr, None)
+        return None
+    
+    def _get_api_base_for_provider(self, app_settings) -> Optional[str]:
+        """Get API base URL for the configured provider."""
+        if app_settings.llm_provider == "ollama":
+            return app_settings.ollama_base_url
+        elif app_settings.llm_provider == "vllm":
+            return app_settings.vllm_base_url
+        return None
+    
+    async def enhance_with_llm(
+        self,
+        data: Any,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        temperature: Optional[float] = None
+    ) -> Optional[Any]:
+        """
+        Enhance data using LLM if available.
+        
+        Args:
+            data: Data to enhance (will be JSON serialized if dict/list)
+            prompt: Enhancement prompt
+            system_prompt: Optional system prompt
+            temperature: Optional temperature override
+            
+        Returns:
+            Enhanced data or original data if LLM not available
+        """
+        if not self.llm_enabled or not self.llm_provider:
+            return data
+        
+        try:
+            from sentinel_backend.llm_providers.base_provider import Message
+            
+            # Build messages
+            messages = []
+            if system_prompt:
+                messages.append(Message(role="system", content=system_prompt))
+            
+            # Include data in prompt if it's structured
+            if isinstance(data, (dict, list)):
+                full_prompt = f"{prompt}\n\nData:\n{json.dumps(data, indent=2)}"
+            else:
+                full_prompt = f"{prompt}\n\nData: {data}"
+            
+            messages.append(Message(role="user", content=full_prompt))
+            
+            # Generate enhancement
+            kwargs = {}
+            if temperature is not None:
+                kwargs["temperature"] = temperature
+            
+            response = await self.llm_provider.generate(messages, **kwargs)
+            
+            # Try to parse as JSON if the original data was structured
+            if isinstance(data, (dict, list)):
+                try:
+                    return json.loads(response.content)
+                except json.JSONDecodeError:
+                    self.logger.debug("LLM response not valid JSON, returning as text")
+                    return response.content
+            
+            return response.content
+            
+        except Exception as e:
+            self.logger.debug(f"LLM enhancement failed: {e}")
+            return data
+    
+    async def generate_creative_variant(
+        self,
+        test_case: Dict[str, Any],
+        variation_type: str = "realistic"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Generate a creative variant of a test case using LLM.
+        
+        Args:
+            test_case: Original test case
+            variation_type: Type of variation (realistic, edge_case, unusual)
+            
+        Returns:
+            Variant test case or None if LLM not available
+        """
+        if not self.llm_enabled:
+            return None
+        
+        prompts = {
+            "realistic": "Create a realistic variant of this test case with different but valid data",
+            "edge_case": "Create an edge case variant that tests boundaries",
+            "unusual": "Create an unusual but valid variant that might expose hidden issues"
+        }
+        
+        prompt = prompts.get(variation_type, prompts["realistic"])
+        system_prompt = "You are an expert API tester. Generate test case variants that maintain the same structure but use different test data and scenarios."
+        
+        variant = await self.enhance_with_llm(
+            test_case,
+            prompt,
+            system_prompt=system_prompt,
+            temperature=0.7
+        )
+        
+        if isinstance(variant, dict):
+            # Ensure the variant maintains required fields
+            variant["endpoint"] = test_case.get("endpoint", variant.get("endpoint"))
+            variant["method"] = test_case.get("method", variant.get("method"))
+            return variant
         
         return None

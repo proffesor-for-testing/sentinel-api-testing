@@ -227,11 +227,49 @@ class ApplicationSettings(BaseSettings):
     test_execution_timeout: int = Field(default=600, description="Test execution timeout in seconds")
     
     # LLM settings
-    llm_provider: str = Field(default="openai", description="LLM provider (openai, anthropic, etc.)")
-    llm_api_key: Optional[str] = Field(default=None, description="LLM API key")
-    llm_model: str = Field(default="gpt-3.5-turbo", description="LLM model name")
-    llm_max_tokens: int = Field(default=2000, description="LLM maximum tokens")
-    llm_temperature: float = Field(default=0.7, description="LLM temperature")
+    llm_provider: str = Field(default="anthropic", description="Primary LLM provider (openai, anthropic, google, mistral, ollama, vllm)")
+    llm_model: str = Field(default="claude-sonnet-4", description="LLM model name/identifier")
+    llm_temperature: float = Field(default=0.7, description="LLM temperature (0.0-1.0)")
+    llm_max_tokens: Optional[int] = Field(default=2000, description="Maximum tokens for generation")
+    llm_top_p: float = Field(default=1.0, description="Top-p sampling parameter")
+    llm_timeout: int = Field(default=60, description="LLM request timeout in seconds")
+    llm_max_retries: int = Field(default=3, description="Maximum retry attempts for LLM requests")
+    
+    # Provider-specific API keys
+    openai_api_key: Optional[str] = Field(default=None, description="OpenAI API key")
+    anthropic_api_key: Optional[str] = Field(default=None, description="Anthropic API key")
+    google_api_key: Optional[str] = Field(default=None, description="Google AI API key")
+    mistral_api_key: Optional[str] = Field(default=None, description="Mistral API key")
+    
+    # Provider-specific endpoints
+    ollama_base_url: str = Field(default="http://localhost:11434", description="Ollama API base URL")
+    vllm_base_url: Optional[str] = Field(default=None, description="vLLM API base URL")
+    
+    # Fallback configuration
+    llm_fallback_enabled: bool = Field(default=True, description="Enable fallback to secondary providers")
+    llm_fallback_providers: List[str] = Field(default_factory=lambda: ["anthropic", "openai", "ollama"], description="Fallback provider order")
+    llm_fallback_models: Dict[str, str] = Field(
+        default_factory=lambda: {
+            "anthropic": "claude-sonnet-4",
+            "openai": "gpt-3.5-turbo",
+            "google": "gemini-2.5-flash",
+            "mistral": "mistral-small-3",
+            "ollama": "mistral:7b"
+        },
+        description="Fallback models per provider"
+    )
+    
+    # Cost tracking
+    llm_cost_tracking_enabled: bool = Field(default=True, description="Enable LLM cost tracking")
+    llm_cost_alert_threshold: float = Field(default=10.0, description="Cost alert threshold in USD")
+    
+    # Caching
+    llm_cache_enabled: bool = Field(default=True, description="Enable LLM response caching")
+    llm_cache_ttl: int = Field(default=3600, description="Cache TTL in seconds")
+    
+    # Model-specific optimizations
+    llm_enable_prompt_optimization: bool = Field(default=True, description="Enable model-specific prompt optimization")
+    llm_enable_streaming: bool = Field(default=False, description="Enable streaming responses where supported")
     
     # Data mocking settings
     data_mocking_default_count: int = Field(default=10, description="Default number of mock data items to generate")

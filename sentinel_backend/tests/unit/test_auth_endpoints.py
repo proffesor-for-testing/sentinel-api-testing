@@ -12,71 +12,26 @@ import json
 from datetime import datetime
 
 # Import fixtures
-from tests.fixtures.auth_fixtures import *
+from sentinel_backend.tests.fixtures.auth_fixtures import *
 
 
 @pytest.fixture
 def auth_app():
     """Create test FastAPI app instance for authentication service."""
-    # Patch require_permission before importing the app
-    with patch('auth_service.main.require_permission') as mock_require_permission:
-        
-        # Mock require_permission to always return a function that returns admin_user_data
-        def mock_permission(permission):
-            async def permission_checker():
-                return {
-                    "user": {
-                        "id": 1,
-                        "email": "admin@sentinel.com",
-                        "full_name": "Test Admin",
-                        "role": "admin",
-                        "is_active": True
-                    },
-                    "permissions": [
-                        "user:create", "user:read", "user:update", "user:delete",
-                        "spec:create", "spec:read", "spec:update", "spec:delete",
-                        "test_case:create", "test_case:read", "test_case:update", "test_case:delete"
-                    ]
-                }
-            return permission_checker
-        
-        mock_require_permission.side_effect = mock_permission
-        
-        with patch('auth_service.main.setup_logging'), \
-             patch('auth_service.main.setup_tracing'), \
-             patch('auth_service.main.Instrumentator'):
-            
-            # Mock the settings
-            with patch('auth_service.main.get_security_settings') as mock_sec, \
-                 patch('auth_service.main.get_application_settings') as mock_app:
-                
-                # Setup mock settings
-                mock_sec.return_value = Mock(
-                    jwt_secret_key="test-secret",
-                    jwt_algorithm="HS256", 
-                    jwt_expiration_hours=24,
-                    default_admin_email="admin@sentinel.com",
-                    default_admin_password="admin123",
-                    cors_origins=["http://localhost:3000"],
-                    cors_allow_credentials=True,
-                    cors_allow_methods=["*"],
-                    cors_allow_headers=["*"]
-                )
-                mock_app.return_value = Mock(app_version="1.0.0-test")
-                
-                # Clear any module cache and reimport
-                import sys
-                if 'auth_service.main' in sys.modules:
-                    del sys.modules['auth_service.main']
-                
-                from auth_service.main import app
-                return app
+    # Import the app directly without trying to patch module-level imports
+    from sentinel_backend.auth_service.main import app
+    return app
 
 
-def create_test_token(user_data: dict, secret_key: str = "test-secret") -> str:
+def create_test_token(user_data: dict, secret_key: str = None) -> str:
     """Create a test JWT token for authentication."""
     import jwt
     from datetime import datetime, timedelta
+    import os
+    
+    # Use the actual secret from testing environment if not provided
+    if secret_key is None:
+        secret_key = os.getenv('SENTINEL_SECURITY_JWT_SECRET_KEY', 'sentinel-testing-secret-key-32-chars-minimum-for-tests')
     
     payload = {
         "sub": user_data["email"],
@@ -120,50 +75,47 @@ class TestUserRegistration:
     """Test user registration endpoint."""
     
     @pytest.mark.unit
-    @patch('auth_service.main.users_db')
-    def test_register_user_success(self, mock_users_db, client, user_create_request_data, admin_user_data, admin_headers, hashed_password):
+    def test_register_user_success(self, client, user_create_request_data, admin_user_data, admin_headers, hashed_password):
         """Test successful user registration by admin."""
-        # Setup mocks - admin must exist in users_db for auth to work
-        admin_with_password = {**admin_user_data, "hashed_password": hashed_password}
-        mock_users_db.__contains__ = Mock(side_effect=lambda email: email == admin_user_data["email"])
-        mock_users_db.__getitem__ = Mock(return_value=admin_with_password)
-        mock_users_db.get = Mock(return_value=admin_with_password)
-        mock_users_db.__len__ = Mock(return_value=1)
-        mock_users_db.__setitem__ = Mock()
-        
-        response = client.post("/auth/register", json=user_create_request_data, headers=admin_headers)
-        
-        if response.status_code != status.HTTP_200_OK:
-            print(f"Response status: {response.status_code}")
-            print(f"Response body: {response.json()}")
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["email"] == user_create_request_data["email"]
-        assert data["full_name"] == user_create_request_data["full_name"]
-        assert data["role"] == user_create_request_data["role"]
-        assert "hashed_password" not in data
+        # Patch users_db at the correct location
+        with patch('sentinel_backend.auth_service.main.users_db') as mock_users_db:
+            # Setup mocks - admin must exist in users_db for auth to work
+            admin_with_password = {**admin_user_data, "hashed_password": hashed_password}
+            mock_users_db.__contains__ = Mock(side_effect=lambda email: email == admin_user_data["email"])
+            mock_users_db.__getitem__ = Mock(side_effect=lambda email: admin_with_password if email == admin_user_data["email"] else None)
+            mock_users_db.get = Mock(side_effect=lambda email, default=None: admin_with_password if email == admin_user_data["email"] else default)
+            mock_users_db.__len__ = Mock(return_value=1)
+            mock_users_db.__setitem__ = Mock()
+            
+            response = client.post("/auth/register", json=user_create_request_data, headers=admin_headers)
+            
+            if response.status_code != status.HTTP_200_OK:
+                print(f"Response status: {response.status_code}")
+                print(f"Response body: {response.json()}")
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert data["email"] == user_create_request_data["email"]
+            assert data["full_name"] == user_create_request_data["full_name"]
+            assert data["role"] == user_create_request_data["role"]
+            assert "hashed_password" not in data
     
     @pytest.mark.unit
-    @patch('auth_service.main.users_db')
-    def test_register_user_duplicate_email(self, mock_users_db, client, user_create_request_data, admin_user_data):
+    def test_register_user_duplicate_email(self, client, user_create_request_data, admin_user_data, admin_headers, hashed_password):
         """Test user registration with duplicate email."""
-        # Setup mocks
-        mock_users_db.__contains__ = Mock(return_value=True)
-        
-        from auth_service.main import require_permission, Permission as Permissions
-        
-        def mock_dependency():
-            return admin_user_data
-        
-        client.app.dependency_overrides[require_permission(Permissions.USER_CREATE)] = mock_dependency
-        
-        response = client.post("/auth/register", json=user_create_request_data)
-        
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "already exists" in response.json()["detail"].lower()
+        with patch('sentinel_backend.auth_service.main.users_db') as mock_users_db:
+            # Setup mocks - admin must exist for auth, and new user already exists
+            admin_with_password = {**admin_user_data, "hashed_password": hashed_password}
+            mock_users_db.__contains__ = Mock(side_effect=lambda email: True)  # All emails exist
+            mock_users_db.__getitem__ = Mock(side_effect=lambda email: admin_with_password if email == admin_user_data["email"] else None)
+            mock_users_db.get = Mock(side_effect=lambda email, default=None: admin_with_password if email == admin_user_data["email"] else default)
+            
+            response = client.post("/auth/register", json=user_create_request_data, headers=admin_headers)
+            
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert "already exists" in response.json()["detail"].lower()
     
     @pytest.mark.unit
-    def test_register_user_invalid_data(self, client):
+    def test_register_user_invalid_data(self, client, admin_user_data, admin_headers, hashed_password):
         """Test user registration with invalid data."""
         invalid_data = {
             "email": "invalid-email",  # Invalid email format
@@ -172,15 +124,22 @@ class TestUserRegistration:
             "role": "invalid_role"  # Invalid role
         }
         
-        response = client.post("/auth/register", json=invalid_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        with patch('sentinel_backend.auth_service.main.users_db') as mock_users_db:
+            # Setup admin for auth
+            admin_with_password = {**admin_user_data, "hashed_password": hashed_password}
+            mock_users_db.__contains__ = Mock(side_effect=lambda email: email == admin_user_data["email"])
+            mock_users_db.__getitem__ = Mock(side_effect=lambda email: admin_with_password if email == admin_user_data["email"] else None)
+            mock_users_db.get = Mock(side_effect=lambda email, default=None: admin_with_password if email == admin_user_data["email"] else default)
+            
+            response = client.post("/auth/register", json=invalid_data, headers=admin_headers)
+            assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 class TestUserLogin:
     """Test user login endpoint."""
     
     @pytest.mark.unit
-    @patch('auth_service.main.users_db')
+    @patch('sentinel_backend.auth_service.main.users_db')
     def test_login_success(self, mock_users_db, client, login_request_data, test_user_data, hashed_password):
         """Test successful user login."""
         # Setup mock user database
@@ -198,7 +157,7 @@ class TestUserLogin:
         assert "hashed_password" not in data["user"]
     
     @pytest.mark.unit
-    @patch('auth_service.main.users_db')
+    @patch('sentinel_backend.auth_service.main.users_db')
     def test_login_invalid_credentials(self, mock_users_db, client, invalid_login_request_data):
         """Test login with invalid credentials."""
         mock_users_db.get = Mock(return_value=None)
@@ -209,7 +168,7 @@ class TestUserLogin:
         assert "invalid" in response.json()["detail"].lower()
     
     @pytest.mark.unit 
-    @patch('auth_service.main.users_db')
+    @patch('sentinel_backend.auth_service.main.users_db')
     def test_login_inactive_user(self, mock_users_db, client, login_request_data, inactive_user_data, hashed_password):
         """Test login with inactive user account."""
         user_data = {**inactive_user_data, "hashed_password": hashed_password}
@@ -238,7 +197,7 @@ class TestUserProfile:
     @pytest.mark.unit
     def test_get_profile_success(self, client, test_user_data):
         """Test getting current user profile."""
-        from auth_service.main import get_current_user
+        from sentinel_backend.auth_service.main import get_current_user
         
         def mock_dependency():
             return test_user_data
@@ -254,13 +213,13 @@ class TestUserProfile:
         assert "hashed_password" not in data
     
     @pytest.mark.unit
-    @patch('auth_service.main.users_db')
+    @patch('sentinel_backend.auth_service.main.users_db')
     def test_update_profile_success(self, mock_users_db, client, test_user_data, user_update_request_data):
         """Test updating current user profile."""
         mock_users_db.__getitem__ = Mock(return_value=test_user_data.copy())
         mock_users_db.__setitem__ = Mock()
         
-        from auth_service.main import get_current_user
+        from sentinel_backend.auth_service.main import get_current_user
         
         def mock_dependency():
             return test_user_data
@@ -276,7 +235,7 @@ class TestUserProfile:
     @pytest.mark.unit
     def test_update_profile_admin_only_fields(self, client, test_user_data):
         """Test non-admin user cannot update role/active status."""
-        from auth_service.main import get_current_user
+        from sentinel_backend.auth_service.main import get_current_user
         
         def mock_dependency():
             return test_user_data  # tester role
@@ -296,144 +255,127 @@ class TestUserManagement:
     """Test user management endpoints (admin only)."""
     
     @pytest.mark.unit
-    @patch('auth_service.main.users_db')
-    def test_list_users_success(self, mock_users_db, client, admin_user_data):
+    def test_list_users_success(self, client, admin_user_data, admin_headers, hashed_password):
         """Test listing all users (admin only)."""
-        mock_users_db.values.return_value = [admin_user_data]
-        
-        from auth_service.main import require_permission, Permission as Permissions
-        
-        def mock_dependency():
-            return admin_user_data
-        
-        client.app.dependency_overrides[require_permission(Permissions.USER_READ)] = mock_dependency
-        
-        response = client.get("/auth/users")
-        
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert isinstance(data, list)
-        assert len(data) >= 0
+        with patch('sentinel_backend.auth_service.main.users_db') as mock_users_db:
+            admin_with_password = {**admin_user_data, "hashed_password": hashed_password}
+            mock_users_db.__contains__ = Mock(side_effect=lambda email: email == admin_user_data["email"])
+            mock_users_db.__getitem__ = Mock(side_effect=lambda email: admin_with_password if email == admin_user_data["email"] else None)
+            mock_users_db.get = Mock(side_effect=lambda email, default=None: admin_with_password if email == admin_user_data["email"] else default)
+            mock_users_db.values = Mock(return_value=[admin_user_data])
+            
+            response = client.get("/auth/users", headers=admin_headers)
+            
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert isinstance(data, list)
+            assert len(data) >= 0
     
     @pytest.mark.unit
-    @patch('auth_service.main.users_db')
-    def test_get_user_by_id_success(self, mock_users_db, client, admin_user_data, test_user_data):
+    def test_get_user_by_id_success(self, client, admin_user_data, test_user_data, admin_headers, hashed_password):
         """Test getting specific user by ID."""
-        mock_users_db.values.return_value = [test_user_data]
-        
-        from auth_service.main import require_permission, Permission as Permissions
-        
-        def mock_dependency():
-            return admin_user_data
-        
-        client.app.dependency_overrides[require_permission(Permissions.USER_READ)] = mock_dependency
-        
-        response = client.get(f"/auth/users/{test_user_data['id']}")
-        
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["id"] == test_user_data["id"]
-        assert data["email"] == test_user_data["email"]
+        with patch('sentinel_backend.auth_service.main.users_db') as mock_users_db:
+            admin_with_password = {**admin_user_data, "hashed_password": hashed_password}
+            mock_users_db.__contains__ = Mock(side_effect=lambda email: email == admin_user_data["email"])
+            mock_users_db.__getitem__ = Mock(side_effect=lambda email: admin_with_password if email == admin_user_data["email"] else None)
+            mock_users_db.get = Mock(side_effect=lambda email, default=None: admin_with_password if email == admin_user_data["email"] else default)
+            mock_users_db.values = Mock(return_value=[test_user_data])
+            
+            response = client.get(f"/auth/users/{test_user_data['id']}", headers=admin_headers)
+            
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert data["id"] == test_user_data["id"]
+            assert data["email"] == test_user_data["email"]
     
     @pytest.mark.unit
-    @patch('auth_service.main.users_db')  
-    def test_get_user_by_id_not_found(self, mock_users_db, client, admin_user_data):
+    def test_get_user_by_id_not_found(self, client, admin_user_data, admin_headers, hashed_password):
         """Test getting non-existent user by ID."""
-        mock_users_db.values.return_value = []
-        
-        from auth_service.main import require_permission, Permission as Permissions
-        
-        def mock_dependency():
-            return admin_user_data
-        
-        client.app.dependency_overrides[require_permission(Permissions.USER_READ)] = mock_dependency
-        
-        response = client.get("/auth/users/9999")
-        
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        with patch('sentinel_backend.auth_service.main.users_db') as mock_users_db:
+            admin_with_password = {**admin_user_data, "hashed_password": hashed_password}
+            mock_users_db.__contains__ = Mock(side_effect=lambda email: email == admin_user_data["email"])
+            mock_users_db.__getitem__ = Mock(side_effect=lambda email: admin_with_password if email == admin_user_data["email"] else None)
+            mock_users_db.get = Mock(side_effect=lambda email, default=None: admin_with_password if email == admin_user_data["email"] else default)
+            mock_users_db.values = Mock(return_value=[])
+            
+            response = client.get("/auth/users/9999", headers=admin_headers)
+            
+            assert response.status_code == status.HTTP_404_NOT_FOUND
     
     @pytest.mark.unit
-    @patch('auth_service.main.users_db')
-    def test_update_user_success(self, mock_users_db, client, admin_user_data, test_user_data):
+    def test_update_user_success(self, client, admin_user_data, test_user_data, admin_headers, hashed_password):
         """Test updating user (admin only)."""
-        # Mock finding the user
-        mock_users_db.items.return_value = [(test_user_data["email"], test_user_data)]
-        
-        from auth_service.main import require_permission, Permission as Permissions
-        
-        def mock_dependency():
-            return admin_user_data
-        
-        client.app.dependency_overrides[require_permission(Permissions.USER_UPDATE)] = mock_dependency
-        
-        update_data = {"full_name": "Updated Test User", "role": "manager"}
-        response = client.put(f"/auth/users/{test_user_data['id']}", json=update_data)
-        
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["full_name"] == "Updated Test User"
+        with patch('sentinel_backend.auth_service.main.users_db') as mock_users_db:
+            admin_with_password = {**admin_user_data, "hashed_password": hashed_password}
+            test_with_password = {**test_user_data, "hashed_password": hashed_password}
+            mock_users_db.__contains__ = Mock(side_effect=lambda email: email in [admin_user_data["email"], test_user_data["email"]])
+            mock_users_db.__getitem__ = Mock(side_effect=lambda email: admin_with_password if email == admin_user_data["email"] else test_with_password if email == test_user_data["email"] else None)
+            mock_users_db.get = Mock(side_effect=lambda email, default=None: admin_with_password if email == admin_user_data["email"] else test_with_password if email == test_user_data["email"] else default)
+            mock_users_db.items = Mock(return_value=[(test_user_data["email"], test_with_password)])
+            mock_users_db.__setitem__ = Mock()
+            
+            update_data = {"full_name": "Updated Test User", "role": "manager"}
+            response = client.put(f"/auth/users/{test_user_data['id']}", json=update_data, headers=admin_headers)
+            
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert data["full_name"] == "Updated Test User"
     
     @pytest.mark.unit
-    @patch('auth_service.main.users_db')
-    def test_delete_user_success(self, mock_users_db, client, admin_user_data, test_user_data):
+    def test_delete_user_success(self, client, admin_user_data, test_user_data, admin_headers, hashed_password):
         """Test deleting user (admin only)."""
-        mock_users_db.items.return_value = [(test_user_data["email"], test_user_data)]
-        mock_users_db.__delitem__ = Mock()
-        
-        from auth_service.main import require_permission, Permission as Permissions
-        
-        def mock_dependency():
-            return admin_user_data
-        
-        client.app.dependency_overrides[require_permission(Permissions.USER_DELETE)] = mock_dependency
-        
-        response = client.delete(f"/auth/users/{test_user_data['id']}")
-        
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert "deleted successfully" in data["message"]
+        with patch('sentinel_backend.auth_service.main.users_db') as mock_users_db:
+            admin_with_password = {**admin_user_data, "hashed_password": hashed_password}
+            test_with_password = {**test_user_data, "hashed_password": hashed_password}
+            mock_users_db.__contains__ = Mock(side_effect=lambda email: email in [admin_user_data["email"], test_user_data["email"]])
+            mock_users_db.__getitem__ = Mock(side_effect=lambda email: admin_with_password if email == admin_user_data["email"] else test_with_password if email == test_user_data["email"] else None)
+            mock_users_db.get = Mock(side_effect=lambda email, default=None: admin_with_password if email == admin_user_data["email"] else test_with_password if email == test_user_data["email"] else default)
+            mock_users_db.items = Mock(return_value=[(test_user_data["email"], test_with_password)])
+            mock_users_db.__delitem__ = Mock()
+            
+            response = client.delete(f"/auth/users/{test_user_data['id']}", headers=admin_headers)
+            
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert "deleted successfully" in data["message"]
     
     @pytest.mark.unit
-    @patch('auth_service.main.users_db')
-    def test_delete_user_self_deletion_prevented(self, mock_users_db, client, admin_user_data):
+    def test_delete_user_self_deletion_prevented(self, client, admin_user_data, admin_headers, hashed_password):
         """Test that users cannot delete their own account."""
-        # Mock finding the admin user trying to delete themselves
-        mock_users_db.items.return_value = [(admin_user_data["email"], admin_user_data)]
-        
-        from auth_service.main import require_permission, Permission as Permissions
-        
-        def mock_dependency():
-            return admin_user_data
-        
-        client.app.dependency_overrides[require_permission(Permissions.USER_DELETE)] = mock_dependency
-        
-        response = client.delete(f"/auth/users/{admin_user_data['id']}")
-        
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "cannot delete your own account" in response.json()["detail"].lower()
+        with patch('sentinel_backend.auth_service.main.users_db') as mock_users_db:
+            admin_with_password = {**admin_user_data, "hashed_password": hashed_password}
+            mock_users_db.__contains__ = Mock(side_effect=lambda email: email == admin_user_data["email"])
+            mock_users_db.__getitem__ = Mock(side_effect=lambda email: admin_with_password if email == admin_user_data["email"] else None)
+            mock_users_db.get = Mock(side_effect=lambda email, default=None: admin_with_password if email == admin_user_data["email"] else default)
+            mock_users_db.items = Mock(return_value=[(admin_user_data["email"], admin_with_password)])
+            
+            response = client.delete(f"/auth/users/{admin_user_data['id']}", headers=admin_headers)
+            
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert "cannot delete your own account" in response.json()["detail"].lower()
 
 
 class TestTokenValidation:
     """Test token validation endpoint."""
     
     @pytest.mark.unit
-    @patch('auth_service.main.ROLE_PERMISSIONS')
-    def test_validate_token_success(self, mock_role_perms, client, test_user_data, role_permissions_map):
+    def test_validate_token_success(self, client, test_user_data, hashed_password):
         """Test token validation with valid token."""
-        mock_role_perms.__getitem__ = Mock(return_value=role_permissions_map["tester"])
-        
-        from auth_service.main import get_current_user
-        
-        def mock_dependency():
-            return test_user_data
-        
-        client.app.dependency_overrides[get_current_user] = mock_dependency
-        
-        response = client.post("/auth/validate")
-        
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["valid"] is True
+        with patch('sentinel_backend.auth_service.main.users_db') as mock_users_db:
+            test_with_password = {**test_user_data, "hashed_password": hashed_password}
+            mock_users_db.__contains__ = Mock(side_effect=lambda email: email == test_user_data["email"])
+            mock_users_db.__getitem__ = Mock(side_effect=lambda email: test_with_password if email == test_user_data["email"] else None)
+            mock_users_db.get = Mock(side_effect=lambda email, default=None: test_with_password if email == test_user_data["email"] else default)
+            
+            # Create a valid token for the test user
+            token = create_test_token(test_user_data)
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            response = client.post("/auth/validate", headers=headers)
+            
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert data["valid"] is True
         assert data["user"]["email"] == test_user_data["email"]
         assert "permissions" in data
         assert isinstance(data["permissions"], list)
