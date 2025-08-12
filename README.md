@@ -273,6 +273,22 @@ The platform features a comprehensive LLM abstraction layer that enables all AI 
 - **Provider-Specific Templates**: Optimized prompts for each model
 
 ### Quick Configuration
+
+#### Using Configuration Scripts (Recommended)
+```bash
+# Interactive configuration wizard
+cd sentinel_backend/scripts
+./switch_llm.sh
+
+# Quick presets
+./switch_llm.sh claude    # Use Claude Sonnet 4 (default)
+./switch_llm.sh openai    # Use OpenAI GPT-4 Turbo
+./switch_llm.sh gemini    # Use Google Gemini 2.5
+./switch_llm.sh local     # Use local Ollama
+./switch_llm.sh none      # Disable LLM
+```
+
+#### Manual Configuration
 ```bash
 # Use default (Claude Sonnet 4)
 export SENTINEL_APP_ANTHROPIC_API_KEY=your-key
@@ -287,7 +303,9 @@ export SENTINEL_APP_LLM_PROVIDER=ollama
 export SENTINEL_APP_LLM_MODEL=llama3.3:70b
 ```
 
-For detailed configuration options, see [CLAUDE.md](CLAUDE.md#llm-integration).
+For detailed configuration options and scripts, see:
+- [CLAUDE.md](CLAUDE.md#llm-integration) - Complete LLM configuration guide
+- [Scripts README](sentinel_backend/scripts/README.md) - Script documentation
 
 ## 🛠️ Development
 

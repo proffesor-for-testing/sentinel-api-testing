@@ -475,6 +475,80 @@ deploy:
     - kubectl rollout status deployment/service
 ```
 
+## AI Agent & LLM Architecture
+
+### Multi-LLM Provider Support
+
+The platform features a comprehensive LLM abstraction layer that enables intelligent test generation:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Agent Orchestration                       │
+│               (Deterministic + LLM Enhanced)                 │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+        ┌──────────────▼──────────────┐
+        │   LLM Provider Factory      │
+        │  • Provider Selection       │
+        │  • Fallback Management      │
+        │  • Cost Tracking            │
+        └──────────────┬──────────────┘
+                       │
+    ┌──────────────────┼──────────────────┐
+    │                  │                  │
+┌───▼────┐      ┌──────▼──────┐    ┌─────▼──────┐
+│Anthropic│      │   OpenAI    │    │   Google   │
+│ Claude  │      │   GPT-4     │    │  Gemini    │
+└─────────┘      └─────────────┘    └────────────┘
+    │                  │                  │
+┌───▼────┐      ┌──────▼──────┐    ┌─────▼──────┐
+│ Mistral │      │   Ollama    │    │    vLLM    │
+│  API    │      │   (Local)   │    │  (Local)   │
+└─────────┘      └─────────────┘    └────────────┘
+```
+
+### Hybrid Test Generation
+
+```python
+class HybridTestAgent:
+    """Combines deterministic algorithms with LLM creativity"""
+    
+    async def generate_tests(self, spec):
+        # Step 1: Deterministic baseline
+        base_tests = self.generate_deterministic_tests(spec)
+        
+        # Step 2: LLM enhancement (if configured)
+        if self.llm_enabled:
+            enhanced_tests = await self.enhance_with_llm(base_tests)
+            creative_tests = await self.generate_creative_variants(spec)
+            return base_tests + enhanced_tests + creative_tests
+        
+        return base_tests
+```
+
+### LLM Configuration Management
+
+```bash
+# Interactive configuration script
+./scripts/switch_llm.sh
+
+# Quick provider switching
+./scripts/switch_llm.sh claude    # Anthropic Claude
+./scripts/switch_llm.sh openai    # OpenAI GPT-4
+./scripts/switch_llm.sh local     # Local Ollama
+./scripts/switch_llm.sh none      # Disable LLM
+```
+
+### Provider Capabilities
+
+| Provider | Models | Context Window | Special Features |
+|----------|--------|----------------|------------------|
+| Anthropic | Claude Opus 4.1, Sonnet 4 | 200k tokens | Best for reasoning |
+| OpenAI | GPT-4 Turbo, GPT-3.5 | 128k tokens | Wide compatibility |
+| Google | Gemini 2.5 Pro/Flash | 2M tokens | Massive context |
+| Mistral | Large, Small 3, Codestral | 128k tokens | Code specialized |
+| Ollama | DeepSeek, Llama, Qwen | Varies | Local, no API costs |
+
 ## Performance Considerations
 
 ### Database Optimization

@@ -19,12 +19,21 @@ git clone https://github.com/proffesor-for-testing/sentinel-api-testing.git
 cd sentinel-api-testing/sentinel_backend
 ```
 
-2. Start all services:
+2. (Optional) Configure LLM Provider:
+```bash
+# Use the interactive configuration script
+cd scripts
+./switch_llm.sh claude    # Use Anthropic Claude (default)
+# Or choose: openai, gemini, local, none
+cd ..
+```
+
+3. Start all services:
 ```bash
 docker-compose up --build
 ```
 
-3. Wait for all services to be ready (typically 30-60 seconds). You'll see log messages indicating each service is running.
+4. Wait for all services to be ready (typically 30-60 seconds). You'll see log messages indicating each service is running.
 
 ### Verify Installation
 
@@ -256,6 +265,7 @@ Now that you've run your first test:
 2. **Interpret results**: Learn to [analyze test reports](./test-results.md)
 3. **Set up CI/CD**: Integrate with your [DevOps pipeline](./cicd-integration.md)
 4. **Configure advanced tests**: Explore [advanced features](./advanced-features.md)
+5. **Configure LLM providers**: Enhance tests with [AI capabilities](../../sentinel_backend/docs/llm-configuration-guide.md)
 
 ## Troubleshooting
 
@@ -278,6 +288,15 @@ If you can't authenticate:
 If tests fail to execute:
 1. Verify your API specification is valid
 2. Ensure the target API is accessible
+3. Check LLM configuration if using AI features: `cd scripts && python validate_llm_config.py`
+
+### LLM Provider Issues
+
+If LLM features aren't working:
+1. Verify API keys are set in `.env` or `docker.env`
+2. Run validation: `python scripts/validate_llm_config.py`
+3. Try switching providers: `./scripts/switch_llm.sh`
+4. Use deterministic mode as fallback: `./scripts/switch_llm.sh none`
 3. Check the base URL configuration
 
 ## Getting Help

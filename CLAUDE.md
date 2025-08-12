@@ -48,6 +48,23 @@ npm run build
 npm test
 ```
 
+### LLM Configuration & Management
+```bash
+# Interactive LLM configuration
+cd sentinel_backend/scripts
+./switch_llm.sh                 # Interactive wizard
+./switch_llm.sh claude          # Quick preset for Claude
+./switch_llm.sh openai          # Quick preset for OpenAI
+./switch_llm.sh local           # Quick preset for local Ollama
+
+# Docker-specific configuration
+./switch_llm_docker.sh gpt4     # Switch Docker to GPT-4
+./switch_llm_docker.sh gemini   # Switch Docker to Gemini 2.5
+
+# Validate LLM configuration
+python scripts/validate_llm_config.py
+```
+
 ### Code Quality & Linting
 ```bash
 # Backend (Python)
@@ -124,7 +141,30 @@ export SENTINEL_APP_ANTHROPIC_API_KEY=your-anthropic-api-key
 - **Others**: Mistral 7B, Phi-3 14B, Gemma 2 27B, Command R 35B
 
 ### Switching Providers
-You can easily switch to other providers:
+
+#### Using Configuration Scripts (Recommended)
+The platform includes interactive scripts for easy LLM configuration:
+
+```bash
+# Interactive configuration
+cd sentinel_backend/scripts
+./switch_llm.sh
+
+# Quick presets
+./switch_llm.sh claude    # Anthropic Claude Sonnet 4 (default)
+./switch_llm.sh openai    # OpenAI GPT-4 Turbo
+./switch_llm.sh gemini    # Google Gemini 2.5 Flash
+./switch_llm.sh local     # Ollama with local models
+./switch_llm.sh none      # Disable LLM
+
+# Docker quick switch
+./switch_llm_docker.sh gpt4      # GPT-4 Turbo
+./switch_llm_docker.sh gemini    # Gemini 2.5 Flash
+./switch_llm_docker.sh local     # Local Ollama
+```
+
+#### Manual Configuration
+You can also manually set environment variables:
 ```bash
 # OpenAI
 export SENTINEL_APP_LLM_PROVIDER=openai

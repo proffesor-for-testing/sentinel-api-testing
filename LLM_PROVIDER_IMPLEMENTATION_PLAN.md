@@ -323,12 +323,53 @@ The multi-LLM provider implementation has been successfully completed with the f
 - **Performance**: Local model support for offline/low-latency scenarios
 - **Scalability**: Token counting prevents context overflow errors
 
+## Configuration Management
+
+### Interactive Configuration Scripts
+The platform includes user-friendly scripts for managing LLM providers:
+
+#### `switch_llm.sh` - Interactive Configuration
+- Interactive wizard for provider and model selection
+- Quick presets for common configurations
+- Automatic backup of existing settings
+- Configuration validation
+
+```bash
+# Interactive mode
+./switch_llm.sh
+
+# Quick presets
+./switch_llm.sh claude    # Claude Sonnet 4 (default)
+./switch_llm.sh openai    # GPT-4 Turbo
+./switch_llm.sh gemini    # Gemini 2.5 Flash
+./switch_llm.sh local     # Local Ollama
+./switch_llm.sh none      # Disable LLM
+```
+
+#### `switch_llm_docker.sh` - Docker Quick Switch
+- Simplified Docker configuration updates
+- One-command provider switching
+- Automatic docker.env updates
+
+```bash
+./switch_llm_docker.sh gpt4       # GPT-4 Turbo
+./switch_llm_docker.sh gemini-pro # Gemini 2.5 Pro
+./switch_llm_docker.sh local      # Local models
+```
+
+#### `validate_llm_config.py` - Configuration Validator
+- Validates environment configuration
+- Tests API key validity
+- Checks provider connectivity
+- Verifies fallback chain
+
 ## Notes
 - Priority on OpenAI and Anthropic as primary providers
 - Ollama support enables fully local/offline operation
 - Cost tracking critical for production usage
 - Model registry allows easy addition of new models
 - Fallback chain ensures high availability
+- Configuration scripts simplify provider management
 
 ## References
 - [OpenAI API Docs](https://platform.openai.com/docs)
@@ -338,5 +379,5 @@ The multi-LLM provider implementation has been successfully completed with the f
 - [Ollama Docs](https://ollama.com/library)
 
 ---
-Last Updated: 2025-01-11
+Last Updated: 2025-01-12
 Branch: feature/multi-llm-provider-support

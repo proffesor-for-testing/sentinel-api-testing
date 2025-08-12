@@ -46,6 +46,20 @@ All agents use a hybrid strategy combining:
 - **LLM Enhancement**: For creative test scenarios and edge cases
 - **Backward Compatibility**: Agents work without LLM configuration (deterministic only)
 
+### Configuration Management
+The platform includes user-friendly scripts for managing LLM providers:
+- **`switch_llm.sh`**: Interactive wizard with quick presets for all providers
+- **`switch_llm_docker.sh`**: Docker-specific configuration switcher
+- **`validate_llm_config.py`**: Configuration validation and connectivity testing
+
+Quick provider switching:
+```bash
+./switch_llm.sh claude    # Use Claude Sonnet 4
+./switch_llm.sh openai    # Use GPT-4 Turbo
+./switch_llm.sh local     # Use local Ollama
+./switch_llm.sh none      # Disable LLM
+```
+
 ## 4. Technical Constraints & Considerations
 
 - **LLM Integration:** ✅ **IMPLEMENTED** - Comprehensive multi-vendor support with fallback mechanisms and cost management
