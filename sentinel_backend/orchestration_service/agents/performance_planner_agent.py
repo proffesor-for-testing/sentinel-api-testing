@@ -11,7 +11,7 @@ import logging
 from typing import Dict, List, Any, Optional, Tuple
 import re
 import math
-from .base_agent import BaseAgent
+from .base_agent import BaseAgent, AgentTask, AgentResult
 from sentinel_backend.config.settings import get_application_settings
 
 # Get configuration
@@ -32,7 +32,7 @@ class PerformancePlannerAgent(BaseAgent):
     
     def __init__(self):
         super().__init__("performance-planner")
-        self.agent_type = "performance-planner"
+        self.agent_type = "Performance-Planner-Agent"
         self.description = "Performance agent focused on generating comprehensive test plans and load scenarios"
         
         # Configuration-driven settings
@@ -41,6 +41,46 @@ class PerformancePlannerAgent(BaseAgent):
         self.test_duration = getattr(app_settings, 'performance_test_duration', 60)
         self.ramp_up_time = getattr(app_settings, 'performance_ramp_up_time', 30)
         self.think_time = getattr(app_settings, 'performance_think_time', 1)
+    
+    async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
+        """
+        Execute the Performance Planner Agent to generate performance test plans.
+        
+        Args:
+            task: The agent task containing execution parameters
+            api_spec: The parsed API specification
+            
+        Returns:
+            AgentResult containing generated test cases
+        """
+        try:
+            logger.info(f"Performance Planner Agent executing task {task.task_id}")
+            
+            # Generate test cases
+            test_cases = await self.generate_test_cases(api_spec)
+            
+            return AgentResult(
+                task_id=task.task_id,
+                agent_type=self.agent_type,
+                status="success",
+                test_cases=test_cases,
+                metadata={
+                    "total_tests": len(test_cases),
+                    "test_types": ["Load", "Stress", "Spike", "Soak", "Benchmark"]
+                },
+                error_message=None
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in Performance Planner Agent: {str(e)}")
+            return AgentResult(
+                task_id=task.task_id,
+                agent_type=self.agent_type,
+                status="failed",
+                test_cases=[],
+                metadata={},
+                error_message=str(e)
+            )
     
     async def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """

@@ -17,7 +17,7 @@ services:
   api_gateway:
     build:
       context: .
-      dockerfile: sentinel_backend/api_gateway/Dockerfile
+      dockerfile: sentinel_backend/api_gateway/Dockerfile.prod
     container_name: sentinel_api_gateway
     env_file:
       - sentinel_backend/.env.docker
@@ -33,18 +33,18 @@ services:
   auth_service:
     build:
       context: .
-      dockerfile: sentinel_backend/auth_service/Dockerfile
+      dockerfile: sentinel_backend/auth_service/Dockerfile.prod
     container_name: sentinel_auth_service
     env_file:
       - sentinel_backend/.env.docker
     working_dir: /app
     ports:
-      - "8005:8000"
+      - "8005:8005"
 
   spec_service:
     build:
       context: .
-      dockerfile: sentinel_backend/spec_service/Dockerfile
+      dockerfile: sentinel_backend/spec_service/Dockerfile.prod
     container_name: sentinel_spec_service
     env_file:
       - sentinel_backend/.env.docker
@@ -58,7 +58,7 @@ services:
   orchestration_service:
     build:
       context: .
-      dockerfile: sentinel_backend/orchestration_service/Dockerfile
+      dockerfile: sentinel_backend/orchestration_service/Dockerfile.prod
     container_name: sentinel_orchestration_service
     env_file:
       - sentinel_backend/.env.docker
@@ -74,7 +74,7 @@ services:
   execution_service:
     build:
       context: .
-      dockerfile: sentinel_backend/execution_service/Dockerfile
+      dockerfile: sentinel_backend/execution_service/Dockerfile.prod
     container_name: sentinel_execution_service
     env_file:
       - sentinel_backend/.env.docker
@@ -88,7 +88,7 @@ services:
   data_service:
     build:
       context: .
-      dockerfile: sentinel_backend/data_service/Dockerfile
+      dockerfile: sentinel_backend/data_service/Dockerfile.prod
     container_name: sentinel_data_service
     env_file:
       - sentinel_backend/.env.docker
@@ -102,7 +102,7 @@ services:
   sentinel_rust_core:
     build:
       context: .
-      dockerfile: sentinel_backend/sentinel_rust_core/Dockerfile
+      dockerfile: sentinel_backend/sentinel_rust_core/Dockerfile.prod
     container_name: sentinel_rust_core
     ports:
       - "8088:8088"

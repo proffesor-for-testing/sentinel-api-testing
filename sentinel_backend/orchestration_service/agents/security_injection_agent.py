@@ -11,7 +11,7 @@ import logging
 from typing import Dict, List, Any, Optional
 import re
 import base64
-from .base_agent import BaseAgent
+from .base_agent import BaseAgent, AgentTask, AgentResult
 from sentinel_backend.config.settings import get_application_settings
 
 logger = logging.getLogger(__name__)
@@ -31,8 +31,48 @@ class SecurityInjectionAgent(BaseAgent):
     
     def __init__(self):
         super().__init__("security-injection")
-        self.agent_type = "security-injection"
+        self.agent_type = "Security-Injection-Agent"
         self.description = "Security agent focused on injection vulnerabilities including prompt injection"
+    
+    async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
+        """
+        Execute the Security Injection Agent to generate injection vulnerability test cases.
+        
+        Args:
+            task: The agent task containing execution parameters
+            api_spec: The parsed API specification
+            
+        Returns:
+            AgentResult containing generated test cases
+        """
+        try:
+            logger.info(f"Security Injection Agent executing task {task.task_id}")
+            
+            # Generate test cases
+            test_cases = await self.generate_test_cases(api_spec)
+            
+            return AgentResult(
+                task_id=task.task_id,
+                agent_type=self.agent_type,
+                status="success",
+                test_cases=test_cases,
+                metadata={
+                    "total_tests": len(test_cases),
+                    "injection_types": ["Prompt", "SQL", "NoSQL", "Command", "LDAP", "XPath"]
+                },
+                error_message=None
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in Security Injection Agent: {str(e)}")
+            return AgentResult(
+                task_id=task.task_id,
+                agent_type=self.agent_type,
+                status="failed",
+                test_cases=[],
+                metadata={},
+                error_message=str(e)
+            )
     
     async def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """

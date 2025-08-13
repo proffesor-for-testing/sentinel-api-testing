@@ -8,7 +8,7 @@ class TestCase(Base):
     __tablename__ = "test_cases"
     
     id = Column(Integer, primary_key=True, index=True)
-    spec_id = Column(Integer, ForeignKey("api_specifications.id"), nullable=False)
+    spec_id = Column(Integer, nullable=False)  # Removed FK to avoid cross-service dependency
     agent_type = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     test_definition = Column(JSONB, nullable=False)

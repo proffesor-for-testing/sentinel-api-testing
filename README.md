@@ -47,6 +47,8 @@ The platform employs a workforce of specialized AI agents:
 - Docker and Docker Compose
 - Python 3.10+ (for local development)
 - Poetry (for dependency management)
+- Node.js 14+ and npm (for frontend development)
+- Anthropic API Key (for LLM-powered features)
 
 ### Running the Platform
 
@@ -55,13 +57,19 @@ The platform employs a workforce of specialized AI agents:
    cd "Agents for API testing/sentinel_backend"
    ```
 
-2. **Start all services:**
+2. **Set up LLM configuration (required for AI features):**
+   ```bash
+   export SENTINEL_APP_ANTHROPIC_API_KEY=your-anthropic-api-key
+   ```
+
+3. **Start all services:**
    ```bash
    docker-compose up --build
    ```
 
-3. **Access the services:**
-   - **Frontend Application**: http://localhost:3000 (React-based UI with authentication)
+4. **Access the platform:**
+   - **Frontend Application**: http://localhost:3000
+     - Default credentials: `admin@sentinel.com` / `admin123`
    - API Gateway: http://localhost:8000
    - Specification Service: http://localhost:8001
    - Orchestration Service: http://localhost:8002
@@ -106,6 +114,32 @@ This validates:
 - ✅ Prometheus metrics exposure
 - ✅ Jaeger trace collection
 - ✅ End-to-end request flow tracking
+
+## 🎨 Frontend Features
+
+The platform includes a comprehensive React-based frontend with the following features:
+
+### Core Functionality
+- **Authentication System**: JWT-based login with secure token management
+- **Dashboard**: Real-time overview of testing metrics and system status
+- **Specifications Management**: 
+  - Upload and parse OpenAPI specifications
+  - View detailed specification information including endpoints and schemas
+  - Quick Test functionality for rapid test generation
+  - Generate Tests with AI agent selection
+- **Test Cases Browser**: 
+  - View all generated test cases with filtering by agent type
+  - Collaborative editing and bulk operations
+  - Tag management for organization
+  - Detailed test case inspection
+- **Test Runs**: Execute and monitor test runs with real-time status updates
+- **Analytics**: Comprehensive dashboards with trend analysis and insights
+
+### AI-Powered Test Generation
+- **Agent Selection Modal**: Choose from multiple specialized AI agents
+- **Quick Test**: One-click test generation using default agents
+- **LLM Enhancement**: All agents powered by Claude Sonnet 4 for intelligent test creation
+- **Real-time Progress**: Track test generation status and results
 
 ## 📁 Project Structure
 
@@ -241,6 +275,25 @@ The project follows a phased implementation approach:
         - API Gateway integration for authentication endpoints
 
 ### Recent Platform Enhancements (August 2025)
+
+#### Latest Updates (Aug 13, 2025)
+*   **Frontend UI Enhancements**: ✅ COMPLETED
+    - Fixed specifications.map error on Test Cases page
+    - Implemented AI test generation with agent selection modal
+    - Added comprehensive View modal for specification details
+    - Fixed layout issues with proper flexbox implementation
+    - Replaced mock data with real database queries
+    - Quick Test functionality now fully operational
+*   **Agent Architecture Fixes**: ✅ COMPLETED
+    - Fixed abstract class instantiation errors for Security agents
+    - Added proper execute methods to SecurityAuthAgent, SecurityInjectionAgent, and PerformancePlannerAgent
+    - All 8 AI agents now fully functional with LLM enhancement
+*   **Database Improvements**: ✅ COMPLETED
+    - Removed cross-service foreign key dependencies
+    - Uploaded real Petstore API specification for testing
+    - Fixed test case storage with proper data model
+
+#### Previous Enhancements
 *   **Multi-LLM Provider Support**: ✅ COMPLETED
     - Comprehensive abstraction layer supporting 6+ providers
     - Anthropic Claude (Opus 4.1, Sonnet 4), OpenAI (GPT-4 Turbo), Google (Gemini 2.5 Pro/Flash)

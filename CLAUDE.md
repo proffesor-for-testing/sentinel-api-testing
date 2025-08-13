@@ -91,9 +91,10 @@ cd sentinel_backend
 docker-compose -f docker-compose.test.yml build test_runner
 ```
 
-**Current Test Status** (as of latest fixes):
-- **96.3% pass rate** (208/216 tests passing)
-- 8 remaining failures are known issues with integration/rust tests
+**Current Test Status** (as of August 13, 2025):
+- **97.8% pass rate** (219/224 tests passing)
+- 2 minor failures (LLM metadata, API Gateway mock)
+- 3 Rust tests properly skip when service unavailable
 - All critical unit tests passing
 
 ### Rust Core Development
@@ -117,9 +118,10 @@ The platform includes a comprehensive LLM abstraction layer supporting multiple 
 ### Default Configuration
 The platform uses **Anthropic's Claude Sonnet 4** as the default LLM provider for all AI agents. This provides:
 - Excellent balance of performance and cost
-- 200k token context window
-- Strong reasoning capabilities
+- 1 million token context window (as of August 2025)
+- Strong reasoning capabilities with hybrid modes (instant and extended thinking)
 - Vision support for multimodal testing
+- API model: `claude-sonnet-4-20250514`
 
 To use the default configuration, simply set:
 ```bash
@@ -431,6 +433,64 @@ All agent behavior and test generation is driven by OpenAPI specifications. The 
 # Use the CLI for CI/CD integration
 cd sentinel_backend/cli
 python main.py --help
+```
+
+## Common Issues & Solutions
+
+### Frontend Issues
+
+#### specifications.map is not a function
+**Problem**: API returns wrapped response `{"data": [...]}` but component expects array
+**Solution**: Handle both formats in component:
+```javascript
+const data = Array.isArray(response) ? response : (response?.data || []);
+```
+
+#### Layout has excessive white space
+**Problem**: Sidebar causing content to shift down
+**Solution**: Use flexbox layout with proper positioning in Layout component
+
+#### Quick Test returns 500 error
+**Problem**: Agent abstract class instantiation error
+**Solution**: Ensure all agents have `execute` method implemented:
+```python
+async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
+    # Implementation
+```
+
+### Backend Issues
+
+#### Foreign key constraint errors
+**Problem**: Cross-service database dependencies
+**Solution**: Remove foreign key constraints for tables accessed by multiple services
+
+#### Test cases not storing
+**Problem**: Data service model issues
+**Solution**: Ensure models match database schema and remove cross-service FKs
+
+#### Docker services not reflecting code changes
+**Problem**: Docker using cached images
+**Solution**: Rebuild specific service:
+```bash
+docker-compose build <service_name>
+docker-compose up -d <service_name>
+```
+
+### LLM Integration Issues
+
+#### No API key error
+**Problem**: Missing Anthropic API key
+**Solution**: Set environment variable:
+```bash
+export SENTINEL_APP_ANTHROPIC_API_KEY=your-key
+```
+
+#### Agent not using LLM
+**Problem**: LLM provider not configured
+**Solution**: Use configuration script:
+```bash
+cd sentinel_backend/scripts
+./switch_llm.sh claude
 ```
 
 This platform represents a comprehensive AI-powered API testing solution with enterprise-grade architecture, observability, and security features.
