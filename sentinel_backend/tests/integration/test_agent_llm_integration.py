@@ -12,6 +12,21 @@ from sentinel_backend.orchestration_service.agents.base_agent import BaseAgent, 
 from sentinel_backend.orchestration_service.agents.functional_positive_agent import FunctionalPositiveAgent
 from sentinel_backend.orchestration_service.agents.functional_negative_agent import FunctionalNegativeAgent
 from sentinel_backend.llm_providers.base_provider import LLMProvider, LLMResponse, Message
+from typing import Dict, Any
+
+
+class TestAgent(BaseAgent):
+    """Concrete test agent for testing base agent LLM functionality"""
+    
+    async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
+        """Minimal implementation for testing"""
+        return AgentResult(
+            task_id=task.task_id,
+            agent_type=self.agent_type,
+            status="success",
+            test_cases=[],
+            metadata={}
+        )
 
 
 @pytest.fixture
@@ -306,7 +321,7 @@ class TestAgentLLMHelperMethods:
             created_at=datetime.now()
         ))
         
-        agent = BaseAgent("test-agent")
+        agent = TestAgent("test-agent")
         agent.llm_enabled = True
         agent.llm_provider = mock_provider
         
@@ -324,7 +339,7 @@ class TestAgentLLMHelperMethods:
     @pytest.mark.asyncio
     async def test_enhance_with_llm_disabled(self):
         """Test enhance_with_llm returns original when LLM disabled"""
-        agent = BaseAgent("test-agent")
+        agent = TestAgent("test-agent")
         agent.llm_enabled = False
         
         original_data = {"data": "Original content"}
@@ -338,7 +353,7 @@ class TestAgentLLMHelperMethods:
         mock_provider = AsyncMock()
         mock_provider.generate = AsyncMock(side_effect=Exception("LLM error"))
         
-        agent = BaseAgent("test-agent")
+        agent = TestAgent("test-agent")
         agent.llm_enabled = True
         agent.llm_provider = mock_provider
         

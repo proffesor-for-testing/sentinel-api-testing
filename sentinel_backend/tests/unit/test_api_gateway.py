@@ -120,8 +120,11 @@ class TestRootAndHealthEndpoints:
             from sentinel_backend.api_gateway.main import health_check
             result = await health_check()
             
+            # The health check should set status to degraded when a service fails
             assert result["status"] == "degraded"
             assert "services" in result
+            # Check that the spec service is marked as unhealthy
+            assert result["services"]["spec_service"]["status"] == "unhealthy"
 
 
 class TestMiddleware:

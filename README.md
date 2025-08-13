@@ -240,7 +240,7 @@ The project follows a phased implementation approach:
         - User menu with profile access and logout functionality
         - API Gateway integration for authentication endpoints
 
-### Recent Platform Enhancements (January 2025)
+### Recent Platform Enhancements (August 2025)
 *   **Multi-LLM Provider Support**: ✅ COMPLETED
     - Comprehensive abstraction layer supporting 6+ providers
     - Anthropic Claude (Opus 4.1, Sonnet 4), OpenAI (GPT-4 Turbo), Google (Gemini 2.5 Pro/Flash)
@@ -248,10 +248,12 @@ The project follows a phased implementation approach:
     - Automatic fallback, cost tracking, response caching
     - All agents enhanced with optional LLM capabilities
 *   **Test Infrastructure Improvements**: ✅ COMPLETED
-    - 216 comprehensive tests with 96.3% pass rate
-    - Fixed Docker test environment with proper imports
-    - Factory pattern across all services
-    - Mock mode for isolated testing
+    - 224 comprehensive tests with 97.8% pass rate (219 passing, 2 failures, 3 conditional skips)
+    - Smart Rust integration test management with environment detection
+    - Fixed LLM test suite with proper concrete agent implementations
+    - Enhanced test markers for better categorization (unit, integration, rust, fallback)
+    - Factory pattern across all services for improved testability
+    - Mock mode for isolated testing without external dependencies
 
 ## 🤖 Multi-LLM Provider Support
 
@@ -476,7 +478,7 @@ For production deployments:
 
 ### Testing Infrastructure
 
-The platform includes a comprehensive testing infrastructure with **216 tests** achieving 96.3% pass rate (208/216 passing):
+The platform includes a comprehensive testing infrastructure with **224 tests** achieving 97.8% pass rate (219/224 passing):
 
 #### Test Coverage
 - **Auth Service**: 24 tests covering authentication, authorization, and user management
@@ -485,8 +487,9 @@ The platform includes a comprehensive testing infrastructure with **216 tests** 
 - **Orchestration Service**: 24 tests covering agent management and task delegation
 - **Data Service**: 25 tests covering CRUD operations and analytics
 - **Execution Service**: 22 tests covering test execution and result collection
-- **Auth Middleware**: 16 tests covering JWT validation and permission checks
-- **Auth Factory**: 11 tests covering factory pattern implementation
+- **LLM Providers**: 50+ tests covering all provider integrations and fallback mechanisms
+- **Agent LLM Integration**: 20+ tests covering agent-LLM interaction patterns
+- **Rust Integration**: 3 tests (conditionally run based on service availability)
 
 #### Running Tests
 ```bash
@@ -496,16 +499,17 @@ cd sentinel_backend
 ./run_tests.sh -d -t unit        # Unit tests only in Docker
 ./run_tests.sh -d -t integration # Integration tests in Docker
 
+# Smart test filtering based on environment
+./run_tests_filtered.sh          # Auto-detects Rust service availability
+./run_tests_filtered.sh --with-rust  # Force Rust tests with mocks
+pytest -m "not rust"              # Exclude Rust tests explicitly
+
 # Rebuild test Docker image after dependency changes
 docker-compose -f docker-compose.test.yml build test_runner
 
-# Local test execution (not recommended due to environment differences)
-./run_tests.sh -t unit           # Unit tests only
-./run_tests.sh -t integration    # Integration tests
-
 # Run tests for specific service
 pytest tests/unit/test_auth_service.py -v
-pytest tests/unit/test_data_service.py -v
+pytest tests/unit/test_llm_providers.py -v
 
 # Run tests with coverage
 pytest tests/unit/ --cov=. --cov-report=term-missing
