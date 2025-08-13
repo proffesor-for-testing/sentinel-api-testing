@@ -1,27 +1,29 @@
 FROM python:3.10-slim
 
 WORKDIR /app
-ENV PYTHONPATH /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY pyproject.toml ./
+# Create the sentinel_backend directory structure
+RUN mkdir -p /app/sentinel_backend
 
-# Install dependencies only (not the package itself yet)
-RUN pip install fastapi uvicorn sqlalchemy asyncpg psycopg2-binary pgvector alembic prance openapi-core pyyaml pytest pytest-asyncio httpx schedule openai pyjwt bcrypt python-multipart email-validator python-dotenv pydantic pydantic-settings Faker
+# Copy the entire project into sentinel_backend directory
+COPY . /app/sentinel_backend/
 
-# Copy application code
-COPY . .
+# Install poetry and dependencies (without installing the project itself)
+RUN cd /app/sentinel_backend && \
+    pip install poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install --no-interaction --no-ansi --no-root
 
-# Now install the package in development mode
-RUN pip install -e .
+# Set Python path to include the app directory
+ENV PYTHONPATH=/app:$PYTHONPATH
 
 # Expose port
-EXPOSE ${AUTH_SERVICE_PORT:-8000}
+EXPOSE 8005
 
 # Run the application
-CMD ["uvicorn", "sentinel_backend.auth_service.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "sentinel_backend.auth_service.main:app", "--host", "0.0.0.0", "--port", "8005", "--reload"]

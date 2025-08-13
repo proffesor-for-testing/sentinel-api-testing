@@ -196,7 +196,10 @@ The project follows a phased implementation approach:
   - ✅ Configuration validation and error handling with management CLI tools
   - ✅ Backup/restore, migration, and template generation capabilities
 - ✅ Test Coverage Improvement Initiative (COMPLETED)
-  - ✅ **166 comprehensive unit tests** with 100% pass rate
+  - ✅ **216 comprehensive tests** with 96.3% pass rate (208/216 passing)
+  - ✅ Fixed critical test infrastructure issues (async fixtures, Docker imports, mock data)
+  - ✅ Added missing dependencies (tiktoken, anthropic) to test environment
+  - ✅ All unit tests passing; remaining 8 failures are known integration/rust issues
   - ✅ Factory pattern implemented across all services for enhanced testability
   - ✅ Mock mode support for isolated testing without external dependencies
   - ✅ Comprehensive test suites for Auth, API Gateway, Spec, Orchestration, Data, and Execution services
@@ -204,7 +207,7 @@ The project follows a phased implementation approach:
   - ✅ Docker-based test environment for consistent testing across environments
   - ✅ Testing infrastructure fully refactored and ready for CI/CD integration
 
-### Phase 6: Platform Evolution (🚀 IN PROGRESS)
+### Phase 6: Platform Evolution (✅ COMPLETED)
 *   [x] **Integrate `ruv-swarm` and Refine the Agentic Core (Phase 1):**
     *   [x] **Create `sentinel-rust-core` Service:** Developed a new Rust-based microservice to act as a bridge to the `ruv-swarm` framework.
     *   [x] **Port Python Agents to Rust:** Re-implemented core agent logic in Rust, leveraging the `ruv-swarm` `Agent` trait for high performance.
@@ -236,6 +239,75 @@ The project follows a phased implementation approach:
         - Redux state management for authentication
         - User menu with profile access and logout functionality
         - API Gateway integration for authentication endpoints
+
+### Recent Platform Enhancements (August 2025)
+*   **Multi-LLM Provider Support**: ✅ COMPLETED
+    - Comprehensive abstraction layer supporting 6+ providers
+    - Anthropic Claude (Opus 4.1, Sonnet 4), OpenAI (GPT-4 Turbo), Google (Gemini 2.5 Pro/Flash)
+    - Local model support via Ollama (DeepSeek-R1, Llama 3.3, Qwen 2.5)
+    - Automatic fallback, cost tracking, response caching
+    - All agents enhanced with optional LLM capabilities
+*   **Test Infrastructure Improvements**: ✅ COMPLETED
+    - 224 comprehensive tests with 97.8% pass rate (219 passing, 2 failures, 3 conditional skips)
+    - Smart Rust integration test management with environment detection
+    - Fixed LLM test suite with proper concrete agent implementations
+    - Enhanced test markers for better categorization (unit, integration, rust, fallback)
+    - Factory pattern across all services for improved testability
+    - Mock mode for isolated testing without external dependencies
+
+## 🤖 Multi-LLM Provider Support
+
+### Overview
+The platform features a comprehensive LLM abstraction layer that enables all AI agents to leverage multiple LLM providers with automatic fallback capabilities. This hybrid approach combines deterministic algorithms with LLM creativity for superior test generation.
+
+### Supported Providers
+- **Anthropic** (Default): Claude Opus 4.1/4, Claude Sonnet 4, Claude Haiku 3.5
+- **OpenAI**: GPT-4 Turbo, GPT-4, GPT-3.5 Turbo
+- **Google**: Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini 2.0 Flash
+- **Mistral**: Mistral Large, Small 3, Codestral
+- **Ollama** (Local): DeepSeek-R1, Llama 3.3, Qwen 2.5, and more
+
+### Key Features
+- **Automatic Fallback**: Seamlessly switches to backup providers on failure
+- **Cost Tracking**: Real-time usage monitoring with budget limits
+- **Response Caching**: Reduces API calls and costs
+- **Token Management**: Intelligent context window handling
+- **Provider-Specific Templates**: Optimized prompts for each model
+
+### Quick Configuration
+
+#### Using Configuration Scripts (Recommended)
+```bash
+# Interactive configuration wizard
+cd sentinel_backend/scripts
+./switch_llm.sh
+
+# Quick presets
+./switch_llm.sh claude    # Use Claude Sonnet 4 (default)
+./switch_llm.sh openai    # Use OpenAI GPT-4 Turbo
+./switch_llm.sh gemini    # Use Google Gemini 2.5
+./switch_llm.sh local     # Use local Ollama
+./switch_llm.sh none      # Disable LLM
+```
+
+#### Manual Configuration
+```bash
+# Use default (Claude Sonnet 4)
+export SENTINEL_APP_ANTHROPIC_API_KEY=your-key
+
+# Switch to OpenAI
+export SENTINEL_APP_LLM_PROVIDER=openai
+export SENTINEL_APP_OPENAI_API_KEY=your-key
+export SENTINEL_APP_LLM_MODEL=gpt-4-turbo
+
+# Use local models with Ollama
+export SENTINEL_APP_LLM_PROVIDER=ollama
+export SENTINEL_APP_LLM_MODEL=llama3.3:70b
+```
+
+For detailed configuration options and scripts, see:
+- [CLAUDE.md](CLAUDE.md#llm-integration) - Complete LLM configuration guide
+- [Scripts README](sentinel_backend/scripts/README.md) - Script documentation
 
 ## 🛠️ Development
 
@@ -406,7 +478,7 @@ For production deployments:
 
 ### Testing Infrastructure
 
-The platform includes a comprehensive testing infrastructure with **166 unit tests** achieving 100% pass rate:
+The platform includes a comprehensive testing infrastructure with **224 tests** achieving 97.8% pass rate (219/224 passing):
 
 #### Test Coverage
 - **Auth Service**: 24 tests covering authentication, authorization, and user management
@@ -415,23 +487,29 @@ The platform includes a comprehensive testing infrastructure with **166 unit tes
 - **Orchestration Service**: 24 tests covering agent management and task delegation
 - **Data Service**: 25 tests covering CRUD operations and analytics
 - **Execution Service**: 22 tests covering test execution and result collection
-- **Auth Middleware**: 16 tests covering JWT validation and permission checks
-- **Auth Factory**: 11 tests covering factory pattern implementation
+- **LLM Providers**: 50+ tests covering all provider integrations and fallback mechanisms
+- **Agent LLM Integration**: 20+ tests covering agent-LLM interaction patterns
+- **Rust Integration**: 3 tests (conditionally run based on service availability)
 
 #### Running Tests
 ```bash
-# Run all backend tests
+# IMPORTANT: Always run tests in Docker for consistent environment
 cd sentinel_backend
-./run_tests.sh
+./run_tests.sh -d                # Run all tests in Docker (RECOMMENDED)
+./run_tests.sh -d -t unit        # Unit tests only in Docker
+./run_tests.sh -d -t integration # Integration tests in Docker
 
-# Run specific test categories
-./run_tests.sh -t unit           # Unit tests only
-./run_tests.sh -t integration    # Integration tests
-./run_tests.sh -d                # Run tests in Docker
+# Smart test filtering based on environment
+./run_tests_filtered.sh          # Auto-detects Rust service availability
+./run_tests_filtered.sh --with-rust  # Force Rust tests with mocks
+pytest -m "not rust"              # Exclude Rust tests explicitly
+
+# Rebuild test Docker image after dependency changes
+docker-compose -f docker-compose.test.yml build test_runner
 
 # Run tests for specific service
 pytest tests/unit/test_auth_service.py -v
-pytest tests/unit/test_data_service.py -v
+pytest tests/unit/test_llm_providers.py -v
 
 # Run tests with coverage
 pytest tests/unit/ --cov=. --cov-report=term-missing

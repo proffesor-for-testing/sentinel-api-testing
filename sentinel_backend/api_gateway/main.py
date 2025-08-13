@@ -7,11 +7,11 @@ import os
 import structlog
 import uuid
 from prometheus_fastapi_instrumentator import Instrumentator
-from config.logging_config import setup_logging
-from config.tracing_config import setup_tracing
-from config.settings import get_service_settings, get_application_settings, get_network_settings
-from auth_service.auth_middleware import get_current_user, require_permission, Permissions, optional_auth
-from api_gateway.bff_service import router as bff_router
+from sentinel_backend.config.logging_config import setup_logging
+from sentinel_backend.config.tracing_config import setup_tracing
+from sentinel_backend.config.settings import get_service_settings, get_application_settings, get_network_settings
+from sentinel_backend.auth_service.auth_middleware import get_current_user, require_permission, Permissions, optional_auth
+from sentinel_backend.api_gateway.bff_service import router as bff_router
 
 # Set up structured logging
 setup_logging()

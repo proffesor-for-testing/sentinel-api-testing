@@ -3,19 +3,21 @@ FROM python:3.10-slim
 
 # Set the working directory in the container
 WORKDIR /app
-ENV PYTHONPATH /app
 
-# Copy the dependency files to the working directory
-COPY pyproject.toml ./
+# Create the sentinel_backend directory structure
+RUN mkdir -p /app/sentinel_backend
 
-# Install dependencies only (not the package itself yet)
-RUN pip install fastapi uvicorn sqlalchemy asyncpg psycopg2-binary pgvector alembic prance openapi-core pyyaml pytest pytest-asyncio httpx schedule openai pyjwt bcrypt python-multipart email-validator python-dotenv pydantic pydantic-settings Faker
+# Copy the entire project into sentinel_backend directory
+COPY . /app/sentinel_backend/
 
-# Copy the content of the local src directory to the working directory
-COPY . .
+# Install poetry and dependencies (without installing the project itself)
+RUN cd /app/sentinel_backend && \
+    pip install poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install --no-interaction --no-ansi --no-root
 
-# Now install the package in development mode
-RUN pip install -e .
+# Set Python path to include the app directory
+ENV PYTHONPATH=/app:$PYTHONPATH
 
 # Command to run the application
 CMD ["uvicorn", "sentinel_backend.api_gateway.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

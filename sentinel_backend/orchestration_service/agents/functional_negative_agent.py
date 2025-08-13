@@ -55,6 +55,12 @@ class FunctionalNegativeAgent(BaseAgent):
                 endpoint_tests = await self._generate_endpoint_negative_tests(endpoint, api_spec)
                 test_cases.extend(endpoint_tests)
             
+            # If LLM is enabled, generate additional creative negative tests
+            if self.llm_enabled and test_cases:
+                self.logger.info("Generating LLM-enhanced negative test cases")
+                llm_tests = await self._generate_llm_negative_tests(endpoints[:3], api_spec)  # Limit to 3 endpoints for cost
+                test_cases.extend(llm_tests)
+            
             self.logger.info(f"Generated {len(test_cases)} negative test cases")
             
             return AgentResult(
@@ -72,7 +78,10 @@ class FunctionalNegativeAgent(BaseAgent):
                         "missing_required_fields",
                         "malformed_requests",
                         "constraint_violations"
-                    ]
+                    ],
+                    "llm_enhanced": self.llm_enabled,
+                    "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
+                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
                 }
             )
             
@@ -973,3 +982,69 @@ class FunctionalNegativeAgent(BaseAgent):
             'expected_status_codes': [expected_status],
             'tags': ['functional', 'negative', f'{method.lower()}-method']
         }
+    
+    async def _generate_llm_negative_tests(
+        self,
+        endpoints: List[Dict[str, Any]],
+        api_spec: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate creative negative test cases using LLM.
+        
+        LLM can generate more creative and context-aware negative tests
+        that might not be covered by deterministic algorithms.
+        """
+        if not self.llm_enabled:
+            return []
+        
+        test_cases = []
+        
+        for endpoint in endpoints:
+            # Create a prompt for generating negative test cases
+            prompt = f"""Generate 3 creative negative test cases for this API endpoint that would cause errors:
+
+Endpoint: {endpoint['method']} {endpoint['path']}
+Description: {endpoint.get('description', '')}
+
+Focus on:
+1. Edge cases that violate business logic
+2. Security-related negative tests
+3. Unusual combinations that might break the API
+
+Return test cases that should result in 4xx error codes."""
+
+            system_prompt = """You are an expert API tester specializing in negative testing.
+Generate creative test cases that expose API weaknesses and edge cases.
+Focus on realistic scenarios that developers might overlook."""
+
+            # Get LLM suggestions
+            llm_response = await self.enhance_with_llm(
+                endpoint,
+                prompt,
+                system_prompt=system_prompt,
+                temperature=0.8  # Higher temperature for more creative tests
+            )
+            
+            # Convert LLM suggestions to test cases
+            if isinstance(llm_response, dict):
+                test_case = self._create_test_case(
+                    endpoint=endpoint['path'],
+                    method=endpoint['method'],
+                    description=f"[LLM] Creative negative test",
+                    body=llm_response.get('body'),
+                    expected_status=llm_response.get('expected_status', 400)
+                )
+                test_cases.append(test_case)
+            elif isinstance(llm_response, list):
+                for idx, suggestion in enumerate(llm_response[:3]):
+                    if isinstance(suggestion, dict):
+                        test_case = self._create_test_case(
+                            endpoint=endpoint['path'],
+                            method=endpoint['method'],
+                            description=f"[LLM] {suggestion.get('description', f'Creative negative test {idx+1}')}",
+                            body=suggestion.get('body'),
+                            expected_status=suggestion.get('expected_status', 400)
+                        )
+                        test_cases.append(test_case)
+        
+        return test_cases

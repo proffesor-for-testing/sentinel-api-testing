@@ -22,7 +22,9 @@ RUN pip install --no-cache-dir \
     openapi-core==0.18.0 \
     pyyaml==6.0 \
     schedule==1.2.0 \
-    openai==0.28.0 \
+    openai==1.54.3 \
+    tiktoken==0.7.0 \
+    anthropic==0.39.0 \
     pyjwt==2.8.0 \
     bcrypt==4.0.1 \
     python-multipart==0.0.6 \
@@ -51,8 +53,11 @@ RUN pip install --no-cache-dir \
     factory-boy \
     freezegun
 
-# Copy source code
-COPY . .
+# Create sentinel_backend directory structure
+RUN mkdir -p /app/sentinel_backend
+
+# Copy source code to the proper location
+COPY . /app/sentinel_backend/
 
 # Create test reports directory
 RUN mkdir -p /app/test_reports
@@ -60,6 +65,9 @@ RUN mkdir -p /app/test_reports
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV SENTINEL_ENVIRONMENT=testing
+
+# Set working directory to sentinel_backend for tests
+WORKDIR /app/sentinel_backend
 
 # Default command (can be overridden)
 CMD ["pytest", "-v", "--tb=short", "--cov=.", "--cov-report=html:/app/test_reports/htmlcov", "--cov-report=xml:/app/test_reports/coverage.xml", "--cov-report=term-missing"]

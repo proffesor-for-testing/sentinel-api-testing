@@ -13,9 +13,9 @@ from enum import Enum
 from prometheus_fastapi_instrumentator import Instrumentator
 
 # Import configuration
-from config.settings import get_security_settings, get_application_settings
-from config.logging_config import setup_logging
-from config.tracing_config import setup_tracing
+from sentinel_backend.config.settings import get_security_settings, get_application_settings
+from sentinel_backend.config.logging_config import setup_logging
+from sentinel_backend.config.tracing_config import setup_tracing
 
 # Set up structured logging
 setup_logging()

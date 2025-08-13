@@ -30,11 +30,11 @@ class SecurityInjectionAgent(BaseAgent):
     """
     
     def __init__(self):
-        super().__init__()
+        super().__init__("security-injection")
         self.agent_type = "security-injection"
         self.description = "Security agent focused on injection vulnerabilities including prompt injection"
     
-    def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Generate security test cases focused on injection vulnerabilities.
         

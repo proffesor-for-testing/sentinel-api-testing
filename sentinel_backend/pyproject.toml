@@ -29,7 +29,7 @@ include = "config"
 include = "tests"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.9"
 
 # Web Framework
 fastapi = "^0.100.0"
@@ -50,13 +50,18 @@ pyyaml = "^6.0"
 # Testing
 pytest = "^7.4.0"
 pytest-asyncio = "^0.21.0"
-httpx = "^0.24.1" # For testing API clients
+httpx = "^0.25.2" # For testing API clients (updated for mistralai compatibility)
 
 # Scheduling
 schedule = "^1.2.0"
 
-# LLM Interaction (example)
-openai = "^0.28.0"
+# LLM Providers
+openai = "^1.0.0"  # Updated to latest version for better async support
+anthropic = "^0.25.0"  # For Claude models
+google-generativeai = "^0.5.0"  # For Gemini models
+mistralai = "^0.1.0"  # For Mistral models
+tiktoken = "^0.7.0"  # For OpenAI token counting
+aiohttp = "^3.9.0"  # For async HTTP requests (Ollama)
 
 # Authentication & Security
 pyjwt = "^2.8.0"

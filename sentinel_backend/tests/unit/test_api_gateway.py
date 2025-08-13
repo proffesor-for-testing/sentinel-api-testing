@@ -12,8 +12,8 @@ import httpx
 import json
 
 # Import fixtures
-from tests.fixtures.api_gateway_fixtures import *
-from tests.fixtures.auth_fixtures import mock_correlation_id
+from sentinel_backend.tests.fixtures.api_gateway_fixtures import *
+from sentinel_backend.tests.fixtures.auth_fixtures import mock_correlation_id
 
 
 @pytest.fixture
@@ -98,30 +98,33 @@ class TestRootAndHealthEndpoints:
     
     @pytest.mark.unit
     @pytest.mark.asyncio
-    @patch('api_gateway.main.httpx.AsyncClient')
-    async def test_health_check_service_unavailable(self, mock_client):
+    async def test_health_check_service_unavailable(self):
         """Test health check with one service unavailable."""
-        mock_client_instance = AsyncMock()
-        mock_client_instance.__aenter__.return_value = mock_client_instance
-        mock_client_instance.__aexit__.return_value = None
-        
-        # Mock one service failing
-        def side_effect(url):
-            if "spec" in url:
-                raise httpx.RequestError("Connection failed")
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.elapsed.total_seconds.return_value = 0.025
-            return mock_response
-        
-        mock_client_instance.get.side_effect = side_effect
-        mock_client.return_value = mock_client_instance
-        
-        from api_gateway.main import health_check
-        result = await health_check()
-        
-        assert result["status"] == "degraded"
-        assert "services" in result
+        with patch('sentinel_backend.api_gateway.main.httpx.AsyncClient') as mock_client:
+            mock_client_instance = AsyncMock()
+            mock_client_instance.__aenter__.return_value = mock_client_instance
+            mock_client_instance.__aexit__.return_value = None
+            
+            # Mock one service failing
+            async def async_side_effect(url):
+                if "spec" in url:
+                    raise httpx.RequestError("Connection failed", request=None)
+                mock_response = Mock()
+                mock_response.status_code = 200
+                mock_response.elapsed.total_seconds.return_value = 0.025
+                return mock_response
+            
+            mock_client_instance.get.side_effect = async_side_effect
+            mock_client.return_value = mock_client_instance
+            
+            from sentinel_backend.api_gateway.main import health_check
+            result = await health_check()
+            
+            # The health check should set status to degraded when a service fails
+            assert result["status"] == "degraded"
+            assert "services" in result
+            # Check that the spec service is marked as unhealthy
+            assert result["services"]["spec_service"]["status"] == "unhealthy"
 
 
 class TestMiddleware:

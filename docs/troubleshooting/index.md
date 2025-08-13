@@ -12,9 +12,10 @@ This guide helps you diagnose and resolve common issues with the Sentinel platfo
 6. [Performance Issues](#performance-issues)
 7. [Database Problems](#database-problems)
 8. [Docker & Container Issues](#docker--container-issues)
-9. [API Errors](#api-errors)
-10. [Debugging Techniques](#debugging-techniques)
-11. [FAQ](#frequently-asked-questions)
+9. [LLM Provider Issues](#llm-provider-issues)
+10. [API Errors](#api-errors)
+11. [Debugging Techniques](#debugging-techniques)
+12. [FAQ](#frequently-asked-questions)
 
 ## Quick Diagnostics
 
@@ -530,6 +531,99 @@ docker image prune -a
 
 # Remove build cache
 docker builder prune
+```
+
+## LLM Provider Issues
+
+### Problem: LLM features not working
+
+**Symptoms:**
+- Tests not using AI enhancements
+- "LLM provider not configured" errors
+- API key validation failures
+
+**Solutions:**
+
+1. **Check configuration:**
+```bash
+cd sentinel_backend
+python scripts/validate_llm_config.py
+```
+
+2. **Verify API keys:**
+```bash
+# Check if keys are set
+grep "SENTINEL_APP_.*_API_KEY" .env
+
+# Test API key directly
+curl https://api.anthropic.com/v1/messages \
+  -H "x-api-key: $SENTINEL_APP_ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01"
+```
+
+3. **Switch providers:**
+```bash
+# Try a different provider
+./scripts/switch_llm.sh openai
+
+# Or disable LLM temporarily
+./scripts/switch_llm.sh none
+```
+
+### Problem: High LLM costs
+
+**Symptoms:**
+- Unexpected API charges
+- Budget alerts triggered
+
+**Solutions:**
+
+1. **Enable caching:**
+```bash
+export SENTINEL_APP_LLM_CACHE_ENABLED=true
+export SENTINEL_APP_LLM_CACHE_TTL=7200
+```
+
+2. **Use cheaper models:**
+```bash
+# Switch to GPT-3.5 Turbo
+./scripts/switch_llm.sh
+# Select OpenAI -> GPT-3.5 Turbo
+```
+
+3. **Use local models:**
+```bash
+# Install Ollama
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Pull a model
+ollama pull mistral:7b
+
+# Configure Sentinel
+./scripts/switch_llm.sh local
+```
+
+### Problem: Ollama connection issues
+
+**Symptoms:**
+- "Connection refused" to localhost:11434
+- Docker can't reach Ollama
+
+**Solutions:**
+
+1. **For Docker access:**
+```bash
+# Start Ollama on all interfaces
+OLLAMA_HOST=0.0.0.0:11434 ollama serve
+
+# Or use host network in Docker
+docker run --network host ...
+```
+
+2. **Check Ollama status:**
+```bash
+ollama list  # List installed models
+ollama ps    # Show running models
 ```
 
 ## API Errors
