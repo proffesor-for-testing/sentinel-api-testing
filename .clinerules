@@ -51,6 +51,7 @@ This file captures important patterns, preferences, and project intelligence to 
 
 ## 7. Git Commit Guidelines
 
+- **Staging Files**: Always use `git add -A` to stage all files (including deletions and renames) rather than `git add .` which only adds files in the current directory
 - **Concise Commit Messages**: Keep commit messages concise and under 50 characters for the title to avoid commit operation failures
 - **Format**: Use format "Action: Brief description" (e.g., "Add: Analytics dashboard", "Fix: Database connection", "Update: Phase 4 completion")
 - **Avoid Long Descriptions**: Detailed descriptions can cause git commit failures; keep them brief and focused
