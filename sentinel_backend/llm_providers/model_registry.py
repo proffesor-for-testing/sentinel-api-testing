@@ -103,15 +103,15 @@ MODEL_REGISTRY: Dict[str, ModelSpec] = {
         provider=LLMProvider.ANTHROPIC,
         model_id="claude-sonnet-4-20250514",
         display_name="Claude Sonnet 4",
-        context_window=200000,
-        max_output_tokens=4096,
+        context_window=1000000,  # 1 million tokens as of August 2025
+        max_output_tokens=8192,
         capabilities=[ModelCapability.TEXT_GENERATION, ModelCapability.CODE_GENERATION,
                      ModelCapability.VISION, ModelCapability.LONG_CONTEXT],
         input_cost_per_1k=0.003,
         output_cost_per_1k=0.015,
         supports_vision=True,
         supports_functions=True,
-        notes="72.7% on SWE-bench, balanced performance"
+        notes="1M token context, hybrid modes (instant/extended thinking), 72.7% on SWE-bench"
     ),
     "claude-3.5-sonnet": ModelSpec(
         provider=LLMProvider.ANTHROPIC,

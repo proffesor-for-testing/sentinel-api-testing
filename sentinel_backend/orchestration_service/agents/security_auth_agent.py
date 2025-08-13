@@ -11,7 +11,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from urllib.parse import urlparse, parse_qs
 import re
 import random
-from .base_agent import BaseAgent
+from .base_agent import BaseAgent, AgentTask, AgentResult
 from sentinel_backend.config.settings import get_application_settings
 
 # Get configuration
@@ -31,7 +31,7 @@ class SecurityAuthAgent(BaseAgent):
     
     def __init__(self):
         super().__init__("security-auth")
-        self.agent_type = "security-auth"
+        self.agent_type = "Security-Auth-Agent"
         self.description = "Security agent focused on authentication and authorization vulnerabilities"
         
         # Configuration-driven settings
@@ -39,6 +39,46 @@ class SecurityAuthAgent(BaseAgent):
         self.max_auth_scenarios = getattr(app_settings, 'security_max_auth_scenarios', 4)
         self.default_test_timeout = getattr(app_settings, 'security_test_timeout', 30)
         self.enable_aggressive_testing = getattr(app_settings, 'security_enable_aggressive_testing', False)
+    
+    async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
+        """
+        Execute the Security Auth Agent to generate auth vulnerability test cases.
+        
+        Args:
+            task: The agent task containing execution parameters
+            api_spec: The parsed API specification
+            
+        Returns:
+            AgentResult containing generated test cases
+        """
+        try:
+            logger.info(f"Security Auth Agent executing task {task.task_id}")
+            
+            # Generate test cases
+            test_cases = await self.generate_test_cases(api_spec)
+            
+            return AgentResult(
+                task_id=task.task_id,
+                agent_type=self.agent_type,
+                status="success",
+                test_cases=test_cases,
+                metadata={
+                    "total_tests": len(test_cases),
+                    "focus_areas": ["BOLA", "Function-level auth", "Auth bypass"]
+                },
+                error_message=None
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in Security Auth Agent: {str(e)}")
+            return AgentResult(
+                task_id=task.task_id,
+                agent_type=self.agent_type,
+                status="failed",
+                test_cases=[],
+                metadata={},
+                error_message=str(e)
+            )
     
     async def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """

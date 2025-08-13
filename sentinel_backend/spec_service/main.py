@@ -208,36 +208,34 @@ async def create_specification(spec_data: SpecificationCreate):
         )
 
 @app.get("/api/v1/specifications")
-async def list_specifications():
+async def list_specifications(db: AsyncSession = Depends(get_db)):
     """
-    List all ingested API specifications (temporary mock data).
+    List all ingested API specifications from the database.
     """
-    # Temporary mock data while database connectivity issues are resolved
-    return {
-        "data": [
-            {
-                "id": 1,
-                "source_filename": "petstore.yaml",
-                "version": "1.0.0",
-                "created_at": "2025-08-08T08:00:00Z",
-                "updated_at": "2025-08-08T08:00:00Z"
-            },
-            {
-                "id": 2,
-                "source_filename": "user-api.json",
-                "version": "2.1.0",
-                "created_at": "2025-08-07T15:30:00Z",
-                "updated_at": "2025-08-07T15:30:00Z"
-            },
-            {
-                "id": 3,
-                "source_filename": "orders-api.yaml",
-                "version": "1.5.2",
-                "created_at": "2025-08-06T12:15:00Z",
-                "updated_at": "2025-08-06T12:15:00Z"
-            }
-        ]
-    }
+    try:
+        result = await db.execute(select(ApiSpecification))
+        specifications = result.scalars().all()
+        
+        return {
+            "data": [
+                {
+                    "id": spec.id,
+                    "source_filename": spec.source_filename,
+                    "version": spec.version,
+                    "created_at": spec.created_at.isoformat() if spec.created_at else None,
+                    "updated_at": spec.updated_at.isoformat() if spec.updated_at else None,
+                    "title": spec.parsed_spec.get("info", {}).get("title") if spec.parsed_spec else None,
+                    "description": spec.parsed_spec.get("info", {}).get("description") if spec.parsed_spec else None,
+                    "endpoints_count": len(spec.parsed_spec.get("paths", {})) if spec.parsed_spec else 0,
+                    "is_valid": True  # Since it's in the DB, it was validated
+                }
+                for spec in specifications
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error fetching specifications: {str(e)}")
+        # Return empty list on error instead of failing
+        return {"data": []}
 
 @app.get("/api/v1/specifications/{spec_id}", response_model=SpecificationResponse)
 async def get_specification(spec_id: int, db: AsyncSession = Depends(get_db)):

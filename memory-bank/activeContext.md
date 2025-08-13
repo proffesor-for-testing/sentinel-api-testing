@@ -24,6 +24,29 @@
 
 ## 2. Recent Changes & Decisions
 
+### Latest Updates (August 13, 2025)
+
+- **Frontend UI Enhancements Completed:**
+  - **Test Cases Page Fixed:** Resolved specifications.map error by handling wrapped API responses
+  - **AI Test Generation Modal:** Implemented comprehensive agent selection interface with categories (Functional, Security, Performance)
+  - **Specification View Modal:** Added detailed view functionality showing endpoints, servers, and raw spec content
+  - **Layout Issues Resolved:** Fixed excessive white space with proper flexbox implementation
+  - **Real Data Integration:** Replaced all mock data with actual database queries
+  - **Quick Test Operational:** One-click test generation now fully functional with Functional-Positive-Agent
+
+- **Agent Architecture Improvements:**
+  - **Abstract Class Errors Fixed:** Added execute methods to SecurityAuthAgent, SecurityInjectionAgent, and PerformancePlannerAgent
+  - **Agent Type Consistency:** Standardized agent type naming across all 8 agents
+  - **LLM Integration Working:** All agents successfully using Claude Sonnet 4 for enhanced test generation
+  - **Test Case Generation:** Successfully generating and storing test cases in database
+
+- **Database Architecture Updates:**
+  - **Foreign Key Dependencies Removed:** Eliminated cross-service FK constraints between test_cases and api_specifications
+  - **Real Test Data:** Uploaded complete Petstore OpenAPI specification for testing
+  - **Data Service Fixed:** Resolved test case storage issues with proper model definitions
+
+### Previous Updates
+
 - **Multi-LLM Provider Support Implemented:** Comprehensive LLM abstraction layer completed:
   - **6 Provider Integrations:** OpenAI, Anthropic (Claude), Google (Gemini 2.5), Mistral, Ollama, vLLM
   - **Latest Model Support:** Claude Opus 4.1/Sonnet 4, Gemini 2.5 Pro/Flash, GPT-4 Turbo

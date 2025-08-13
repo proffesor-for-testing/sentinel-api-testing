@@ -56,8 +56,12 @@ const TestCases = () => {
         apiService.getTestCases(),
         apiService.getSpecifications()
       ]);
-      setTestCases(casesData);
-      setSpecifications(specsData);
+      // Handle different response formats
+      const testCasesArray = Array.isArray(casesData) ? casesData : (casesData?.data || []);
+      const specificationsArray = Array.isArray(specsData) ? specsData : (specsData?.data || []);
+      
+      setTestCases(testCasesArray);
+      setSpecifications(specificationsArray);
       setError(null);
     } catch (err) {
       console.error('Error loading test cases:', err);
@@ -287,12 +291,11 @@ const TestCases = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Test Cases</h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-600">
             Browse and analyze generated test cases from all agent types
           </p>
         </div>
@@ -379,7 +382,7 @@ const TestCases = () => {
               className="border border-gray-300 rounded-md px-3 py-2 text-sm flex-1"
             >
               <option value="all">All Specifications</option>
-              {specifications.map(spec => (
+              {Array.isArray(specifications) && specifications.map(spec => (
                 <option key={spec.id} value={spec.id.toString()}>
                   {spec.source_filename || `Spec ${spec.id}`}
                 </option>
