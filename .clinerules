@@ -287,3 +287,38 @@ The project maintains a structured documentation portal in the `/docs` directory
 - **BFF (Backend for Frontend)**: Implement BFF endpoints in the API Gateway to aggregate data from downstream services and simplify frontend logic.
 - **Component Library**: Use a component-based approach with reusable components.
 - **Styling**: Use Tailwind CSS for utility-first styling.
+
+## 16. README.md Maintenance Patterns
+
+**README.md Content Strategy:**
+- **User-Focused**: README.md should focus on what users need to know to understand and use the platform
+- **Production-Ready Presentation**: Present the platform as a polished, production-ready solution rather than work-in-progress
+- **Essential Information Only**: Include architecture overview, quick start, key features, configuration, and documentation links
+- **Phase Information Separation**: All phased implementation details, progress tracking, and development milestones belong in memory-bank files, not README.md
+
+**Content to KEEP in README.md:**
+- Project overview and value proposition
+- Architecture overview (high-level)
+- Core services and agents (brief descriptions)
+- Quick start guide and prerequisites
+- Multi-LLM provider support (key differentiator)
+- Development setup instructions
+- Configuration management (essential for users)
+- Key features summary
+- Authentication & RBAC (user-facing)
+- License and contributing information
+- Documentation portal links
+
+**Content to REMOVE from README.md:**
+- Detailed development phases and completion status
+- Implementation-specific technical details
+- Test coverage statistics and infrastructure details
+- Recent platform enhancements with specific dates
+- Phase-specific completion notes
+- Internal development progress tracking
+
+**Benefits of This Approach:**
+- Creates a professional, user-focused first impression
+- Reduces maintenance overhead (phases don't change frequently)
+- Maintains clean separation between user documentation and development tracking
+- Keeps README.md focused on getting users started quickly

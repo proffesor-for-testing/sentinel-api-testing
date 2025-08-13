@@ -177,136 +177,15 @@ Agents for API testing/
 │   │   └── services/              # API communication
 │   ├── package.json               # Node.js dependencies
 │   └── tailwind.config.js         # Tailwind CSS configuration
-├── demo_phase2.py                 # Phase 2 demonstration script
-├── demo_phase3.py                 # Phase 3 agent demonstration
-├── demo_phase3_frontend.py        # Phase 3 frontend demonstration
-├── demo_phase4.py                 # Phase 4 security & performance demonstration
+├── demo_phase2.py                 # Basic functionality demonstration
+├── demo_phase3.py                 # Agent capabilities demonstration
+├── demo_phase3_frontend.py        # Frontend features demonstration
+├── demo_phase4.py                 # Security & performance demonstration
 ├── demo_rbac.py                   # RBAC authentication & authorization demonstration
 ├── demo_standalone.py             # Standalone demo (no Docker)
 └── .clinerules                    # Development patterns and preferences
 ```
 
-## 🔄 Development Phases
-
-The project follows a phased implementation approach:
-
-### Phase 1: MVP Foundation ✅ COMPLETED
-- ✅ Core architectural components
-- ✅ Basic service structure
-- ✅ Specification parser implementation
-- ✅ Database connection and models
-
-### Phase 2: Minimum Viable Product ✅ COMPLETED
-- ✅ Basic Functional-Positive-Agent
-- ✅ Test execution engine
-- ✅ Simple reporting UI
-- ✅ End-to-end workflow implementation
-
-### Phase 3: Core Features ✅ COMPLETED
-- ✅ Functional-Negative-Agent (BVA + creative testing)
-- ✅ Functional-Stateful-Agent (SODG-based workflows)
-- ✅ Enhanced Reporting UI with detailed failure analysis
-- ✅ Agent-specific insights and test type classification
-
-### Phase 4: Advanced Capabilities ✅ COMPLETED
-- ✅ Security-Auth-Agent (BOLA, function-level auth, auth bypass)
-- ✅ Security-Injection-Agent (SQL/NoSQL/Command/Prompt injection)
-- ✅ Performance-Planner-Agent (Load/Stress/Spike testing with k6/JMeter)
-- ✅ Historical Trend Analysis Service (real database queries, anomaly detection, predictive insights)
-- ✅ Advanced Analytics Dashboards (trend visualization, anomaly detection, quality insights)
-
-### Phase 5: Enterprise Readiness (✅ COMPLETED)
-- ✅ CI/CD integration (CLI tool + GitHub Actions/GitLab CI/Jenkins templates)
-- ✅ Intelligent Data Mocking Agent (schema-aware mock data generation)
-- ✅ Test Case Management UI (collaborative editing, bulk operations, advanced filtering)
-- ✅ Role-Based Access Control (RBAC) - JWT authentication, user management, role-based permissions
-- ✅ Configuration Modularization Initiative (COMPLETED)
-  - ✅ Comprehensive centralized Pydantic BaseSettings configuration system
-  - ✅ All services updated (auth_service, execution_service, orchestration_service, CLI, frontend, API Gateway)
-  - ✅ All agents updated (data_mocking_agent, security_auth_agent, performance_planner_agent, security_injection_agent, functional_positive_agent, functional_negative_agent, functional_stateful_agent)
-  - ✅ Security, database, service URLs, timeouts, logging, and agent-specific settings centralized
-  - ✅ Environment-specific configuration files with proper validation and type safety
-  - ✅ Testing infrastructure with pytest, Docker test environment, and comprehensive fixtures
-  - ✅ Configuration validation and error handling with management CLI tools
-  - ✅ Backup/restore, migration, and template generation capabilities
-- ✅ Test Coverage Improvement Initiative (COMPLETED)
-  - ✅ **216 comprehensive tests** with 96.3% pass rate (208/216 passing)
-  - ✅ Fixed critical test infrastructure issues (async fixtures, Docker imports, mock data)
-  - ✅ Added missing dependencies (tiktoken, anthropic) to test environment
-  - ✅ All unit tests passing; remaining 8 failures are known integration/rust issues
-  - ✅ Factory pattern implemented across all services for enhanced testability
-  - ✅ Mock mode support for isolated testing without external dependencies
-  - ✅ Comprehensive test suites for Auth, API Gateway, Spec, Orchestration, Data, and Execution services
-  - ✅ Test helpers and fixtures for streamlined test development
-  - ✅ Docker-based test environment for consistent testing across environments
-  - ✅ Testing infrastructure fully refactored and ready for CI/CD integration
-
-### Phase 6: Platform Evolution (✅ COMPLETED)
-*   [x] **Integrate `ruv-swarm` and Refine the Agentic Core (Phase 1):**
-    *   [x] **Create `sentinel-rust-core` Service:** Developed a new Rust-based microservice to act as a bridge to the `ruv-swarm` framework.
-    *   [x] **Port Python Agents to Rust:** Re-implemented core agent logic in Rust, leveraging the `ruv-swarm` `Agent` trait for high performance.
-    *   [x] **Update the Orchestration Service:** Decoupled the Python backend from agent implementation by delegating tasks to the new Rust core.
-    *   [x] **Fix Docker Environment:** Resolved startup issues and stabilized the multi-service Docker environment.
-*   [x] **Enhance Production Readiness & Observability (Phase 2):**
-    *   [x] **Implement a full observability stack**: ✅ COMPLETED
-        - Structured JSON logging with `structlog` for better log aggregation
-        - Correlation ID middleware for request tracking across all services
-        - Prometheus metrics with `prometheus-fastapi-instrumentator`
-        - Jaeger distributed tracing with OpenTelemetry integration
-        - Docker Compose integration with Prometheus and Jaeger services
-        - Comprehensive end-to-end testing for validation
-    *   [x] **Decouple services with a message broker (RabbitMQ)**: ✅ COMPLETED
-        - RabbitMQ integrated into Docker Compose infrastructure
-        - Message broker configuration added to centralized settings
-        - Publisher implementation in Orchestration Service
-        - Consumer implementation in Sentinel Rust Core
-        - Asynchronous task processing with durable queues
-        - Test suite for message broker integration
-    *   [x] Standardize database migrations and security headers.
-*   [x] **Modernize the Frontend & Foster Community (Phase 3):**
-    *   [x] Modernize the frontend architecture (Redux Toolkit, React Query).
-    *   [x] Build a welcoming open-source community (`CONTRIBUTING.md`, issue templates).
-    *   [x] **Complete Authentication System Implementation**: ✅ COMPLETED
-        - JWT-based authentication with secure token storage
-        - Login page with form validation and demo credentials
-        - Route protection for all dashboard pages
-        - Redux state management for authentication
-        - User menu with profile access and logout functionality
-        - API Gateway integration for authentication endpoints
-
-### Recent Platform Enhancements (August 2025)
-
-#### Latest Updates (Aug 13, 2025)
-*   **Frontend UI Enhancements**: ✅ COMPLETED
-    - Fixed specifications.map error on Test Cases page
-    - Implemented AI test generation with agent selection modal
-    - Added comprehensive View modal for specification details
-    - Fixed layout issues with proper flexbox implementation
-    - Replaced mock data with real database queries
-    - Quick Test functionality now fully operational
-*   **Agent Architecture Fixes**: ✅ COMPLETED
-    - Fixed abstract class instantiation errors for Security agents
-    - Added proper execute methods to SecurityAuthAgent, SecurityInjectionAgent, and PerformancePlannerAgent
-    - All 8 AI agents now fully functional with LLM enhancement
-*   **Database Improvements**: ✅ COMPLETED
-    - Removed cross-service foreign key dependencies
-    - Uploaded real Petstore API specification for testing
-    - Fixed test case storage with proper data model
-
-#### Previous Enhancements
-*   **Multi-LLM Provider Support**: ✅ COMPLETED
-    - Comprehensive abstraction layer supporting 6+ providers
-    - Anthropic Claude (Opus 4.1, Sonnet 4), OpenAI (GPT-4 Turbo), Google (Gemini 2.5 Pro/Flash)
-    - Local model support via Ollama (DeepSeek-R1, Llama 3.3, Qwen 2.5)
-    - Automatic fallback, cost tracking, response caching
-    - All agents enhanced with optional LLM capabilities
-*   **Test Infrastructure Improvements**: ✅ COMPLETED
-    - 224 comprehensive tests with 97.8% pass rate (219 passing, 2 failures, 3 conditional skips)
-    - Smart Rust integration test management with environment detection
-    - Fixed LLM test suite with proper concrete agent implementations
-    - Enhanced test markers for better categorization (unit, integration, rust, fallback)
-    - Factory pattern across all services for improved testability
-    - Mock mode for isolated testing without external dependencies
 
 ## 🤖 Multi-LLM Provider Support
 
@@ -366,6 +245,8 @@ For detailed configuration options and scripts, see:
 
 ### Local Development Setup
 
+#### Backend Services
+
 1. **Install dependencies:**
    ```bash
    cd sentinel_backend
@@ -378,6 +259,31 @@ For detailed configuration options and scripts, see:
    cd api_gateway
    poetry run uvicorn main:app --reload --port 8000
    ```
+
+#### Frontend Application
+
+1. **Navigate to frontend directory:**
+   ```bash
+   cd sentinel_frontend
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Start the development server:**
+   ```bash
+   npm start
+   ```
+
+4. **Access the frontend:**
+   - Frontend Application: http://localhost:3000
+   - Default credentials: `admin@sentinel.com` / `admin123`
+
+**Note**: The frontend requires the backend services to be running. You can either:
+- Use Docker Compose to start all backend services: `docker-compose up` (from `sentinel_backend/`)
+- Run individual backend services manually as shown above
 
 ### Configuration Management
 
@@ -722,7 +628,7 @@ Sentinel aims to transform API testing from a manual, reactive process to an int
 
 ---
 
-**Note**: Phase 4 has been completed! The platform now provides comprehensive API testing across all major domains:
+The Sentinel platform is production-ready and provides comprehensive API testing across all major domains:
 
 🔧 **Functional Testing**: Positive, negative, and stateful workflow testing with advanced boundary value analysis and creative test generation.
 
@@ -732,4 +638,4 @@ Sentinel aims to transform API testing from a manual, reactive process to an int
 
 📊 **Enhanced Reporting**: React-based UI with detailed failure analysis, agent-specific insights, and interactive test case exploration.
 
-The Sentinel platform is now enterprise-ready for comprehensive API testing across functional, security, and performance domains!
+The platform is enterprise-ready for comprehensive API testing across functional, security, and performance domains!
