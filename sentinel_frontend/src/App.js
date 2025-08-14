@@ -8,6 +8,7 @@ import TestRuns from './pages/TestRuns';
 import TestRunDetail from './pages/TestRunDetail';
 import Specifications from './pages/Specifications';
 import TestCases from './pages/TestCases';
+import TestSuites from './pages/TestSuites';
 import Analytics from './pages/Analytics';
 import './index.css';
 
@@ -28,6 +29,7 @@ function App() {
                 <Route path="/test-runs/:runId" element={<TestRunDetail />} />
                 <Route path="/specifications" element={<Specifications />} />
                 <Route path="/test-cases" element={<TestCases />} />
+                <Route path="/test-suites" element={<TestSuites />} />
                 <Route path="/analytics" element={<Analytics />} />
               </Routes>
             </Layout>

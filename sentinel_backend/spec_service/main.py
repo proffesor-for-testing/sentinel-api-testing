@@ -22,6 +22,7 @@ from sentinel_backend.spec_service.schemas import (
     SpecificationCreate,
     SpecificationResponse,
     SpecificationSummary,
+    SpecificationUpdate,
     DeleteResponse
 )
 
@@ -94,6 +95,29 @@ async def create_tables():
 async def startup_event():
     await create_tables()
 
+def count_operations(spec_dict: dict) -> int:
+    """Count total operations in the spec (paths + webhooks)"""
+    count = 0
+    
+    # Count path operations
+    if "paths" in spec_dict:
+        for path, methods in spec_dict["paths"].items():
+            if isinstance(methods, dict):
+                # Count HTTP methods (get, post, put, delete, patch, options, head, trace)
+                for method in methods:
+                    if method.lower() in ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']:
+                        count += 1
+    
+    # Count webhook operations
+    if "webhooks" in spec_dict:
+        for webhook_name, methods in spec_dict["webhooks"].items():
+            if isinstance(methods, dict):
+                for method in methods:
+                    if method.lower() in ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']:
+                        count += 1
+    
+    return count
+
 def parse_specification(raw_spec: str) -> dict:
     """Parse and validate an OpenAPI specification"""
     try:
@@ -114,8 +138,10 @@ def parse_specification(raw_spec: str) -> dict:
         if "info" not in spec_dict:
             raise ValueError("Missing required 'info' field")
         
-        if "paths" not in spec_dict:
-            raise ValueError("Missing required 'paths' field")
+        # In OpenAPI 3.1.0, paths is optional - a spec can have only webhooks or components
+        # At least one of paths, webhooks, or components should be present
+        if "paths" not in spec_dict and "webhooks" not in spec_dict and "components" not in spec_dict:
+            raise ValueError("Specification must contain at least one of: paths, webhooks, or components")
         
         # Validate with openapi-core for now (skip prance due to library issue)
         try:
@@ -178,7 +204,22 @@ async def create_specification(spec_data: SpecificationCreate):
             await db.refresh(db_spec)
             await db.close()
             
-            return SpecificationResponse.model_validate(db_spec)
+            return SpecificationResponse(
+                id=db_spec.id,
+                project_id=db_spec.project_id,
+                title=db_spec.parsed_spec.get("info", {}).get("title") if db_spec.parsed_spec else None,
+                description=db_spec.parsed_spec.get("info", {}).get("description") if db_spec.parsed_spec else None,
+                raw_spec=db_spec.raw_spec,
+                parsed_spec=db_spec.parsed_spec,
+                internal_graph=db_spec.internal_graph,
+                source_url=db_spec.source_url,
+                source_filename=db_spec.source_filename,
+                metadata=db_spec.internal_graph,
+                llm_readiness_score=db_spec.llm_readiness_score,
+                version=db_spec.version,
+                created_at=db_spec.created_at,
+                updated_at=db_spec.updated_at
+            )
             
         except Exception as db_error:
             logger.warning(f"Database unavailable, using mock response: {str(db_error)}")
@@ -226,7 +267,7 @@ async def list_specifications(db: AsyncSession = Depends(get_db)):
                     "updated_at": spec.updated_at.isoformat() if spec.updated_at else None,
                     "title": spec.parsed_spec.get("info", {}).get("title") if spec.parsed_spec else None,
                     "description": spec.parsed_spec.get("info", {}).get("description") if spec.parsed_spec else None,
-                    "endpoints_count": len(spec.parsed_spec.get("paths", {})) if spec.parsed_spec else 0,
+                    "endpoints_count": count_operations(spec.parsed_spec) if spec.parsed_spec else 0,
                     "is_valid": True  # Since it's in the DB, it was validated
                 }
                 for spec in specifications
@@ -254,7 +295,22 @@ async def get_specification(spec_id: int, db: AsyncSession = Depends(get_db)):
                 detail=f"Specification with ID {spec_id} not found"
             )
         
-        return SpecificationResponse.model_validate(specification)
+        return SpecificationResponse(
+            id=specification.id,
+            project_id=specification.project_id,
+            title=specification.parsed_spec.get("info", {}).get("title") if specification.parsed_spec else None,
+            description=specification.parsed_spec.get("info", {}).get("description") if specification.parsed_spec else None,
+            raw_spec=specification.raw_spec,
+            parsed_spec=specification.parsed_spec,
+            internal_graph=specification.internal_graph,
+            source_url=specification.source_url,
+            source_filename=specification.source_filename,
+            metadata=specification.internal_graph,
+            llm_readiness_score=specification.llm_readiness_score,
+            version=specification.version,
+            created_at=specification.created_at,
+            updated_at=specification.updated_at
+        )
     
     except HTTPException:
         raise
@@ -262,6 +318,75 @@ async def get_specification(spec_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error retrieving specification: {str(e)}"
+        )
+
+@app.put("/api/v1/specifications/{spec_id}", response_model=SpecificationResponse)
+async def update_specification(
+    spec_id: int,
+    update_data: SpecificationUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update an API specification by its ID.
+    """
+    try:
+        result = await db.execute(
+            select(ApiSpecification).where(ApiSpecification.id == spec_id)
+        )
+        specification = result.scalar_one_or_none()
+        
+        if not specification:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Specification with ID {spec_id} not found"
+            )
+        
+        # Update fields if provided
+        # Update parsed_spec fields if provided
+        if update_data.title is not None or update_data.description is not None:
+            parsed_spec = specification.parsed_spec or {}
+            if "info" not in parsed_spec:
+                parsed_spec["info"] = {}
+            if update_data.title is not None:
+                parsed_spec["info"]["title"] = update_data.title
+            if update_data.description is not None:
+                parsed_spec["info"]["description"] = update_data.description
+            specification.parsed_spec = parsed_spec
+        
+        if update_data.version is not None:
+            specification.version = update_data.version
+            # Also update in parsed_spec
+            if specification.parsed_spec and "info" in specification.parsed_spec:
+                specification.parsed_spec["info"]["version"] = update_data.version
+        
+        if update_data.source_url is not None:
+            specification.source_url = update_data.source_url
+        
+        await db.commit()
+        await db.refresh(specification)
+        
+        return SpecificationResponse(
+            id=specification.id,
+            title=specification.parsed_spec.get("info", {}).get("title") if specification.parsed_spec else None,
+            description=specification.parsed_spec.get("info", {}).get("description") if specification.parsed_spec else None,
+            version=specification.version,
+            source_filename=specification.source_filename,
+            source_url=specification.source_url,
+            raw_spec=specification.raw_spec,
+            parsed_spec=specification.parsed_spec,
+            metadata=specification.internal_graph,
+            created_at=specification.created_at,
+            updated_at=specification.updated_at
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update specification {spec_id}: {str(e)}")
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update specification: {str(e)}"
         )
 
 @app.delete("/api/v1/specifications/{spec_id}", response_model=DeleteResponse)

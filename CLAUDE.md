@@ -91,7 +91,7 @@ cd sentinel_backend
 docker-compose -f docker-compose.test.yml build test_runner
 ```
 
-**Current Test Status** (as of August 13, 2025):
+**Current Test Status** (as of August 14, 2025):
 - **97.8% pass rate** (219/224 tests passing)
 - 2 minor failures (LLM metadata, API Gateway mock)
 - 3 Rust tests properly skip when service unavailable
@@ -435,6 +435,138 @@ cd sentinel_backend/cli
 python main.py --help
 ```
 
+## Git & Version Control Guidelines
+
+### Commit Message Rules
+**IMPORTANT**: Always use clear, concise commit messages following this format:
+
+#### Commit Message Format:
+```
+<type>: <subject>
+
+[optional body]
+[optional footer]
+```
+
+#### Types:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, etc.)
+- `refactor`: Code refactoring
+- `test`: Test additions or fixes
+- `chore`: Maintenance tasks
+
+#### Examples:
+```bash
+# Good commit messages:
+git commit -m "fix: Resolve test case details showing N/A"
+git commit -m "feat: Add test suite management endpoints"
+git commit -m "docs: Update troubleshooting guide with new issues"
+
+# Bad commit messages:
+git commit -m "Fixed stuff"
+git commit -m "Update"
+git commit -m "WIP"
+```
+
+#### Rules:
+1. Keep subject line under 50 characters
+2. Use imperative mood ("Add feature" not "Added feature")
+3. Don't end subject line with a period
+4. Separate subject from body with blank line
+5. Use body to explain what and why, not how
+
+### Staging and Committing
+**IMPORTANT**: Always stage all changes before committing:
+```bash
+# Always use git add -A to stage all changes
+git add -A  # Stages all changes (new, modified, and deleted files)
+git commit -m "type: Clear description of changes"
+
+# Complete workflow example:
+git status           # Check what's changed
+git add -A           # Stage ALL changes
+git commit -m "fix: Resolve test suite endpoint issues"
+```
+
+### Branch Management
+
+#### Starting New Tasks
+**CRITICAL WORKFLOW RULE**: When starting work on ANY new task, ALWAYS ask the user first:
+> "Should I create a new task-related branch for this work? What would you like to name it?"
+
+This ensures:
+- Clean separation of different features/fixes
+- Easy rollback if needed
+- Clear git history
+- Proper code review process
+
+#### Branch Naming Conventions
+- Create feature branches from main: `git checkout -b feature/description`
+- Create fix branches from main: `git checkout -b fix/description`
+- Create test branches from main: `git checkout -b test/description`
+- Create docs branches from main: `git checkout -b docs/description`
+
+#### Workflow Example
+```bash
+# User asks to implement a new feature
+# FIRST: Ask user about creating a branch
+# User confirms: "Yes, create feature/test-suite-export"
+
+git checkout main
+git pull origin main
+git checkout -b feature/test-suite-export
+# ... do the work ...
+git add -A
+git commit -m "feat: Add test suite export functionality"
+git push -u origin feature/test-suite-export
+```
+
+#### Pull Request Workflow
+- Always create pull requests for review before merging
+- Never commit directly to main branch
+- Include clear PR description with what changed and why
+
+## Documentation Guidelines
+
+### README.md Content Rules
+**IMPORTANT**: The README.md file should be user-focused and professional. According to .clinerules #16:
+
+#### What BELONGS in README.md:
+- Project overview and purpose
+- Installation and setup instructions
+- Usage examples and quick start guide
+- API documentation or links to it
+- Contributing guidelines
+- License information
+- Contact/support information
+
+#### What DOES NOT belong in README.md:
+- Development progress tracking
+- Implementation phase details
+- Internal roadmaps
+- "Recent Updates" sections
+- Development history
+- TODO lists
+
+#### Where to track development progress:
+- `memory-bank/progress.md` - Implementation roadmap and phase tracking
+- `memory-bank/activeContext.md` - Current focus and recent changes
+- `memory-bank/agent-specifications.md` - Agent implementation details
+- Project management tools (GitHub Projects, Issues, etc.)
+
+### Docker Service Updates
+**CRITICAL**: When making code changes to services:
+```bash
+# ALWAYS rebuild the service, not just restart
+docker-compose build <service_name>
+docker-compose up -d <service_name>
+
+# Wrong approach (won't pick up code changes):
+docker-compose restart <service_name>  # DON'T DO THIS
+```
+
 ## Common Issues & Solutions
 
 ### Frontend Issues
@@ -470,10 +602,14 @@ async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResul
 
 #### Docker services not reflecting code changes
 **Problem**: Docker using cached images
-**Solution**: Rebuild specific service:
+**Solution**: ALWAYS rebuild (not restart) specific service:
 ```bash
+# Correct approach - rebuilds with latest code
 docker-compose build <service_name>
 docker-compose up -d <service_name>
+
+# Wrong approach - uses cached image
+docker-compose restart <service_name>  # This won't pick up code changes!
 ```
 
 ### LLM Integration Issues
@@ -492,5 +628,52 @@ export SENTINEL_APP_ANTHROPIC_API_KEY=your-key
 cd sentinel_backend/scripts
 ./switch_llm.sh claude
 ```
+
+### Test Suite Management Issues
+
+#### Test case details showing "N/A"
+**Problem**: Test case modal/details showing "N/A" for method, endpoint, status
+**Solution**: Rebuild data service with updated schema:
+```bash
+docker-compose build data_service
+docker-compose up -d data_service
+```
+
+#### Test suite CRUD operations failing
+**Problem**: 404 errors on test suite endpoints
+**Solution**: Check correct endpoint paths:
+```bash
+# Correct endpoints:
+POST /api/v1/test-suites/{id}/cases       # Add cases to suite
+DELETE /api/v1/test-suites/{id}/cases/{case_id}  # Remove case from suite
+
+# Wrong endpoints:
+POST /api/v1/test-suites/{id}/test-cases  # Incorrect path
+```
+
+#### OpenAPI 3.1.0 webhook specs rejected
+**Problem**: Validation error for webhook-only specifications
+**Solution**: Rebuild spec service with OpenAPI 3.1.0 support:
+```bash
+docker-compose build spec_service
+docker-compose up -d spec_service
+```
+
+### Latest Platform Updates (August 14, 2025)
+
+#### New Features Added:
+- **Test Suites Management**: Complete CRUD operations with UI
+- **OpenAPI 3.1.0 Support**: Webhook-only specifications now supported
+- **Specification CRUD**: Added UPDATE and DELETE operations
+- **Real Database Integration**: Dashboard uses live data instead of mocks
+- **Modal Workflows**: Test run creation uses modals instead of navigation
+
+#### Key Fixes:
+- Test case details display (added test_definition to schema)
+- Dashboard real data integration (removed mock data)
+- Test suite endpoint paths corrected
+- Test case count calculation in suites
+- Specification relationship display in test cases
+- Foreign key constraints removed for cross-service tables
 
 This platform represents a comprehensive AI-powered API testing solution with enterprise-grade architecture, observability, and security features.

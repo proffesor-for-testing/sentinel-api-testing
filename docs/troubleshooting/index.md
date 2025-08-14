@@ -533,6 +533,99 @@ docker image prune -a
 docker builder prune
 ```
 
+## Frontend & UI Issues
+
+### Problem: Test case details showing "N/A"
+
+**Symptoms:**
+- Test case details page shows "N/A" for method, endpoint, expected status
+- Modal shows incomplete information
+
+**Solutions:**
+
+1. **Rebuild Docker services:**
+```bash
+# Important: Rebuild, not just restart
+docker-compose build data_service
+docker-compose up -d data_service
+```
+
+2. **Check schema includes test_definition:**
+```python
+# data_service/schemas.py should include:
+class TestCaseSummary(BaseModel):
+    test_definition: Optional[Dict[str, Any]] = None
+```
+
+### Problem: Dashboard showing mock data
+
+**Symptoms:**
+- Dashboard displays sample/mock data instead of real data
+- Statistics don't update when new tests are added
+
+**Solutions:**
+
+1. **Ensure all services are running:**
+```bash
+docker-compose ps
+# All services should show "Up" status
+```
+
+2. **Check database connectivity:**
+```bash
+docker-compose exec api-gateway python -c "from config.settings import get_settings; print(get_settings().db_url)"
+```
+
+### Problem: Test Suite operations failing
+
+**Symptoms:**
+- 404 errors when managing test suites
+- Cannot add test cases to suites
+- Test suite count showing 0
+
+**Solutions:**
+
+1. **Check API endpoint paths:**
+```bash
+# Correct endpoints:
+GET /api/v1/test-suites
+POST /api/v1/test-suites/{id}/cases  # NOT /test-cases
+DELETE /api/v1/test-suites/{id}/cases/{case_id}
+```
+
+2. **Rebuild affected services:**
+```bash
+docker-compose build api_gateway data_service
+docker-compose up -d
+```
+
+### Problem: OpenAPI 3.1.0 webhook specs rejected
+
+**Symptoms:**
+- "Missing required 'paths' field" error
+- Webhook-only specifications fail validation
+
+**Solutions:**
+
+1. **Ensure specification service is updated:**
+```bash
+docker-compose build spec_service
+docker-compose up -d spec_service
+```
+
+2. **Validate OpenAPI 3.1.0 spec structure:**
+```yaml
+openapi: "3.1.0"
+info:
+  title: "Webhook API"
+  version: "1.0.0"
+webhooks:  # Valid in 3.1.0 without paths
+  userCreated:
+    post:
+      requestBody:
+        # ...
+```
+
 ## LLM Provider Issues
 
 ### Problem: LLM features not working
