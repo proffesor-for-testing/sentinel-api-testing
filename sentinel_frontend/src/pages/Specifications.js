@@ -9,7 +9,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Calendar,
-  Code
+  Code,
+  Trash2
 } from 'lucide-react';
 import { apiService } from '../services/api';
 
@@ -181,6 +182,23 @@ const Specifications = () => {
     }
   };
 
+  const handleDeleteSpecification = async (specId, specName) => {
+    if (!window.confirm(`Are you sure you want to delete the specification "${specName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await apiService.deleteSpecification(specId);
+      // Reload specifications after successful deletion
+      loadSpecifications();
+      // Show success message
+      alert(`Specification "${specName}" has been deleted successfully.`);
+    } catch (err) {
+      console.error('Error deleting specification:', err);
+      alert('Failed to delete specification. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -340,10 +358,16 @@ const Specifications = () => {
                   </button>
                   <button 
                     onClick={() => openGenerateModal(spec)}
-                    className="btn btn-secondary btn-sm"
+                    className="btn btn-primary btn-sm"
                   >
                     <Code className="h-4 w-4 mr-1" />
                     Generate Tests
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteSpecification(spec.id, spec.title || spec.source_filename || `Spec ${spec.id}`)}
+                    className="btn btn-danger btn-sm"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               </div>

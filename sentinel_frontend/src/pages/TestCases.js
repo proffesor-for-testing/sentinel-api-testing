@@ -44,6 +44,9 @@ const TestCases = () => {
   const [bulkActionType, setBulkActionType] = useState('');
   const [newTags, setNewTags] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [showCreateSuiteModal, setShowCreateSuiteModal] = useState(false);
+  const [suiteName, setSuiteName] = useState('');
+  const [suiteDescription, setSuiteDescription] = useState('');
 
   useEffect(() => {
     loadData();
@@ -69,6 +72,11 @@ const TestCases = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getSpecificationName = (specId) => {
+    const spec = specifications.find(s => s.id === specId);
+    return spec ? (spec.title || spec.source_filename || `Spec ${specId}`) : `Spec ${specId}`;
   };
 
   const getAgentTypeBadge = (agentType) => {
@@ -214,6 +222,53 @@ const TestCases = () => {
     } catch (err) {
       console.error('Error deleting test case:', err);
       setError('Failed to delete test case');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCreateTestSuite = () => {
+    if (selectedCases.size === 0) {
+      alert('Please select test cases to include in the suite');
+      return;
+    }
+    setShowCreateSuiteModal(true);
+  };
+
+  const handleSubmitCreateSuite = async () => {
+    if (!suiteName.trim()) {
+      alert('Please enter a suite name');
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      
+      // Create the test suite
+      const suiteResponse = await apiService.createTestSuite({
+        name: suiteName,
+        description: suiteDescription
+      });
+
+      // Add test cases to the suite
+      const caseIds = Array.from(selectedCases);
+      for (let i = 0; i < caseIds.length; i++) {
+        await apiService.addTestCaseToSuite(suiteResponse.id, {
+          case_id: caseIds[i],
+          execution_order: i + 1
+        });
+      }
+
+      // Reset state
+      setSuiteName('');
+      setSuiteDescription('');
+      setSelectedCases(new Set());
+      setShowCreateSuiteModal(false);
+      
+      alert(`Test suite "${suiteName}" created successfully with ${caseIds.length} test cases!`);
+    } catch (err) {
+      console.error('Error creating test suite:', err);
+      alert('Failed to create test suite. Please try again.');
     } finally {
       setActionLoading(false);
     }
@@ -422,6 +477,13 @@ const TestCases = () => {
             {selectedCases.size > 0 && (
               <div className="flex items-center space-x-2">
                 <button
+                  onClick={() => handleCreateTestSuite()}
+                  className="btn btn-primary btn-sm"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Create Test Suite ({selectedCases.size} tests)
+                </button>
+                <button
                   onClick={() => setShowBulkActions(!showBulkActions)}
                   className="btn btn-secondary btn-sm"
                 >
@@ -546,6 +608,11 @@ const TestCases = () => {
                           </h3>
                         )}
                         {testCase.agent_type && getAgentTypeBadge(testCase.agent_type)}
+                        {testCase.spec_id && (
+                          <span className="badge badge-secondary">
+                            {getSpecificationName(testCase.spec_id)}
+                          </span>
+                        )}
                       </div>
                     
                       {/* Test Type Insight */}
@@ -823,6 +890,97 @@ const TestCases = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Create Test Suite Modal */}
+      {showCreateSuiteModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            {/* Background overlay */}
+            <div 
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              onClick={() => setShowCreateSuiteModal(false)}
+            />
+
+            {/* Modal panel */}
+            <div className="relative inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <div className="absolute top-0 right-0 pt-4 pr-4">
+                <button
+                  onClick={() => setShowCreateSuiteModal(false)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="sm:flex sm:items-start">
+                <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto bg-primary-100 rounded-full sm:mx-0 sm:h-10 sm:w-10">
+                  <Plus className="w-6 h-6 text-primary-600" />
+                </div>
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                  <h3 className="text-lg font-medium leading-6 text-gray-900">
+                    Create Test Suite
+                  </h3>
+                  <div className="mt-4">
+                    {/* Suite Name */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Suite Name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., Smoke Tests, Regression Suite"
+                        value={suiteName}
+                        onChange={(e) => setSuiteName(e.target.value)}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                    </div>
+
+                    {/* Suite Description */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Description (Optional)
+                      </label>
+                      <textarea
+                        placeholder="Describe the purpose of this test suite..."
+                        value={suiteDescription}
+                        onChange={(e) => setSuiteDescription(e.target.value)}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                        rows={3}
+                      />
+                    </div>
+
+                    {/* Selected Test Cases Summary */}
+                    <div className="bg-gray-50 rounded-md p-3">
+                      <p className="text-sm text-gray-700">
+                        <strong>{selectedCases.size}</strong> test cases selected
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        These test cases will be added to the suite in the order they appear in the list.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button
+                  onClick={handleSubmitCreateSuite}
+                  disabled={actionLoading || !suiteName.trim()}
+                  className="inline-flex justify-center w-full px-4 py-2 text-base font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {actionLoading ? 'Creating...' : 'Create Suite'}
+                </button>
+                <button
+                  onClick={() => setShowCreateSuiteModal(false)}
+                  className="inline-flex justify-center w-full px-4 py-2 mt-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

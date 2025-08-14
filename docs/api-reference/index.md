@@ -87,6 +87,30 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 | GET | `/test-runs/{id}/logs` | Get test logs |
 | POST | `/test-runs/{id}/rerun` | Rerun failed tests |
 
+### Test Suite Service
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/test-suites` | List all test suites |
+| POST | `/test-suites` | Create new test suite |
+| GET | `/test-suites/{id}` | Get test suite details |
+| PUT | `/test-suites/{id}` | Update test suite |
+| DELETE | `/test-suites/{id}` | Delete test suite |
+| GET | `/test-suites/{id}/cases` | List test cases in suite |
+| POST | `/test-suites/{id}/cases` | Add test cases to suite |
+| DELETE | `/test-suites/{id}/cases/{case_id}` | Remove test case from suite |
+
+### Test Case Service
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/test-cases` | List all test cases |
+| POST | `/test-cases` | Create new test case |
+| GET | `/test-cases/{id}` | Get test case details |
+| PUT | `/test-cases/{id}` | Update test case |
+| DELETE | `/test-cases/{id}` | Delete test case |
+| POST | `/test-cases/generate` | Generate test cases from spec |
+
 ### Data & Analytics Service
 
 | Method | Endpoint | Description |

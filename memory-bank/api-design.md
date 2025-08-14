@@ -16,6 +16,7 @@ All APIs will be designed following RESTful principles and will be documented us
 | `/`                                  | `POST` | Ingest a new API specification from a file upload or a remote URL. Triggers parsing and analysis.           |
 | `/`                                  | `GET`  | List all ingested API specifications.                                                                       |
 | `/{spec_id}`                         | `GET`  | Retrieve a specific API specification by its ID, including its parsed content and readiness score.          |
+| `/{spec_id}`                         | `PUT`  | Update an API specification's metadata (title, description, version, source URL).                           |
 | `/{spec_id}`                         | `DELETE`| Delete an API specification.                                                                                |
 
 ---
@@ -27,11 +28,16 @@ All APIs will be designed following RESTful principles and will be documented us
 
 | Endpoint                             | Method | Description                                                                                                 |
 | ------------------------------------ | ------ | ----------------------------------------------------------------------------------------------------------- |
+| `/test-cases`                        | `POST` | Create a new test case (typically done by agents).                                                          |
 | `/test-cases`                        | `GET`  | List all generated test cases, with filtering by agent type, tags, etc.                                     |
 | `/test-cases/{case_id}`              | `GET`  | Retrieve a specific test case.                                                                              |
-| `/test-suites`                       | `POST` | Create a new, empty test suite.                                                                             |
+| `/test-cases/{case_id}`              | `PUT`  | Update a test case.                                                                                         |
+| `/test-cases/{case_id}`              | `DELETE`| Delete a test case.                                                                                        |
+| `/test-suites`                       | `POST` | Create a new test suite.                                                                                    |
 | `/test-suites`                       | `GET`  | List all available test suites.                                                                             |
 | `/test-suites/{suite_id}`            | `GET`  | Retrieve a specific test suite, including the list of test cases it contains.                               |
+| `/test-suites/{suite_id}`            | `PUT`  | Update a test suite (name, description).                                                                    |
+| `/test-suites/{suite_id}`            | `DELETE`| Delete a test suite.                                                                                       |
 | `/test-suites/{suite_id}/cases`      | `POST` | Add a test case to a suite.                                                                                 |
 | `/test-suites/{suite_id}/cases/{case_id}` | `DELETE`| Remove a test case from a suite.                                                                            |
 

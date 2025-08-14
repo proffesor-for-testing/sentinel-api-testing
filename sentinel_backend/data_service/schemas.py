@@ -43,6 +43,7 @@ class TestCaseSummary(BaseModel):
     spec_id: int
     agent_type: str
     description: Optional[str] = None
+    test_definition: Optional[Dict[str, Any]] = None
     tags: Optional[List[str]] = None
     created_at: datetime
 
@@ -60,6 +61,7 @@ class TestSuiteResponse(BaseModel):
     description: Optional[str] = None
     created_at: datetime
     test_cases: Optional[List[TestCaseSummary]] = None
+    test_case_count: Optional[int] = None
 
     class Config:
         from_attributes = True

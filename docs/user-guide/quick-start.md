@@ -109,7 +109,37 @@ curl -X POST "http://localhost:8000/specifications" \
 3. Select your OpenAPI file or paste the JSON/YAML content
 4. Click "Upload"
 
-## Step 4: Run Your First Test
+## Step 4: Create Test Suites (Optional)
+
+### Organize Your Tests
+
+Before running tests, you can optionally organize them into test suites:
+
+```bash
+curl -X POST "http://localhost:8000/test-suites" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Regression Suite",
+    "description": "Complete regression test suite",
+    "tags": ["regression", "critical"]
+  }'
+```
+
+### Add Test Cases to Suite
+
+After generating test cases, add them to your suite:
+
+```bash
+curl -X POST "http://localhost:8000/test-suites/1/cases" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "test_case_ids": [1, 2, 3, 4, 5]
+  }'
+```
+
+## Step 5: Run Your First Test
 
 ### Quick Test - All Test Types
 
@@ -145,7 +175,7 @@ curl -X POST "http://localhost:8000/test-runs" \
   }'
 ```
 
-## Step 5: View Results
+## Step 6: View Results
 
 ### Get Test Run Status
 
@@ -171,7 +201,7 @@ curl -X GET "http://localhost:8000/test-runs/1/results" \
    - Failure analysis
    - Performance metrics
 
-## Step 6: Explore Analytics
+## Step 7: Explore Analytics
 
 ### View Historical Trends
 

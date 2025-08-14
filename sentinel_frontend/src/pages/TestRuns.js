@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   PlayCircle, 
   CheckCircle, 
@@ -10,20 +10,36 @@ import {
   RefreshCw,
   Filter,
   Search,
-  Calendar
+  Calendar,
+  X
 } from 'lucide-react';
 import { apiService } from '../services/api';
 
 const TestRuns = () => {
+  const location = useLocation();
   const [testRuns, setTestRuns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [testSuites, setTestSuites] = useState([]);
+  const [createForm, setCreateForm] = useState({
+    suite_id: '',
+    target_environment: ''
+  });
+  const [createLoading, setCreateLoading] = useState(false);
 
   useEffect(() => {
     loadTestRuns();
-  }, []);
+    loadTestSuites();
+    
+    // Check if navigated from Test Suites page with selected suite
+    if (location.state?.selectedSuiteId) {
+      setCreateForm(prev => ({ ...prev, suite_id: location.state.selectedSuiteId.toString() }));
+      setShowCreateModal(true);
+    }
+  }, [location.state]);
 
   const loadTestRuns = async () => {
     try {
@@ -36,6 +52,45 @@ const TestRuns = () => {
       setError('Failed to load test runs');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTestSuites = async () => {
+    try {
+      const data = await apiService.getTestSuites();
+      // Handle both direct array and wrapped response
+      const suitesArray = Array.isArray(data) ? data : (data?.data || []);
+      setTestSuites(suitesArray);
+    } catch (err) {
+      console.error('Error loading test suites:', err);
+      setTestSuites([]);
+    }
+  };
+
+  const handleCreateTestRun = async () => {
+    if (!createForm.suite_id || !createForm.target_environment) {
+      alert('Please select a test suite and enter target environment URL');
+      return;
+    }
+
+    try {
+      setCreateLoading(true);
+      await apiService.runTests({
+        suite_id: parseInt(createForm.suite_id),
+        target_environment: createForm.target_environment
+      });
+      
+      // Reset form and close modal
+      setCreateForm({ suite_id: '', target_environment: '' });
+      setShowCreateModal(false);
+      
+      // Reload test runs
+      loadTestRuns();
+    } catch (err) {
+      console.error('Error creating test run:', err);
+      alert('Failed to create test run. Please try again.');
+    } finally {
+      setCreateLoading(false);
     }
   };
 
@@ -126,10 +181,10 @@ const TestRuns = () => {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </button>
-          <Link to="/specifications" className="btn btn-primary">
+          <button onClick={() => setShowCreateModal(true)} className="btn btn-primary">
             <Plus className="h-4 w-4 mr-2" />
             New Test Run
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -293,10 +348,10 @@ const TestRuns = () => {
           </p>
           
           {(!searchTerm && filter === 'all') && (
-            <Link to="/specifications" className="btn btn-primary">
+            <button onClick={() => setShowCreateModal(true)} className="btn btn-primary">
               <Plus className="h-4 w-4 mr-2" />
               Create Your First Test Run
-            </Link>
+            </button>
           )}
           
           {(searchTerm || filter !== 'all') && (
@@ -310,10 +365,10 @@ const TestRuns = () => {
               >
                 Clear Filters
               </button>
-              <Link to="/specifications" className="btn btn-primary">
+              <button onClick={() => setShowCreateModal(true)} className="btn btn-primary">
                 <Plus className="h-4 w-4 mr-2" />
                 New Test Run
-              </Link>
+              </button>
             </div>
           )}
         </div>
@@ -344,6 +399,101 @@ const TestRuns = () => {
                 {filteredRuns.reduce((sum, run) => sum + (run.passed || 0) + (run.failed || 0) + (run.errors || 0), 0)}
               </div>
               <div className="text-sm text-gray-500">Total Tests</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Test Run Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            {/* Background overlay */}
+            <div 
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              onClick={() => setShowCreateModal(false)}
+            />
+
+            {/* Modal panel */}
+            <div className="relative inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <div className="absolute top-0 right-0 pt-4 pr-4">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="sm:flex sm:items-start">
+                <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto bg-primary-100 rounded-full sm:mx-0 sm:h-10 sm:w-10">
+                  <PlayCircle className="w-6 h-6 text-primary-600" />
+                </div>
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                  <h3 className="text-lg font-medium leading-6 text-gray-900">
+                    Create New Test Run
+                  </h3>
+                  <div className="mt-4">
+                    {/* Test Suite Selection */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Test Suite
+                      </label>
+                      {testSuites.length > 0 ? (
+                        <select
+                          value={createForm.suite_id}
+                          onChange={(e) => setCreateForm({...createForm, suite_id: e.target.value})}
+                          className="w-full border border-gray-300 rounded-md px-3 py-2"
+                        >
+                          <option value="">Select a test suite...</option>
+                          {testSuites.map(suite => (
+                            <option key={suite.id} value={suite.id}>
+                              {suite.name} ({suite.test_case_count || 0} tests)
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="text-sm text-gray-500 p-3 bg-gray-50 rounded-md">
+                          No test suites available. Please create a test suite first.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Target Environment */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Target Environment URL
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://api.example.com"
+                        value={createForm.target_environment}
+                        onChange={(e) => setCreateForm({...createForm, target_environment: e.target.value})}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        The base URL where your API is hosted
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button
+                  onClick={handleCreateTestRun}
+                  disabled={createLoading || testSuites.length === 0}
+                  className="inline-flex justify-center w-full px-4 py-2 text-base font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {createLoading ? 'Starting...' : 'Start Test Run'}
+                </button>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="inline-flex justify-center w-full px-4 py-2 mt-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>

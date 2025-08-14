@@ -5,7 +5,8 @@ import {
   Home, 
   PlayCircle, 
   FileText, 
-  TestTube, 
+  TestTube,
+  Package, 
   Menu, 
   X,
   Shield,
@@ -27,6 +28,7 @@ const Layout = ({ children }) => {
     { name: 'Test Runs', href: '/test-runs', icon: PlayCircle },
     { name: 'Specifications', href: '/specifications', icon: FileText },
     { name: 'Test Cases', href: '/test-cases', icon: TestTube },
+    { name: 'Test Suites', href: '/test-suites', icon: Package },
     { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   ];
 

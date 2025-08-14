@@ -345,6 +345,41 @@ async def get_specification(request: Request, spec_id: int):
             raise HTTPException(status_code=503, detail="Specification service is unavailable")
 
 
+@app.put("/api/v1/specifications/{spec_id}")
+async def update_specification(request: Request, spec_id: int):
+    """Update a specific API specification."""
+    headers = get_correlation_id_headers(request)
+    body = await request.json()
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.put(
+                f"{service_settings.spec_service_url}/api/v1/specifications/{spec_id}",
+                json=body,
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Specification service is unavailable")
+
+
+@app.delete("/api/v1/specifications/{spec_id}")
+async def delete_specification(request: Request, spec_id: int):
+    """Delete a specific API specification."""
+    headers = get_correlation_id_headers(request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.delete(f"{service_settings.spec_service_url}/api/v1/specifications/{spec_id}", headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Specification service is unavailable")
+
+
 @app.post("/api/v1/generate-tests")
 async def generate_tests(fastapi_request: Request, request: TestGenerationRequest):
     """Generate test cases using AI agents."""
@@ -422,6 +457,94 @@ async def list_test_suites(request: Request):
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.get(f"{service_settings.data_service_url}/api/v1/test-suites", headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+
+@app.get("/api/v1/test-suites/{suite_id}")
+async def get_test_suite(request: Request, suite_id: int):
+    """Get a specific test suite with its test cases."""
+    headers = get_correlation_id_headers(request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.get(f"{service_settings.data_service_url}/api/v1/test-suites/{suite_id}", headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+
+@app.put("/api/v1/test-suites/{suite_id}")
+async def update_test_suite(request: Request, suite_id: int):
+    """Update a test suite."""
+    headers = get_correlation_id_headers(request)
+    body = await request.json()
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.put(
+                f"{service_settings.data_service_url}/api/v1/test-suites/{suite_id}",
+                json=body,
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+
+@app.delete("/api/v1/test-suites/{suite_id}")
+async def delete_test_suite(request: Request, suite_id: int):
+    """Delete a test suite."""
+    headers = get_correlation_id_headers(request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.delete(f"{service_settings.data_service_url}/api/v1/test-suites/{suite_id}", headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+
+@app.post("/api/v1/test-suites/{suite_id}/cases")
+async def add_test_case_to_suite(request: Request, suite_id: int):
+    """Add a test case to a test suite."""
+    headers = get_correlation_id_headers(request)
+    body = await request.json()
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.post(
+                f"{service_settings.data_service_url}/api/v1/test-suites/{suite_id}/cases",
+                json=body,
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+
+@app.delete("/api/v1/test-suites/{suite_id}/cases/{case_id}")
+async def remove_test_case_from_suite(request: Request, suite_id: int, case_id: int):
+    """Remove a test case from a test suite."""
+    headers = get_correlation_id_headers(request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.delete(
+                f"{service_settings.data_service_url}/api/v1/test-suites/{suite_id}/cases/{case_id}",
+                headers=headers
+            )
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:

@@ -121,18 +121,29 @@ The platform includes a comprehensive React-based frontend with the following fe
 
 ### Core Functionality
 - **Authentication System**: JWT-based login with secure token management
-- **Dashboard**: Real-time overview of testing metrics and system status
+- **Dashboard**: Real-time database-driven metrics and system status
 - **Specifications Management**: 
-  - Upload and parse OpenAPI specifications
+  - Upload and parse OpenAPI specifications (including OpenAPI 3.1.0 with webhooks)
   - View detailed specification information including endpoints and schemas
+  - Full CRUD operations (Create, Read, Update, Delete)
   - Quick Test functionality for rapid test generation
   - Generate Tests with AI agent selection
 - **Test Cases Browser**: 
   - View all generated test cases with filtering by agent type
-  - Collaborative editing and bulk operations
+  - Display full test definition details (method, endpoint, expected status)
+  - Create test suites from selected test cases
   - Tag management for organization
-  - Detailed test case inspection
-- **Test Runs**: Execute and monitor test runs with real-time status updates
+  - Detailed test case inspection with specification relationships
+- **Test Suites Management**:
+  - Create, view, edit, and delete test suites
+  - Add/remove test cases from suites
+  - View test case count and specification relationships
+  - One-click test suite execution
+- **Test Runs**: 
+  - Execute test suites against target environments
+  - Modal-based test run creation workflow
+  - Real-time status tracking
+  - Detailed results viewing
 - **Analytics**: Comprehensive dashboards with trend analysis and insights
 
 ### AI-Powered Test Generation

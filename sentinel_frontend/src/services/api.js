@@ -87,6 +87,16 @@ export const apiService = {
     return response.data;
   },
 
+  async updateSpecification(id, specData) {
+    const response = await api.put(`/api/v1/specifications/${id}`, specData);
+    return response.data;
+  },
+
+  async deleteSpecification(id) {
+    const response = await api.delete(`/api/v1/specifications/${id}`);
+    return response.data;
+  },
+
   // Test Cases
   async getTestCases(params = {}) {
     const queryParams = new URLSearchParams();
@@ -132,6 +142,31 @@ export const apiService = {
 
   async createTestSuite(suiteData) {
     const response = await api.post('/api/v1/test-suites', suiteData);
+    return response.data;
+  },
+
+  async getTestSuite(suiteId) {
+    const response = await api.get(`/api/v1/test-suites/${suiteId}`);
+    return response.data;
+  },
+
+  async updateTestSuite(suiteId, suiteData) {
+    const response = await api.put(`/api/v1/test-suites/${suiteId}`, suiteData);
+    return response.data;
+  },
+
+  async deleteTestSuite(suiteId) {
+    const response = await api.delete(`/api/v1/test-suites/${suiteId}`);
+    return response.data;
+  },
+
+  async addTestCaseToSuite(suiteId, entryData) {
+    const response = await api.post(`/api/v1/test-suites/${suiteId}/cases`, entryData);
+    return response.data;
+  },
+
+  async removeTestCaseFromSuite(suiteId, caseId) {
+    const response = await api.delete(`/api/v1/test-suites/${suiteId}/cases/${caseId}`);
     return response.data;
   },
 

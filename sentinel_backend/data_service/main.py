@@ -352,11 +352,20 @@ async def list_test_suites(db: AsyncSession = Depends(get_db)):
     """List all test suites."""
     try:
         result = await db.execute(
-            select(TestSuite).order_by(desc(TestSuite.created_at))
+            select(TestSuite)
+            .options(selectinload(TestSuite.suite_entries))
+            .order_by(desc(TestSuite.created_at))
         )
         test_suites = result.scalars().all()
         
-        return [TestSuiteSummary.model_validate(ts) for ts in test_suites]
+        # Build response with test case count
+        suite_summaries = []
+        for ts in test_suites:
+            summary = TestSuiteSummary.model_validate(ts)
+            summary.test_case_count = len(ts.suite_entries) if ts.suite_entries else 0
+            suite_summaries.append(summary)
+        
+        return suite_summaries
     
     except Exception as e:
         raise HTTPException(
@@ -382,13 +391,17 @@ async def get_test_suite(suite_id: int, db: AsyncSession = Depends(get_db)):
             )
         
         # Convert to response format with test cases
-        test_cases = [
-            TestCaseSummary.model_validate(entry.test_case)
-            for entry in sorted(test_suite.suite_entries, key=lambda x: x.execution_order)
-        ]
+        test_cases = []
+        if test_suite.suite_entries:
+            test_cases = [
+                TestCaseSummary.model_validate(entry.test_case)
+                for entry in sorted(test_suite.suite_entries, key=lambda x: x.execution_order)
+                if entry.test_case  # Only include if test_case exists
+            ]
         
         suite_response = TestSuiteResponse.model_validate(test_suite)
         suite_response.test_cases = test_cases
+        suite_response.test_case_count = len(test_cases)
         
         return suite_response
     
@@ -398,6 +411,77 @@ async def get_test_suite(suite_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error retrieving test suite: {str(e)}"
+        )
+
+@app.put("/api/v1/test-suites/{suite_id}", response_model=TestSuiteResponse)
+async def update_test_suite(
+    suite_id: int,
+    suite_data: TestSuiteCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Update a test suite."""
+    try:
+        result = await db.execute(
+            select(TestSuite).where(TestSuite.id == suite_id)
+        )
+        test_suite = result.scalar_one_or_none()
+        
+        if not test_suite:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test suite with ID {suite_id} not found"
+            )
+        
+        test_suite.name = suite_data.name
+        test_suite.description = suite_data.description
+        
+        await db.commit()
+        await db.refresh(test_suite)
+        
+        return TestSuiteResponse.model_validate(test_suite)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating test suite: {str(e)}"
+        )
+
+@app.delete("/api/v1/test-suites/{suite_id}", response_model=DeleteResponse)
+async def delete_test_suite(
+    suite_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete a test suite."""
+    try:
+        result = await db.execute(
+            select(TestSuite).where(TestSuite.id == suite_id)
+        )
+        test_suite = result.scalar_one_or_none()
+        
+        if not test_suite:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test suite with ID {suite_id} not found"
+            )
+        
+        await db.delete(test_suite)
+        await db.commit()
+        
+        return DeleteResponse(
+            message=f"Test suite '{test_suite.name}' deleted successfully",
+            deleted_id=suite_id
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting test suite: {str(e)}"
         )
 
 @app.post("/api/v1/test-suites/{suite_id}/cases", response_model=TestSuiteEntryResponse)
@@ -447,9 +531,21 @@ async def add_test_case_to_suite(
         
         db.add(db_entry)
         await db.commit()
-        await db.refresh(db_entry)
         
-        return TestSuiteEntryResponse.model_validate(db_entry)
+        # Load the entry with the test case relationship
+        result = await db.execute(
+            select(TestSuiteEntry)
+            .options(selectinload(TestSuiteEntry.test_case))
+            .where(
+                and_(
+                    TestSuiteEntry.suite_id == suite_id,
+                    TestSuiteEntry.case_id == entry_data.case_id
+                )
+            )
+        )
+        entry_with_case = result.scalar_one()
+        
+        return TestSuiteEntryResponse.model_validate(entry_with_case)
     
     except HTTPException:
         raise
@@ -1030,38 +1126,279 @@ async def get_quality_insights(
         )
 
 @app.get("/api/v1/dashboard-stats")
-async def get_dashboard_stats():
-    """Get dashboard statistics for the BFF service (temporary mock data)."""
-    # Temporary mock data while database connectivity issues are resolved
-    return {
-        "data": {
-            "total_test_cases": 23,
-            "total_test_suites": 5,
-            "total_test_runs": 127,
-            "success_rate": 0.87,
-            "avg_response_time_ms": 145,
-            "recent_runs": [
-                {
-                    "id": 1,
-                    "status": "passed",
-                    "started_at": "2025-08-08T10:30:00Z",
-                    "suite_id": 1
-                },
-                {
-                    "id": 2,
-                    "status": "failed",
-                    "started_at": "2025-08-08T09:15:00Z",
-                    "suite_id": 2
-                },
-                {
-                    "id": 3,
-                    "status": "passed",
-                    "started_at": "2025-08-08T08:45:00Z",
-                    "suite_id": 1
-                }
-            ]
+async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
+    """Get dashboard statistics for the BFF service."""
+    try:
+        # Get total test cases
+        test_cases_result = await db.execute(
+            select(func.count(TestCase.id))
+        )
+        total_test_cases = test_cases_result.scalar() or 0
+        
+        # Get total test suites
+        test_suites_result = await db.execute(
+            select(func.count(TestSuite.id))
+        )
+        total_test_suites = test_suites_result.scalar() or 0
+        
+        # Get total test runs
+        test_runs_result = await db.execute(
+            select(func.count(TestRun.id))
+        )
+        total_test_runs = test_runs_result.scalar() or 0
+        
+        # Calculate success rate from test results
+        total_results = await db.execute(
+            select(func.count(TestResult.id))
+        )
+        total_results_count = total_results.scalar() or 0
+        
+        passed_results = await db.execute(
+            select(func.count(TestResult.id)).where(TestResult.status == TestStatus.PASS)
+        )
+        passed_results_count = passed_results.scalar() or 0
+        
+        success_rate = 0.0
+        if total_results_count > 0:
+            success_rate = round(passed_results_count / total_results_count, 2)
+        
+        # Calculate average response time
+        avg_latency_result = await db.execute(
+            select(func.avg(TestResult.latency_ms))
+        )
+        avg_response_time_ms = avg_latency_result.scalar() or 0
+        avg_response_time_ms = round(avg_response_time_ms) if avg_response_time_ms else 0
+        
+        # Get recent test runs
+        recent_runs_result = await db.execute(
+            select(TestRun)
+            .order_by(desc(TestRun.started_at))
+            .limit(5)
+        )
+        recent_runs = recent_runs_result.scalars().all()
+        
+        recent_runs_data = []
+        for run in recent_runs:
+            # Map RunStatus to simpler status for frontend
+            status_map = {
+                RunStatus.COMPLETED: "passed",
+                RunStatus.FAILED: "failed",
+                RunStatus.RUNNING: "running",
+                RunStatus.PENDING: "pending",
+                RunStatus.CANCELLED: "cancelled"
+            }
+            recent_runs_data.append({
+                "id": run.id,
+                "status": status_map.get(run.status, "pending"),
+                "started_at": run.started_at.isoformat() if run.started_at else None,
+                "suite_id": run.suite_id
+            })
+        
+        return {
+            "data": {
+                "total_test_cases": total_test_cases,
+                "total_test_suites": total_test_suites,
+                "total_test_runs": total_test_runs,
+                "success_rate": success_rate,
+                "avg_response_time_ms": avg_response_time_ms,
+                "recent_runs": recent_runs_data
+            }
         }
-    }
+    
+    except Exception as e:
+        logger.error(f"Error fetching dashboard stats: {str(e)}")
+        # Return empty stats on error
+        return {
+            "data": {
+                "total_test_cases": 0,
+                "total_test_suites": 0,
+                "total_test_runs": 0,
+                "success_rate": 0.0,
+                "avg_response_time_ms": 0,
+                "recent_runs": []
+            }
+        }
+
+@app.get("/api/v1/test-runs", response_model=List[TestRunSummary])
+async def list_test_runs(
+    suite_id: Optional[int] = Query(None, description="Filter by suite ID"),
+    status: Optional[RunStatus] = Query(None, description="Filter by status"),
+    limit: int = Query(100, description="Maximum number of results"),
+    db: AsyncSession = Depends(get_db)
+):
+    """List all test runs with optional filtering."""
+    try:
+        query = select(TestRun)
+        
+        # Apply filters
+        if suite_id:
+            query = query.where(TestRun.suite_id == suite_id)
+        if status:
+            query = query.where(TestRun.status == status)
+        
+        query = query.order_by(desc(TestRun.started_at)).limit(limit)
+        result = await db.execute(query)
+        test_runs = result.scalars().all()
+        
+        return [TestRunSummary.model_validate(run) for run in test_runs]
+    
+    except Exception as e:
+        logger.error(f"Error retrieving test runs: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving test runs: {str(e)}"
+        )
+
+@app.get("/api/v1/test-runs/{run_id}", response_model=TestRunResponse)
+async def get_test_run(run_id: int, db: AsyncSession = Depends(get_db)):
+    """Retrieve a specific test run by ID."""
+    try:
+        result = await db.execute(
+            select(TestRun)
+            .options(selectinload(TestRun.test_suite))
+            .where(TestRun.id == run_id)
+        )
+        test_run = result.scalar_one_or_none()
+        
+        if not test_run:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test run with id {run_id} not found"
+            )
+        
+        return TestRunResponse.model_validate(test_run)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving test run: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving test run: {str(e)}"
+        )
+
+@app.post("/api/v1/test-runs", response_model=TestRunResponse)
+async def create_test_run(
+    test_run_data: TestRunCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new test run."""
+    try:
+        # Verify the suite exists
+        suite_result = await db.execute(
+            select(TestSuite).where(TestSuite.id == test_run_data.suite_id)
+        )
+        suite = suite_result.scalar_one_or_none()
+        
+        if not suite:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test suite with id {test_run_data.suite_id} not found"
+            )
+        
+        # Create new test run
+        db_test_run = TestRun(
+            suite_id=test_run_data.suite_id,
+            status=RunStatus.PENDING,
+            target_environment=test_run_data.target_environment,
+            started_at=datetime.utcnow()
+        )
+        
+        db.add(db_test_run)
+        await db.commit()
+        await db.refresh(db_test_run)
+        
+        return TestRunResponse.model_validate(db_test_run)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error creating test run: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creating test run: {str(e)}"
+        )
+
+@app.put("/api/v1/test-runs/{run_id}/status")
+async def update_test_run_status(
+    run_id: int,
+    status_update: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    """Update the status of a test run."""
+    try:
+        result = await db.execute(
+            select(TestRun).where(TestRun.id == run_id)
+        )
+        test_run = result.scalar_one_or_none()
+        
+        if not test_run:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test run with id {run_id} not found"
+            )
+        
+        new_status = status_update.get("status")
+        if new_status:
+            test_run.status = RunStatus(new_status)
+            
+        if test_run.status in [RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED]:
+            test_run.completed_at = datetime.utcnow()
+        
+        await db.commit()
+        await db.refresh(test_run)
+        
+        return TestRunResponse.model_validate(test_run)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error updating test run status: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating test run status: {str(e)}"
+        )
+
+@app.get("/api/v1/test-runs/{run_id}/results", response_model=List[TestResultResponse])
+async def get_test_run_results(
+    run_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all test results for a specific test run."""
+    try:
+        # Verify the run exists
+        run_result = await db.execute(
+            select(TestRun).where(TestRun.id == run_id)
+        )
+        test_run = run_result.scalar_one_or_none()
+        
+        if not test_run:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test run with id {run_id} not found"
+            )
+        
+        # Get all results for this run
+        results_query = await db.execute(
+            select(TestResult)
+            .options(selectinload(TestResult.test_case))
+            .where(TestResult.run_id == run_id)
+            .order_by(TestResult.executed_at)
+        )
+        test_results = results_query.scalars().all()
+        
+        return [TestResultResponse.model_validate(result) for result in test_results]
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving test run results: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving test run results: {str(e)}"
+        )
 
 @app.get("/health")
 async def health_check():
