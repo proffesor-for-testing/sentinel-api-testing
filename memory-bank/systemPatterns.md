@@ -54,3 +54,27 @@ The agents employ a hybrid approach that combines the strengths of deterministic
 - **LLM-Powered Creativity:** This deterministic baseline is then augmented by LLMs, which are used to generate a wider, more creative, and more realistic set of test data and scenarios that a purely algorithmic approach would miss.
 - **Provider Flexibility:** Agents can leverage different models based on requirements - Claude Sonnet 4 for balanced performance, GPT-4 Turbo for complex reasoning, Gemini 2.5 Pro for massive context windows (2M tokens), or local models via Ollama for zero-cost/offline operation.
 - **Example:** The `Functional-Negative-Agent` first performs Boundary Value Analysis and then uses an LLM to generate creatively malformed and unexpected payloads. This fusion provides both rigor and comprehensive coverage.
+
+## 6. Testing Patterns: Comprehensive Coverage Strategy
+
+The platform implements a multi-layered testing approach with robust patterns for ensuring code quality:
+
+### Unit Testing Patterns (Phase 1 Complete - 184 Agent Tests)
+- **Full Mocking Strategy:** Every external dependency (LLM providers, HTTP clients, databases) is mocked to ensure isolated unit testing
+- **Async-First Testing:** All agent tests support async/await patterns with proper fixture management
+- **Edge Case Coverage:** Each agent has 21-25 tests covering normal flow, edge cases, and error conditions
+- **Fixture Reusability:** Shared fixtures for common test data (specifications, schemas, test cases)
+- **Parameterized Testing:** Using pytest.mark.parametrize for testing multiple scenarios with same logic
+
+### Test Infrastructure Patterns
+- **Dedicated Test Runners:** Custom scripts (`run_agent_tests.sh`) with coverage reporting and colored output
+- **Environment-Aware Testing:** Smart detection of available services (Rust core, databases) with conditional test skipping
+- **Test Markers:** Comprehensive marking system (unit, integration, rust, fallback) for selective test execution
+- **Coverage Tracking:** Integrated coverage reporting with thresholds and visual feedback
+
+### Agent Testing Patterns
+- **Base Class Testing:** Comprehensive testing of BaseAgent abstract class with 22 tests for shared functionality
+- **Method Coverage:** Every public method in each agent has at least one dedicated test
+- **Error Simulation:** Systematic testing of error conditions (network failures, invalid inputs, LLM errors)
+- **State Management:** Testing of stateful operations and multi-step workflows
+- **Mock Response Validation:** Ensuring mocked LLM responses accurately simulate real provider behavior
