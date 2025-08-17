@@ -448,9 +448,10 @@ For production deployments:
 
 ### Testing Infrastructure
 
-The platform includes a comprehensive testing infrastructure with **224 tests** achieving 97.8% pass rate (219/224 passing):
+The platform includes a comprehensive testing infrastructure with **408+ tests** covering all critical components:
 
 #### Test Coverage
+- **AI Agents**: 184 tests covering all 8 specialized agents with comprehensive unit testing
 - **Auth Service**: 24 tests covering authentication, authorization, and user management
 - **API Gateway**: 23 tests covering routing, middleware, and service communication
 - **Spec Service**: 21 tests covering OpenAPI parsing and specification management
@@ -468,6 +469,13 @@ cd sentinel_backend
 ./run_tests.sh -d                # Run all tests in Docker (RECOMMENDED)
 ./run_tests.sh -d -t unit        # Unit tests only in Docker
 ./run_tests.sh -d -t integration # Integration tests in Docker
+./run_tests.sh -d -t agents      # AI agent tests in Docker
+
+# Run AI Agent Tests
+./run_agent_tests.sh              # Run all agent tests with colored output
+./run_agent_tests.sh -c           # Run with coverage report
+./run_agent_tests.sh base auth    # Run specific agent tests
+./run_agent_tests.sh -v -p        # Verbose with parallel execution
 
 # Smart test filtering based on environment
 ./run_tests_filtered.sh          # Auto-detects Rust service availability
@@ -480,6 +488,7 @@ docker-compose -f docker-compose.test.yml build test_runner
 # Run tests for specific service
 pytest tests/unit/test_auth_service.py -v
 pytest tests/unit/test_llm_providers.py -v
+pytest tests/unit/agents/         # Run all agent tests
 
 # Run tests with coverage
 pytest tests/unit/ --cov=. --cov-report=term-missing

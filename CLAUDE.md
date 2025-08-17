@@ -1,8 +1,55 @@
-# CLAUDE.md
+# Claude Code Configuration - SPARC Development Environment
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## 🚨 CRITICAL: CONCURRENT EXECUTION & FILE MANAGEMENT
 
-## Development Commands
+**ABSOLUTE RULES**:
+1. ALL operations MUST be concurrent/parallel in a single message
+2. **NEVER save working files, text/mds and tests to the root folder**
+3. ALWAYS organize files in appropriate subdirectories
+
+### ⚡ GOLDEN RULE: "1 MESSAGE = ALL RELATED OPERATIONS"
+
+**MANDATORY PATTERNS:**
+- **TodoWrite**: ALWAYS batch ALL todos in ONE call (5-10+ todos minimum)
+- **Task tool**: ALWAYS spawn ALL agents in ONE message with full instructions
+- **File operations**: ALWAYS batch ALL reads/writes/edits in ONE message
+- **Bash commands**: ALWAYS batch ALL terminal operations in ONE message
+- **Memory operations**: ALWAYS batch ALL memory store/retrieve in ONE message
+
+### 📁 File Organization Rules
+
+**NEVER save to root folder. Use these directories:**
+- `/src` - Source code files
+- `/tests` - Test files
+- `/docs` - Documentation and markdown files
+- `/config` - Configuration files
+- `/scripts` - Utility scripts
+- `/examples` - Example code
+
+## Project Overview
+
+This project uses SPARC (Specification, Pseudocode, Architecture, Refinement, Completion) methodology with Claude-Flow orchestration for systematic Test-Driven Development.
+
+**Sentinel Platform**: AI-powered API testing platform with specialized ephemeral agents for intelligent test generation across functional, security, and performance domains.
+
+## SPARC Commands
+
+### Core Commands
+- `npx claude-flow sparc modes` - List available modes
+- `npx claude-flow sparc run <mode> "<task>"` - Execute specific mode
+- `npx claude-flow sparc tdd "<feature>"` - Run complete TDD workflow
+- `npx claude-flow sparc info <mode>` - Get mode details
+
+### Batchtools Commands
+- `npx claude-flow sparc batch <modes> "<task>"` - Parallel execution
+- `npx claude-flow sparc pipeline "<task>"` - Full pipeline processing
+- `npx claude-flow sparc concurrent <mode> "<tasks-file>"` - Multi-task processing
+
+### Build Commands
+- `npm run build` - Build project
+- `npm run test` - Run tests
+- `npm run lint` - Linting
+- `npm run typecheck` - Type checking
 
 ### Backend Development (Python/FastAPI)
 ```bash
@@ -27,6 +74,10 @@ docker-compose up --build
 ./run_tests.sh                    # All tests with comprehensive options
 ./run_tests.sh -t unit           # Unit tests only
 ./run_tests.sh -t integration -d # Integration tests in Docker
+./run_tests.sh -t agents         # Run AI agent tests
+./run_agent_tests.sh             # Run agent tests with colored output
+./run_agent_tests.sh -c          # Run agent tests with coverage
+./run_agent_tests.sh base auth   # Run specific agent tests
 pytest                           # Direct pytest execution
 ```
 
@@ -48,55 +99,6 @@ npm run build
 npm test
 ```
 
-### LLM Configuration & Management
-```bash
-# Interactive LLM configuration
-cd sentinel_backend/scripts
-./switch_llm.sh                 # Interactive wizard
-./switch_llm.sh claude          # Quick preset for Claude
-./switch_llm.sh openai          # Quick preset for OpenAI
-./switch_llm.sh local           # Quick preset for local Ollama
-
-# Docker-specific configuration
-./switch_llm_docker.sh gpt4     # Switch Docker to GPT-4
-./switch_llm_docker.sh gemini   # Switch Docker to Gemini 2.5
-
-# Validate LLM configuration
-python scripts/validate_llm_config.py
-```
-
-### Code Quality & Linting
-```bash
-# Backend (Python)
-cd sentinel_backend
-poetry run black .              # Code formatting
-poetry run isort .              # Import sorting
-poetry run flake8 .             # Linting
-poetry run mypy .               # Type checking
-
-# Frontend (JavaScript/React)
-cd sentinel_frontend
-npm run test                    # Run tests
-```
-
-### Test Execution Guidelines
-**IMPORTANT**: Always run tests in Docker to ensure consistent environment:
-```bash
-cd sentinel_backend
-./run_tests.sh -d              # Run all tests in Docker
-./run_tests.sh -d -t unit      # Run only unit tests in Docker
-./run_tests.sh -d -t integration # Run only integration tests in Docker
-
-# Rebuild test Docker image after dependency changes
-docker-compose -f docker-compose.test.yml build test_runner
-```
-
-**Current Test Status** (as of August 14, 2025):
-- **97.8% pass rate** (219/224 tests passing)
-- 2 minor failures (LLM metadata, API Gateway mock)
-- 3 Rust tests properly skip when service unavailable
-- All critical unit tests passing
-
 ### Rust Core Development
 ```bash
 # Navigate to Rust core
@@ -110,6 +112,212 @@ cargo run
 cargo test
 ```
 
+## SPARC Workflow Phases
+
+1. **Specification** - Requirements analysis (`sparc run spec-pseudocode`)
+2. **Pseudocode** - Algorithm design (`sparc run spec-pseudocode`)
+3. **Architecture** - System design (`sparc run architect`)
+4. **Refinement** - TDD implementation (`sparc tdd`)
+5. **Completion** - Integration (`sparc run integration`)
+
+## Code Style & Best Practices
+
+- **Modular Design**: Files under 500 lines
+- **Environment Safety**: Never hardcode secrets
+- **Test-First**: Write tests before implementation
+- **Clean Architecture**: Separate concerns
+- **Documentation**: Keep updated
+
+## 🚀 Available Agents (54 Total)
+
+### Core Development
+`coder`, `reviewer`, `tester`, `planner`, `researcher`
+
+### Swarm Coordination
+`hierarchical-coordinator`, `mesh-coordinator`, `adaptive-coordinator`, `collective-intelligence-coordinator`, `swarm-memory-manager`
+
+### Consensus & Distributed
+`byzantine-coordinator`, `raft-manager`, `gossip-coordinator`, `consensus-builder`, `crdt-synchronizer`, `quorum-manager`, `security-manager`
+
+### Performance & Optimization
+`perf-analyzer`, `performance-benchmarker`, `task-orchestrator`, `memory-coordinator`, `smart-agent`
+
+### GitHub & Repository
+`github-modes`, `pr-manager`, `code-review-swarm`, `issue-tracker`, `release-manager`, `workflow-automation`, `project-board-sync`, `repo-architect`, `multi-repo-swarm`
+
+### SPARC Methodology
+`sparc-coord`, `sparc-coder`, `specification`, `pseudocode`, `architecture`, `refinement`
+
+### Specialized Development
+`backend-dev`, `mobile-dev`, `ml-developer`, `cicd-engineer`, `api-docs`, `system-architect`, `code-analyzer`, `base-template-generator`
+
+### Testing & Validation
+`tdd-london-swarm`, `production-validator`
+
+### Migration & Planning
+`migration-planner`, `swarm-init`
+
+## 🎯 Claude Code vs MCP Tools
+
+### Claude Code Handles ALL:
+- File operations (Read, Write, Edit, MultiEdit, Glob, Grep)
+- Code generation and programming
+- Bash commands and system operations
+- Implementation work
+- Project navigation and analysis
+- TodoWrite and task management
+- Git operations
+- Package management
+- Testing and debugging
+
+### MCP Tools ONLY:
+- Coordination and planning
+- Memory management
+- Neural features
+- Performance tracking
+- Swarm orchestration
+- GitHub integration
+
+**KEY**: MCP coordinates, Claude Code executes.
+
+## 🚀 Quick Setup
+
+```bash
+# Add Claude Flow MCP server
+claude mcp add claude-flow npx claude-flow@alpha mcp start
+```
+
+## MCP Tool Categories
+
+### Coordination
+`swarm_init`, `agent_spawn`, `task_orchestrate`
+
+### Monitoring
+`swarm_status`, `agent_list`, `agent_metrics`, `task_status`, `task_results`
+
+### Memory & Neural
+`memory_usage`, `neural_status`, `neural_train`, `neural_patterns`
+
+### GitHub Integration
+`github_swarm`, `repo_analyze`, `pr_enhance`, `issue_triage`, `code_review`
+
+### System
+`benchmark_run`, `features_detect`, `swarm_monitor`
+
+## 📋 Agent Coordination Protocol
+
+### Every Agent MUST:
+
+**1️⃣ BEFORE Work:**
+```bash
+npx claude-flow@alpha hooks pre-task --description "[task]"
+npx claude-flow@alpha hooks session-restore --session-id "swarm-[id]"
+```
+
+**2️⃣ DURING Work:**
+```bash
+npx claude-flow@alpha hooks post-edit --file "[file]" --memory-key "swarm/[agent]/[step]"
+npx claude-flow@alpha hooks notify --message "[what was done]"
+```
+
+**3️⃣ AFTER Work:**
+```bash
+npx claude-flow@alpha hooks post-task --task-id "[task]"
+npx claude-flow@alpha hooks session-end --export-metrics true
+```
+
+## 🎯 Concurrent Execution Examples
+
+### ✅ CORRECT (Single Message):
+```javascript
+[BatchTool]:
+  // Initialize swarm
+  mcp__claude-flow__swarm_init { topology: "mesh", maxAgents: 6 }
+  mcp__claude-flow__agent_spawn { type: "researcher" }
+  mcp__claude-flow__agent_spawn { type: "coder" }
+  mcp__claude-flow__agent_spawn { type: "tester" }
+  
+  // Spawn agents with Task tool
+  Task("Research agent: Analyze requirements...")
+  Task("Coder agent: Implement features...")
+  Task("Tester agent: Create test suite...")
+  
+  // Batch todos
+  TodoWrite { todos: [
+    {id: "1", content: "Research", status: "in_progress", priority: "high"},
+    {id: "2", content: "Design", status: "pending", priority: "high"},
+    {id: "3", content: "Implement", status: "pending", priority: "high"},
+    {id: "4", content: "Test", status: "pending", priority: "medium"},
+    {id: "5", content: "Document", status: "pending", priority: "low"}
+  ]}
+  
+  // File operations
+  Bash "mkdir -p app/{src,tests,docs}"
+  Write "app/src/index.js"
+  Write "app/tests/index.test.js"
+  Write "app/docs/README.md"
+```
+
+### ❌ WRONG (Multiple Messages):
+```javascript
+Message 1: mcp__claude-flow__swarm_init
+Message 2: Task("agent 1")
+Message 3: TodoWrite { todos: [single todo] }
+Message 4: Write "file.js"
+// This breaks parallel coordination!
+```
+
+## Performance Benefits
+
+- **84.8% SWE-Bench solve rate**
+- **32.3% token reduction**
+- **2.8-4.4x speed improvement**
+- **27+ neural models**
+
+## Hooks Integration
+
+### Pre-Operation
+- Auto-assign agents by file type
+- Validate commands for safety
+- Prepare resources automatically
+- Optimize topology by complexity
+- Cache searches
+
+### Post-Operation
+- Auto-format code
+- Train neural patterns
+- Update memory
+- Analyze performance
+- Track token usage
+
+### Session Management
+- Generate summaries
+- Persist state
+- Track metrics
+- Restore context
+- Export workflows
+
+## Advanced Features (v2.0.0)
+
+- 🚀 Automatic Topology Selection
+- ⚡ Parallel Execution (2.8-4.4x speed)
+- 🧠 Neural Training
+- 📊 Bottleneck Analysis
+- 🤖 Smart Auto-Spawning
+- 🛡️ Self-Healing Workflows
+- 💾 Cross-Session Memory
+- 🔗 GitHub Integration
+
+## Integration Tips
+
+1. Start with basic swarm init
+2. Scale agents gradually
+3. Use memory for context
+4. Monitor progress regularly
+5. Train patterns from success
+6. Enable hooks automation
+7. Use GitHub tools first
+
 ## LLM Integration
 
 ### Multi-Provider Support
@@ -119,11 +327,11 @@ The platform includes a comprehensive LLM abstraction layer supporting multiple 
 The platform uses **Anthropic's Claude Sonnet 4** as the default LLM provider for all AI agents. This provides:
 - Excellent balance of performance and cost
 - 1 million token context window (as of August 2025)
-- Strong reasoning capabilities with hybrid modes (instant and extended thinking)
+- Strong reasoning capabilities with hybrid modes
 - Vision support for multimodal testing
 - API model: `claude-sonnet-4-20250514`
 
-To use the default configuration, simply set:
+To use the default configuration:
 ```bash
 export SENTINEL_APP_ANTHROPIC_API_KEY=your-anthropic-api-key
 ```
@@ -142,94 +350,22 @@ export SENTINEL_APP_ANTHROPIC_API_KEY=your-anthropic-api-key
 - **Alibaba Qwen**: Qwen 2.5 (72B/32B/7B), Qwen 2.5 Coder
 - **Others**: Mistral 7B, Phi-3 14B, Gemma 2 27B, Command R 35B
 
-### Switching Providers
-
-#### Using Configuration Scripts (Recommended)
-The platform includes interactive scripts for easy LLM configuration:
-
+### LLM Configuration & Management
 ```bash
-# Interactive configuration
+# Interactive LLM configuration
 cd sentinel_backend/scripts
-./switch_llm.sh
+./switch_llm.sh                 # Interactive wizard
+./switch_llm.sh claude          # Quick preset for Claude
+./switch_llm.sh openai          # Quick preset for OpenAI
+./switch_llm.sh local           # Quick preset for local Ollama
 
-# Quick presets
-./switch_llm.sh claude    # Anthropic Claude Sonnet 4 (default)
-./switch_llm.sh openai    # OpenAI GPT-4 Turbo
-./switch_llm.sh gemini    # Google Gemini 2.5 Flash
-./switch_llm.sh local     # Ollama with local models
-./switch_llm.sh none      # Disable LLM
+# Docker-specific configuration
+./switch_llm_docker.sh gpt4     # Switch Docker to GPT-4
+./switch_llm_docker.sh gemini   # Switch Docker to Gemini 2.5
 
-# Docker quick switch
-./switch_llm_docker.sh gpt4      # GPT-4 Turbo
-./switch_llm_docker.sh gemini    # Gemini 2.5 Flash
-./switch_llm_docker.sh local     # Local Ollama
+# Validate LLM configuration
+python scripts/validate_llm_config.py
 ```
-
-#### Manual Configuration
-You can also manually set environment variables:
-```bash
-# OpenAI
-export SENTINEL_APP_LLM_PROVIDER=openai
-export SENTINEL_APP_OPENAI_API_KEY=your-key
-export SENTINEL_APP_LLM_MODEL=gpt-4-turbo
-
-# Google Gemini
-export SENTINEL_APP_LLM_PROVIDER=google
-export SENTINEL_APP_GOOGLE_API_KEY=your-key
-export SENTINEL_APP_LLM_MODEL=gemini-2.5-pro
-
-# Mistral
-export SENTINEL_APP_LLM_PROVIDER=mistral
-export SENTINEL_APP_MISTRAL_API_KEY=your-key
-export SENTINEL_APP_LLM_MODEL=mistral-large
-
-# Local (Ollama)
-export SENTINEL_APP_LLM_PROVIDER=ollama
-export SENTINEL_APP_LLM_MODEL=llama3.3:70b
-export SENTINEL_APP_OLLAMA_BASE_URL=http://localhost:11434
-
-# Disable LLM (deterministic only)
-export SENTINEL_APP_LLM_PROVIDER=none
-```
-
-### Advanced Features
-
-#### Fallback Chain
-Configure automatic fallback to secondary providers:
-```bash
-export SENTINEL_APP_LLM_FALLBACK_ENABLED=true
-export SENTINEL_APP_LLM_FALLBACK_PROVIDERS=anthropic,openai,ollama
-```
-
-#### Cost Management
-Track and limit LLM usage costs:
-```bash
-export SENTINEL_APP_LLM_COST_TRACKING_ENABLED=true
-export SENTINEL_APP_LLM_BUDGET_LIMIT=100.0  # USD
-export SENTINEL_APP_LLM_BUDGET_ALERT_THRESHOLD=0.8
-```
-
-#### Response Caching
-Enable caching to reduce API calls:
-```bash
-export SENTINEL_APP_LLM_CACHE_ENABLED=true
-export SENTINEL_APP_LLM_CACHE_TTL=3600  # 1 hour
-export SENTINEL_APP_LLM_CACHE_MAX_SIZE=1000
-```
-
-### Validating LLM Configuration
-Use the validation script to test your LLM setup:
-```bash
-cd sentinel_backend
-poetry run python scripts/validate_llm_config.py
-```
-
-This will:
-- Check environment configuration
-- Validate API keys
-- Test primary and fallback providers
-- Verify agent LLM integration
-- Provide recommendations for any issues
 
 ## Architecture Overview
 
@@ -244,7 +380,7 @@ The platform follows a microservices pattern with specialized services:
 - **Data Service** (8004): Analytics, persistence, historical data
 - **Sentinel Rust Core** (8088): High-performance agent execution via ruv-swarm
 
-### AI Agent System
+### AI Agent System (Sentinel-Specific)
 The platform uses specialized ephemeral AI agents for different testing domains:
 
 #### Functional Testing Agents
@@ -268,24 +404,6 @@ The platform uses specialized ephemeral AI agents for different testing domains:
 
 ## Configuration Management
 
-### Centralized Configuration System
-All configuration is managed through `sentinel_backend/config/settings.py` using Pydantic BaseSettings:
-
-```python
-from config.settings import get_settings, get_service_settings, get_application_settings
-
-settings = get_settings()
-service_settings = get_service_settings()
-app_settings = get_application_settings()
-```
-
-### Environment Configuration
-Set environment with `SENTINEL_ENVIRONMENT`:
-- `development` (default): Local development
-- `testing`: Test environment
-- `production`: Production deployment
-- `docker`: Docker container deployment
-
 ### Key Environment Variables
 ```bash
 # Database
@@ -305,16 +423,8 @@ SENTINEL_APP_LLM_PROVIDER=anthropic  # Options: anthropic, openai, google, mistr
 SENTINEL_APP_LLM_MODEL=claude-sonnet-4  # Default model for the provider
 SENTINEL_APP_ANTHROPIC_API_KEY=sk-ant-...  # Anthropic API key
 SENTINEL_APP_OPENAI_API_KEY=sk-...  # OpenAI API key
-SENTINEL_APP_GOOGLE_API_KEY=...  # Google API key
-SENTINEL_APP_MISTRAL_API_KEY=...  # Mistral API key
 SENTINEL_APP_LLM_TEMPERATURE=0.5
 SENTINEL_APP_LLM_MAX_TOKENS=2000
-SENTINEL_APP_LLM_FALLBACK_ENABLED=true  # Enable automatic provider fallback
-SENTINEL_APP_LLM_FALLBACK_PROVIDERS=anthropic,openai,ollama  # Fallback chain
-
-# For local models (Ollama/vLLM)
-SENTINEL_APP_OLLAMA_BASE_URL=http://localhost:11434
-SENTINEL_APP_VLLM_BASE_URL=http://localhost:8000
 
 # Observability
 SENTINEL_NETWORK_JAEGER_AGENT_HOST=localhost
@@ -322,68 +432,26 @@ SENTINEL_NETWORK_JAEGER_AGENT_PORT=6831
 SENTINEL_BROKER_URL=amqp://guest:guest@message_broker:5672/
 ```
 
-## Observability Stack
+## Testing Patterns & Current Status
 
-### Monitoring & Tracing
-- **Prometheus** (9090): Metrics collection with automatic FastAPI instrumentation
-- **Jaeger** (16686): Distributed tracing with OpenTelemetry integration
-- **Structured Logging**: JSON-formatted logs with correlation IDs
-
-### Testing Observability
+### Test Execution Guidelines
+**IMPORTANT**: Always run tests in Docker to ensure consistent environment:
 ```bash
-# Test observability stack
-python test_observability_e2e.py
+cd sentinel_backend
+./run_tests.sh -d              # Run all tests in Docker
+./run_tests.sh -d -t unit      # Run only unit tests in Docker
+./run_tests.sh -d -t integration # Run only integration tests in Docker
 
-# Test message broker integration
-python test_rabbitmq_integration.py
+# Rebuild test Docker image after dependency changes
+docker-compose -f docker-compose.test.yml build test_runner
 ```
 
-## Development Patterns
-
-### Configuration Access Pattern
-```python
-# Service-level configuration
-from config.settings import get_service_settings
-service_settings = get_service_settings()
-timeout = service_settings.service_timeout
-url = service_settings.auth_service_url
-
-# Application-level configuration
-from config.settings import get_application_settings
-app_settings = get_application_settings()
-log_level = app_settings.log_level
-debug = app_settings.debug
-```
-
-### Agent Development Pattern
-1. Define agent specification in `memory-bank/agent-specifications.md`
-2. Implement agent logic in `orchestration_service/agents/`
-3. Add agent type to orchestration service delegation
-4. Update database models if needed
-5. Add configuration parameters to settings
-
-### Service Communication Pattern
-- All inter-service communication uses centralized URLs from configuration
-- HTTP clients use `service_settings.service_timeout` for consistent timeouts
-- Correlation IDs propagated across all service calls for tracing
-
-### Testing Patterns
-- Use pytest markers: `@pytest.mark.unit`, `@pytest.mark.integration`, etc.
-- Environment-specific test configuration in `config/testing.env`
-- Comprehensive fixtures in `tests/conftest.py`
-- Docker test environment with `docker-compose.test.yml`
-
-## Database Architecture
-
-### Technology Stack
-- **PostgreSQL** with **pgvector** extension for vector operations
-- **SQLAlchemy** async ORM with **asyncpg** driver
-- **Alembic** for database migrations
-
-### Key Models
-- Specifications, TestCases, TestRuns, Results
-- User management with RBAC (Users, Roles, Permissions)
-- Agent execution tracking and analytics
+**Current Test Status** (as of August 16, 2025):
+- **408 total tests** (184 AI agent tests + 224 other tests)
+- **97.8% pass rate** (399 passing, 9 failing)
+- **100% AI agent coverage** with dedicated test runner
+- All critical unit tests passing
+- Test infrastructure includes full mocking, fixtures, and async support
 
 ## RBAC System
 
@@ -397,50 +465,11 @@ debug = app_settings.debug
 - **Tester**: Testing operations (create/edit test cases, run tests)
 - **Viewer**: Read-only access
 
-### Demo RBAC
-```bash
-python demo_rbac.py  # Demonstrates authentication and authorization
-```
-
-## Key Implementation Notes
-
-### Hybrid AI Approach
-The platform combines deterministic algorithms (for rigor) with LLM capabilities (for creativity). This pattern is used across all agents.
-
-### Specification-Driven Development
-All agent behavior and test generation is driven by OpenAPI specifications. The platform deeply understands API specs to generate intelligent tests.
-
-### Error Handling Patterns
-- Configuration validation with fail-fast startup
-- Comprehensive error reporting with clear, actionable messages
-- Structured logging with correlation ID tracking
-
-### Security Best Practices
-- JWT-based authentication with secure token handling
-- Role-based access control with granular permissions
-- No sensitive data in version control (use environment variables)
-- Password hashing with bcrypt
-
-## CI/CD Integration
-
-### Available Templates
-- **GitHub Actions**: `ci_templates/github-actions.yml`
-- **GitLab CI**: `ci_templates/gitlab-ci.yml`
-- **Jenkins**: `ci_templates/Jenkinsfile`
-
-### CLI Tool
-```bash
-# Use the CLI for CI/CD integration
-cd sentinel_backend/cli
-python main.py --help
-```
-
 ## Git & Version Control Guidelines
 
 ### Commit Message Rules
 **IMPORTANT**: Always use clear, concise commit messages following this format:
 
-#### Commit Message Format:
 ```
 <type>: <subject>
 
@@ -448,113 +477,14 @@ python main.py --help
 [optional footer]
 ```
 
-#### Types:
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, etc.)
-- `refactor`: Code refactoring
-- `test`: Test additions or fixes
-- `chore`: Maintenance tasks
-
-#### Examples:
-```bash
-# Good commit messages:
-git commit -m "fix: Resolve test case details showing N/A"
-git commit -m "feat: Add test suite management endpoints"
-git commit -m "docs: Update troubleshooting guide with new issues"
-
-# Bad commit messages:
-git commit -m "Fixed stuff"
-git commit -m "Update"
-git commit -m "WIP"
-```
-
-#### Rules:
-1. Keep subject line under 50 characters
-2. Use imperative mood ("Add feature" not "Added feature")
-3. Don't end subject line with a period
-4. Separate subject from body with blank line
-5. Use body to explain what and why, not how
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
 ### Staging and Committing
-**IMPORTANT**: Always stage all changes before committing:
 ```bash
 # Always use git add -A to stage all changes
 git add -A  # Stages all changes (new, modified, and deleted files)
 git commit -m "type: Clear description of changes"
-
-# Complete workflow example:
-git status           # Check what's changed
-git add -A           # Stage ALL changes
-git commit -m "fix: Resolve test suite endpoint issues"
 ```
-
-### Branch Management
-
-#### Starting New Tasks
-**CRITICAL WORKFLOW RULE**: When starting work on ANY new task, ALWAYS ask the user first:
-> "Should I create a new task-related branch for this work? What would you like to name it?"
-
-This ensures:
-- Clean separation of different features/fixes
-- Easy rollback if needed
-- Clear git history
-- Proper code review process
-
-#### Branch Naming Conventions
-- Create feature branches from main: `git checkout -b feature/description`
-- Create fix branches from main: `git checkout -b fix/description`
-- Create test branches from main: `git checkout -b test/description`
-- Create docs branches from main: `git checkout -b docs/description`
-
-#### Workflow Example
-```bash
-# User asks to implement a new feature
-# FIRST: Ask user about creating a branch
-# User confirms: "Yes, create feature/test-suite-export"
-
-git checkout main
-git pull origin main
-git checkout -b feature/test-suite-export
-# ... do the work ...
-git add -A
-git commit -m "feat: Add test suite export functionality"
-git push -u origin feature/test-suite-export
-```
-
-#### Pull Request Workflow
-- Always create pull requests for review before merging
-- Never commit directly to main branch
-- Include clear PR description with what changed and why
-
-## Documentation Guidelines
-
-### README.md Content Rules
-**IMPORTANT**: The README.md file should be user-focused and professional. According to .clinerules #16:
-
-#### What BELONGS in README.md:
-- Project overview and purpose
-- Installation and setup instructions
-- Usage examples and quick start guide
-- API documentation or links to it
-- Contributing guidelines
-- License information
-- Contact/support information
-
-#### What DOES NOT belong in README.md:
-- Development progress tracking
-- Implementation phase details
-- Internal roadmaps
-- "Recent Updates" sections
-- Development history
-- TODO lists
-
-#### Where to track development progress:
-- `memory-bank/progress.md` - Implementation roadmap and phase tracking
-- `memory-bank/activeContext.md` - Current focus and recent changes
-- `memory-bank/agent-specifications.md` - Agent implementation details
-- Project management tools (GitHub Projects, Issues, etc.)
 
 ### Docker Service Updates
 **CRITICAL**: When making code changes to services:
@@ -570,110 +500,21 @@ docker-compose restart <service_name>  # DON'T DO THIS
 ## Common Issues & Solutions
 
 ### Frontend Issues
-
-#### specifications.map is not a function
-**Problem**: API returns wrapped response `{"data": [...]}` but component expects array
-**Solution**: Handle both formats in component:
-```javascript
-const data = Array.isArray(response) ? response : (response?.data || []);
-```
-
-#### Layout has excessive white space
-**Problem**: Sidebar causing content to shift down
-**Solution**: Use flexbox layout with proper positioning in Layout component
-
-#### Quick Test returns 500 error
-**Problem**: Agent abstract class instantiation error
-**Solution**: Ensure all agents have `execute` method implemented:
-```python
-async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
-    # Implementation
-```
+- **specifications.map is not a function**: Handle wrapped API responses
+- **Layout excessive white space**: Use flexbox layout with proper positioning
+- **Quick Test returns 500**: Ensure all agents have `execute` method implemented
 
 ### Backend Issues
+- **Foreign key constraint errors**: Remove cross-service database dependencies
+- **Docker services not reflecting code changes**: Always rebuild, not restart
+- **No API key error**: Set SENTINEL_APP_ANTHROPIC_API_KEY environment variable
 
-#### Foreign key constraint errors
-**Problem**: Cross-service database dependencies
-**Solution**: Remove foreign key constraints for tables accessed by multiple services
+## Support
 
-#### Test cases not storing
-**Problem**: Data service model issues
-**Solution**: Ensure models match database schema and remove cross-service FKs
+- **Sentinel Documentation**: See `/docs` folder and memory-bank files
+- **Claude-Flow Documentation**: https://github.com/ruvnet/claude-flow
+- **Claude-Flow Issues**: https://github.com/ruvnet/claude-flow/issues
 
-#### Docker services not reflecting code changes
-**Problem**: Docker using cached images
-**Solution**: ALWAYS rebuild (not restart) specific service:
-```bash
-# Correct approach - rebuilds with latest code
-docker-compose build <service_name>
-docker-compose up -d <service_name>
+---
 
-# Wrong approach - uses cached image
-docker-compose restart <service_name>  # This won't pick up code changes!
-```
-
-### LLM Integration Issues
-
-#### No API key error
-**Problem**: Missing Anthropic API key
-**Solution**: Set environment variable:
-```bash
-export SENTINEL_APP_ANTHROPIC_API_KEY=your-key
-```
-
-#### Agent not using LLM
-**Problem**: LLM provider not configured
-**Solution**: Use configuration script:
-```bash
-cd sentinel_backend/scripts
-./switch_llm.sh claude
-```
-
-### Test Suite Management Issues
-
-#### Test case details showing "N/A"
-**Problem**: Test case modal/details showing "N/A" for method, endpoint, status
-**Solution**: Rebuild data service with updated schema:
-```bash
-docker-compose build data_service
-docker-compose up -d data_service
-```
-
-#### Test suite CRUD operations failing
-**Problem**: 404 errors on test suite endpoints
-**Solution**: Check correct endpoint paths:
-```bash
-# Correct endpoints:
-POST /api/v1/test-suites/{id}/cases       # Add cases to suite
-DELETE /api/v1/test-suites/{id}/cases/{case_id}  # Remove case from suite
-
-# Wrong endpoints:
-POST /api/v1/test-suites/{id}/test-cases  # Incorrect path
-```
-
-#### OpenAPI 3.1.0 webhook specs rejected
-**Problem**: Validation error for webhook-only specifications
-**Solution**: Rebuild spec service with OpenAPI 3.1.0 support:
-```bash
-docker-compose build spec_service
-docker-compose up -d spec_service
-```
-
-### Latest Platform Updates (August 14, 2025)
-
-#### New Features Added:
-- **Test Suites Management**: Complete CRUD operations with UI
-- **OpenAPI 3.1.0 Support**: Webhook-only specifications now supported
-- **Specification CRUD**: Added UPDATE and DELETE operations
-- **Real Database Integration**: Dashboard uses live data instead of mocks
-- **Modal Workflows**: Test run creation uses modals instead of navigation
-
-#### Key Fixes:
-- Test case details display (added test_definition to schema)
-- Dashboard real data integration (removed mock data)
-- Test suite endpoint paths corrected
-- Test case count calculation in suites
-- Specification relationship display in test cases
-- Foreign key constraints removed for cross-service tables
-
-This platform represents a comprehensive AI-powered API testing solution with enterprise-grade architecture, observability, and security features.
+Remember: **Claude Flow coordinates, Claude Code creates!**
