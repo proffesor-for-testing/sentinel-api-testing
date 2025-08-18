@@ -45,7 +45,7 @@ show_usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -t, --type TYPE        Test type: unit, integration, functional, security, performance, agents, frontend, e2e, all (default: all)"
+    echo "  -t, --type TYPE        Test type: unit, integration, functional, security, performance, agents, llm, frontend, e2e, all (default: all)"
     echo "  -e, --env ENV          Environment: testing, development (default: testing)"
     echo "  -c, --no-coverage      Disable coverage reporting"
     echo "  -v, --verbose          Enable verbose output"
@@ -60,6 +60,7 @@ show_usage() {
     echo "  $0                     # Run all tests with default settings"
     echo "  $0 -t unit -v          # Run unit tests with verbose output"
     echo "  $0 -t agents           # Run AI agent tests"
+    echo "  $0 -t llm              # Run LLM provider tests"
     echo "  $0 -t integration -d   # Run integration tests in Docker"
     echo "  $0 -d -f               # Run frontend tests only in Docker"
     echo "  $0 -d -t e2e           # Run E2E tests in Docker"
@@ -119,11 +120,11 @@ done
 
 # Validate test type
 case $TEST_TYPE in
-    unit|integration|functional|security|performance|agents|frontend|e2e|all)
+    unit|integration|functional|security|performance|agents|llm|frontend|e2e|all)
         ;;
     *)
         print_error "Invalid test type: $TEST_TYPE"
-        print_error "Valid types: unit, integration, functional, security, performance, agents, frontend, e2e, all"
+        print_error "Valid types: unit, integration, functional, security, performance, agents, llm, frontend, e2e, all"
         exit 1
         ;;
 esac
@@ -169,8 +170,12 @@ case $TEST_TYPE in
         # Run agent-specific tests
         PYTEST_CMD="$PYTEST_CMD tests/unit/agents/"
         ;;
+    llm)
+        # Run LLM provider tests
+        PYTEST_CMD="$PYTEST_CMD tests/unit/llm_providers/"
+        ;;
     all)
-        # Run all tests including new agent tests
+        # Run all tests including new agent tests and LLM provider tests
         ;;
 esac
 
