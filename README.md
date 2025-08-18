@@ -40,6 +40,27 @@ The platform employs a workforce of specialized AI agents:
 - **Spec-Linter-Agent**: Analyzes API specs for "LLM-readiness"
 - **Performance-Analyzer-Agent**: Analyzes performance test results with AI-powered insights
 
+## 🧪 Testing Coverage
+
+### Backend Testing
+- **Unit Tests**: 456+ tests across all services
+  - AI Agents: 184 tests (100% coverage)
+  - LLM Providers: 272+ tests (100% coverage)
+- **Integration Tests**: 6 comprehensive test suites
+  - Service-to-service communication
+  - Database operations & transactions
+  - Message broker (RabbitMQ) integration
+  - Security & authentication flows
+- **API Workflow Tests**: End-to-end API testing scenarios
+
+### Frontend Testing (Playwright)
+- **Real Browser E2E Tests**: Chrome, Firefox, Safari, Mobile
+- **Test Scenarios**:
+  - Authentication & role-based access
+  - API specification management
+  - AI-powered test generation
+  - Test execution & results
+
 ## 🚀 Quick Start
 
 ### Prerequisites

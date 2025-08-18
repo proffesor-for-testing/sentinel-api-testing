@@ -187,6 +187,36 @@ cargo test
 claude mcp add claude-flow npx claude-flow@alpha mcp start
 ```
 
+## 🧪 Testing Strategy
+
+### Backend Testing
+- **Unit Tests**: 456+ tests (Agents: 184, LLM Providers: 272+)
+- **Integration Tests**: 6 comprehensive test files (2,342 lines)
+  - Service communication
+  - Database operations
+  - Message broker (RabbitMQ)
+  - Security flows
+- **API Workflow Tests**: End-to-end API testing scenarios
+  - Complete workflow from spec to results
+  - Authentication flows
+
+### Frontend Testing (Playwright E2E)
+- **Real Browser Testing**: Chrome, Firefox, Safari, Mobile
+- **Page Object Model**: Maintainable test architecture
+- **Test Coverage**:
+  - Authentication & RBAC
+  - API Specification Management
+  - Test Generation Workflow
+  - Results Visualization
+
+```bash
+# Run Playwright E2E tests
+cd sentinel_frontend
+npm install
+npx playwright install
+npm run test:e2e
+```
+
 ## MCP Tool Categories
 
 ### Coordination
