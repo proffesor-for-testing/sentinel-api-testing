@@ -40,46 +40,6 @@ The platform employs a workforce of specialized AI agents:
 - **Spec-Linter-Agent**: Analyzes API specs for "LLM-readiness"
 - **Performance-Analyzer-Agent**: Analyzes performance test results with AI-powered insights
 
-## 🧪 Testing Coverage
-
-### Current Test Statistics (Updated: August 19, 2025)
-- **Total Tests**: 530+ comprehensive tests
-- **Overall Pass Rate**: 97.8%
-- **Test Distribution**:
-  - Unit Tests: ~456 tests (86%)
-  - Integration Tests: ~20 tests (4%)
-  - E2E Tests: ~54 tests (10%)
-
-### Backend Testing
-- **Unit Tests**: 456+ tests across all services
-  - AI Agents: 184 tests (100% coverage)
-  - LLM Providers: 272+ tests (100% coverage)
-  - Service Components: Comprehensive coverage
-- **Integration Tests**: 6 comprehensive test suites (2,342+ lines)
-  - Service-to-service communication
-  - Database operations & transactions
-  - Message broker (RabbitMQ) integration
-  - Security & authentication flows
-  - Agent-LLM integration
-  - API workflow orchestration
-- **E2E Tests**: 4 comprehensive backend suites
-  - `test_spec_to_execution.py`: Complete API workflow testing
-  - `test_multi_agent_coordination.py`: Agent orchestration & collaboration
-  - `test_performance_pipeline.py`: Load, stress, spike, and endurance testing
-  - `test_security_pipeline.py`: Authentication, authorization, injection testing
-
-### Frontend Testing (Playwright E2E)
-- **Real Browser E2E Tests**: Chrome, Firefox, Safari, Mobile
-- **6 Comprehensive Test Suites** (45+ test scenarios):
-  - `auth.spec.ts`: Authentication flows & session management
-  - `specifications.spec.ts`: API specification management
-  - `test-generation.spec.ts`: AI-powered test generation workflows
-  - `test-execution.spec.ts`: Complete test execution pipeline
-  - `results-visualization.spec.ts`: Analytics and reporting
-  - `multi-agent.spec.ts`: Multi-agent coordination scenarios
-  - `rbac.spec.ts`: Role-based access control enforcement
-  - `api-import.spec.ts`: OpenAPI/Swagger/Postman import workflows
-
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -488,7 +448,15 @@ For production deployments:
 
 ### Testing Infrastructure
 
-The platform includes a comprehensive testing infrastructure with **456+ tests** covering all critical components:
+The platform includes a comprehensive testing infrastructure with **530+ tests** covering all critical components across unit, integration, and end-to-end test levels:
+
+#### Current Test Statistics (Updated: August 19, 2025)
+- **Total Tests**: 530+ comprehensive tests
+- **Overall Pass Rate**: 97.8%
+- **Test Distribution**:
+  - Unit Tests: ~456 tests (86%)
+  - Integration Tests: ~20 tests (4%)
+  - E2E Tests: ~54 tests (10%)
 
 #### Test Coverage
 - **AI Agents**: 184 tests covering all 8 specialized agents with comprehensive unit testing (Phase 1 Complete)
@@ -502,6 +470,36 @@ The platform includes a comprehensive testing infrastructure with **456+ tests**
 - **Data Service**: 25 tests covering CRUD operations and analytics
 - **Execution Service**: 22 tests covering test execution and result collection
 - **Rust Integration**: 3 tests (conditionally run based on service availability)
+
+#### Backend Testing
+- **Unit Tests**: 456+ tests across all services
+  - AI Agents: 184 tests (100% coverage)
+  - LLM Providers: 272+ tests (100% coverage)
+  - Service Components: Comprehensive coverage
+- **Integration Tests**: 6 comprehensive test suites (2,342+ lines)
+  - Service-to-service communication
+  - Database operations & transactions
+  - Message broker (RabbitMQ) integration
+  - Security & authentication flows
+  - Agent-LLM integration
+  - API workflow orchestration
+- **E2E Tests**: 4 comprehensive backend suites
+  - `test_spec_to_execution.py`: Complete API workflow testing
+  - `test_multi_agent_coordination.py`: Agent orchestration & collaboration
+  - `test_performance_pipeline.py`: Load, stress, spike, and endurance testing
+  - `test_security_pipeline.py`: Authentication, authorization, injection testing
+
+#### Frontend Testing (Playwright E2E)
+- **Real Browser E2E Tests**: Chrome, Firefox, Safari, Mobile
+- **9 Comprehensive Test Suites** (45+ test scenarios):
+  - `auth.spec.ts`: Authentication flows & session management
+  - `specifications.spec.ts`: API specification management
+  - `test-generation.spec.ts`: AI-powered test generation workflows
+  - `test-execution.spec.ts`: Complete test execution pipeline
+  - `results-visualization.spec.ts`: Analytics and reporting
+  - `multi-agent.spec.ts`: Multi-agent coordination scenarios
+  - `rbac.spec.ts`: Role-based access control enforcement
+  - `api-import.spec.ts`: OpenAPI/Swagger/Postman import workflows
 
 #### Running Tests
 ```bash
