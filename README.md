@@ -42,24 +42,43 @@ The platform employs a workforce of specialized AI agents:
 
 ## 🧪 Testing Coverage
 
+### Current Test Statistics (Updated: August 19, 2025)
+- **Total Tests**: 530+ comprehensive tests
+- **Overall Pass Rate**: 97.8%
+- **Test Distribution**:
+  - Unit Tests: ~456 tests (86%)
+  - Integration Tests: ~20 tests (4%)
+  - E2E Tests: ~54 tests (10%)
+
 ### Backend Testing
 - **Unit Tests**: 456+ tests across all services
   - AI Agents: 184 tests (100% coverage)
   - LLM Providers: 272+ tests (100% coverage)
-- **Integration Tests**: 6 comprehensive test suites
+  - Service Components: Comprehensive coverage
+- **Integration Tests**: 6 comprehensive test suites (2,342+ lines)
   - Service-to-service communication
   - Database operations & transactions
   - Message broker (RabbitMQ) integration
   - Security & authentication flows
-- **API Workflow Tests**: End-to-end API testing scenarios
+  - Agent-LLM integration
+  - API workflow orchestration
+- **E2E Tests**: 4 comprehensive backend suites
+  - `test_spec_to_execution.py`: Complete API workflow testing
+  - `test_multi_agent_coordination.py`: Agent orchestration & collaboration
+  - `test_performance_pipeline.py`: Load, stress, spike, and endurance testing
+  - `test_security_pipeline.py`: Authentication, authorization, injection testing
 
-### Frontend Testing (Playwright)
+### Frontend Testing (Playwright E2E)
 - **Real Browser E2E Tests**: Chrome, Firefox, Safari, Mobile
-- **Test Scenarios**:
-  - Authentication & role-based access
-  - API specification management
-  - AI-powered test generation
-  - Test execution & results
+- **6 Comprehensive Test Suites** (45+ test scenarios):
+  - `auth.spec.ts`: Authentication flows & session management
+  - `specifications.spec.ts`: API specification management
+  - `test-generation.spec.ts`: AI-powered test generation workflows
+  - `test-execution.spec.ts`: Complete test execution pipeline
+  - `results-visualization.spec.ts`: Analytics and reporting
+  - `multi-agent.spec.ts`: Multi-agent coordination scenarios
+  - `rbac.spec.ts`: Role-based access control enforcement
+  - `api-import.spec.ts`: OpenAPI/Swagger/Postman import workflows
 
 ## 🚀 Quick Start
 

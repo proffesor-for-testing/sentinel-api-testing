@@ -78,7 +78,12 @@ docker-compose up --build
 ./run_agent_tests.sh             # Run agent tests with colored output
 ./run_agent_tests.sh -c          # Run agent tests with coverage
 ./run_agent_tests.sh base auth   # Run specific agent tests
-pytest                           # Direct pytest execution
+
+# Run E2E tests
+pytest tests/e2e/ -v             # All E2E tests
+pytest tests/e2e/test_spec_to_execution.py -v  # Specific E2E test
+pytest tests/e2e/ -k "security"  # Run security E2E tests
+pytest tests/e2e/ --maxfail=1    # Stop on first failure
 ```
 
 ### Frontend Development (React)
@@ -95,8 +100,17 @@ npm start
 # Build for production
 npm run build
 
-# Run tests
+# Run unit tests
 npm test
+
+# Run E2E tests (Playwright)
+npm run test:e2e                 # Run all E2E tests
+npm run test:e2e:ui              # Run with Playwright UI
+npm run test:e2e:headed          # Run in headed mode (see browser)
+npm run test:e2e:debug           # Debug mode
+npx playwright test e2e/tests/auth.spec.ts  # Run specific test file
+npx playwright test -g "should login"       # Run test by name pattern
+npx playwright show-report       # View last test report
 ```
 
 ### Rust Core Development
