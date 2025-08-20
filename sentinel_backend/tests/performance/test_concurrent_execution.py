@@ -19,7 +19,6 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from sentinel_backend.orchestration_service.agents.base_agent import BaseAgent
-from sentinel_backend.execution_service.test_runner import TestRunner
 from sentinel_backend.config.settings import get_application_settings
 
 

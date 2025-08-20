@@ -14,8 +14,6 @@ import tempfile
 from sentinel_backend.config.validation import (
     ConfigurationValidator,
     ConfigurationError,
-    StartupChecker,
-    ConfigurationManager,
     ConfigurationReporter
 )
 from sentinel_backend.config.settings import (
@@ -25,7 +23,9 @@ from sentinel_backend.config.settings import (
     ApplicationSettings,
     get_database_settings,
     get_service_settings,
-    get_application_settings
+    get_application_settings,
+    get_security_settings,
+    get_network_settings
 )
 
 
