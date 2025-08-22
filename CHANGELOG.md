@@ -5,7 +5,43 @@ All notable changes to the Sentinel API Testing Platform will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-08-18
+## [Unreleased] - 2025-08-22
+
+### Added
+- **Asynchronous Test Generation**
+  - New `/generate-tests-async` endpoint for non-blocking test generation
+  - Task status polling with `/task-status/{task_id}` endpoint
+  - Real-time progress tracking showing which agent is currently running
+  - Prevents 503 timeout errors for long-running test generation
+
+- **Analytics API Integration**
+  - Added 6 analytics endpoints to API Gateway
+  - `/api/v1/analytics/trends/failure-rate` - Historical failure rate trends
+  - `/api/v1/analytics/trends/latency` - Latency trends with percentiles
+  - `/api/v1/analytics/anomalies` - Anomaly detection in test results
+  - `/api/v1/analytics/predictions` - Predictive insights
+  - `/api/v1/analytics/insights` - Quality insights and recommendations
+  - `/api/v1/analytics/health-summary` - Overall health dashboard
+
+### Fixed
+- **Test Generation Issues**
+  - Fixed duplicate test case generation by implementing MD5-based deduplication
+  - Fixed `FunctionalStatefulAgent` OperationNode subscript error
+  - Resolved async test generation timeout issues with background tasks
+
+- **Analytics Page Issues**
+  - Fixed Analytics.js using incorrect fetch URLs (was hitting React dev server instead of API)
+  - Fixed SQL query errors in data service (incorrect field references)
+  - Fixed `TestResult.agent_type` error by properly joining TestCase table
+  - Fixed `response_time_ms` to `latency_ms` field name mismatch
+  - Fixed variable name shadowing issue (`status` variable conflicting with imported module)
+
+### Changed
+- Updated frontend to use apiService for all API calls instead of raw fetch
+- Enhanced .gitignore to exclude .claude-flow directories
+- Improved error handling in async test generation
+
+## [1.0.0] - 2025-08-18
 
 ### Added
 - **Comprehensive Test Implementation (Phase 3 & 4)**

@@ -204,6 +204,7 @@ claude-flow
 claude-flow.bat
 claude-flow.ps1
 hive-mind-prompt-*.txt
-.claude-flow/*
-sentinel_backend/.claude-flow/*
+.claude-flow/
+sentinel_backend/.claude-flow/
+sentinel_frontend/.claude-flow/
 .roo

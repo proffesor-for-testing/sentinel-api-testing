@@ -54,27 +54,19 @@ const Analytics = () => {
       setLoading(true);
       setError(null);
 
-      // Load all analytics data in parallel
+      // Load all analytics data in parallel using apiService
       const [
-        failureRatesResponse,
-        latencyResponse,
-        anomaliesResponse,
-        predictionsResponse,
-        insightsResponse
+        failureRates,
+        latencyData,
+        anomaliesData,
+        predictionsData,
+        insightsData
       ] = await Promise.all([
-        fetch(`/api/v1/analytics/trends/failure-rate?days=${timeRange}`),
-        fetch(`/api/v1/analytics/trends/latency?days=${timeRange}`),
-        fetch(`/api/v1/analytics/anomalies?days=${timeRange}`),
-        fetch('/api/v1/analytics/predictions?days_ahead=7'),
-        fetch(`/api/v1/analytics/insights?days=${timeRange}`)
-      ]);
-
-      const [failureRates, latencyData, anomaliesData, predictionsData, insightsData] = await Promise.all([
-        failureRatesResponse.json(),
-        latencyResponse.json(),
-        anomaliesResponse.json(),
-        predictionsResponse.json(),
-        insightsResponse.json()
+        apiService.getFailureRateTrends(timeRange),
+        apiService.getLatencyTrends(timeRange),
+        apiService.getAnomalies(timeRange),
+        apiService.getPredictions(7),
+        apiService.getInsights(timeRange)
       ]);
 
       setTrendsData({ failureRates, latencyData });

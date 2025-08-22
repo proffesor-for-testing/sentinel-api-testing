@@ -382,7 +382,10 @@ async def delete_specification(request: Request, spec_id: int):
 
 @app.post("/api/v1/generate-tests")
 async def generate_tests(fastapi_request: Request, request: TestGenerationRequest):
-    """Generate test cases using AI agents."""
+    """
+    Generate test cases using AI agents (synchronous - may timeout for large requests).
+    Consider using /api/v1/generate-tests-async for better reliability.
+    """
     headers = get_correlation_id_headers(fastapi_request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
@@ -391,6 +394,48 @@ async def generate_tests(fastapi_request: Request, request: TestGenerationReques
             response = await client.post(
                 f"{service_settings.orchestration_service_url}/generate-tests",
                 json=json_data,
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Orchestration service is unavailable")
+
+
+@app.post("/api/v1/generate-tests-async")
+async def generate_tests_async(fastapi_request: Request, request: TestGenerationRequest):
+    """
+    Generate test cases asynchronously using AI agents.
+    Returns immediately with a task ID that can be used to check status.
+    """
+    headers = get_correlation_id_headers(fastapi_request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            json_data = get_json_data(request)
+            
+            response = await client.post(
+                f"{service_settings.orchestration_service_url}/generate-tests-async",
+                json=json_data,
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Orchestration service is unavailable")
+
+
+@app.get("/api/v1/task-status/{task_id}")
+async def get_task_status(fastapi_request: Request, task_id: str):
+    """Check the status of an async test generation task."""
+    headers = get_correlation_id_headers(fastapi_request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.get(
+                f"{service_settings.orchestration_service_url}/task-status/{task_id}",
                 headers=headers
             )
             response.raise_for_status()
@@ -620,6 +665,115 @@ async def get_test_run_results_endpoint(request: Request, run_id: int):
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.get(f"{service_settings.data_service_url}/api/v1/test-runs/{run_id}/results", headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+
+# Analytics Endpoints
+@app.get("/api/v1/analytics/trends/failure-rate")
+async def get_failure_rate_trends(request: Request, days: int = 30):
+    """Get failure rate trends over time."""
+    headers = get_correlation_id_headers(request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.get(
+                f"{service_settings.data_service_url}/api/v1/analytics/trends/failure-rate?days={days}",
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+
+@app.get("/api/v1/analytics/trends/latency")
+async def get_latency_trends(request: Request, days: int = 30):
+    """Get latency trends over time."""
+    headers = get_correlation_id_headers(request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.get(
+                f"{service_settings.data_service_url}/api/v1/analytics/trends/latency?days={days}",
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+
+@app.get("/api/v1/analytics/anomalies")
+async def get_anomalies(request: Request, days: int = 30):
+    """Get detected anomalies in test results."""
+    headers = get_correlation_id_headers(request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.get(
+                f"{service_settings.data_service_url}/api/v1/analytics/anomalies?days={days}",
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+
+@app.get("/api/v1/analytics/predictions")
+async def get_predictions(request: Request, days_ahead: int = 7):
+    """Get predictive insights for future performance."""
+    headers = get_correlation_id_headers(request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.get(
+                f"{service_settings.data_service_url}/api/v1/analytics/predictions?days_ahead={days_ahead}",
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+
+@app.get("/api/v1/analytics/insights")
+async def get_insights(request: Request, days: int = 30):
+    """Get quality insights and recommendations."""
+    headers = get_correlation_id_headers(request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.get(
+                f"{service_settings.data_service_url}/api/v1/analytics/insights?days={days}",
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+
+@app.get("/api/v1/analytics/health-summary")
+async def get_health_summary(request: Request):
+    """Get health summary for dashboard."""
+    headers = get_correlation_id_headers(request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.get(
+                f"{service_settings.data_service_url}/api/v1/analytics/health-summary",
+                headers=headers
+            )
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:

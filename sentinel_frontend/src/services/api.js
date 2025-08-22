@@ -134,6 +134,17 @@ export const apiService = {
     return response.data;
   },
 
+  // Async Test Generation
+  async generateTestsAsync(requestData) {
+    const response = await api.post('/api/v1/generate-tests-async', requestData);
+    return response.data;
+  },
+
+  async getTaskStatus(taskId) {
+    const response = await api.get(`/api/v1/task-status/${taskId}`);
+    return response.data;
+  },
+
   // Test Suites
   async getTestSuites() {
     const response = await api.get('/api/v1/test-suites');
@@ -200,6 +211,32 @@ export const apiService = {
   // Dashboard
   async getDashboardSummary() {
     const response = await api.get('/api/v1/bff/dashboard-summary');
+    return response.data;
+  },
+
+  // Analytics
+  async getFailureRateTrends(days = 30) {
+    const response = await api.get(`/api/v1/analytics/trends/failure-rate?days=${days}`);
+    return response.data;
+  },
+
+  async getLatencyTrends(days = 30) {
+    const response = await api.get(`/api/v1/analytics/trends/latency?days=${days}`);
+    return response.data;
+  },
+
+  async getAnomalies(days = 30) {
+    const response = await api.get(`/api/v1/analytics/anomalies?days=${days}`);
+    return response.data;
+  },
+
+  async getPredictions(daysAhead = 7) {
+    const response = await api.get(`/api/v1/analytics/predictions?days_ahead=${daysAhead}`);
+    return response.data;
+  },
+
+  async getInsights(days = 30) {
+    const response = await api.get(`/api/v1/analytics/insights?days=${days}`);
     return response.data;
   },
 
