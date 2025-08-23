@@ -2,7 +2,7 @@ import os
 from typing import List, Optional
 from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException, Depends, status, Query, Request
-from sqlalchemy import create_engine, select, func, desc, and_
+from sqlalchemy import create_engine, select, func, desc, and_, case, literal
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import selectinload
 import sys
@@ -613,7 +613,7 @@ async def get_failure_rate_trends(
         query = select(
             func.date(TestRun.started_at).label('run_date'),
             func.count(TestResult.id).label('total_tests'),
-            func.sum(func.case((TestResult.status == 'failed', 1), else_=0)).label('failed_tests')
+            func.sum(case((TestResult.status == 'failed', 1), else_=literal(0))).label('failed_tests')
         ).select_from(
             TestRun.__table__.join(TestResult.__table__, TestRun.id == TestResult.run_id)
         ).where(
@@ -682,16 +682,16 @@ async def get_latency_trends(
         # Build base query for test results with latency data
         query = select(
             func.date(TestRun.started_at).label('run_date'),
-            func.avg(TestResult.response_time_ms).label('avg_latency'),
-            func.percentile_cont(0.95).within_group(TestResult.response_time_ms).label('p95_latency'),
-            func.percentile_cont(0.99).within_group(TestResult.response_time_ms).label('p99_latency')
+            func.avg(TestResult.latency_ms).label('avg_latency'),
+            func.percentile_cont(0.95).within_group(TestResult.latency_ms).label('p95_latency'),
+            func.percentile_cont(0.99).within_group(TestResult.latency_ms).label('p99_latency')
         ).select_from(
             TestRun.__table__.join(TestResult.__table__, TestRun.id == TestResult.run_id)
         ).where(
             and_(
                 TestRun.started_at >= start_date,
                 TestRun.started_at <= end_date,
-                TestResult.response_time_ms.isnot(None)
+                TestResult.latency_ms.isnot(None)
             )
         ).group_by(func.date(TestRun.started_at))
         
@@ -809,8 +809,8 @@ async def detect_anomalies(
         query = select(
             func.date(TestRun.started_at).label('run_date'),
             func.count(TestResult.id).label('total_tests'),
-            func.sum(func.case((TestResult.status == 'failed', 1), else_=0)).label('failed_tests'),
-            func.avg(TestResult.response_time_ms).label('avg_latency')
+            func.sum(case((TestResult.status == 'failed', 1), else_=literal(0))).label('failed_tests'),
+            func.avg(TestResult.latency_ms).label('avg_latency')
         ).select_from(
             TestRun.__table__.join(TestResult.__table__, TestRun.id == TestResult.run_id)
         ).where(
@@ -912,8 +912,8 @@ async def get_quality_predictions(
         query = select(
             func.date(TestRun.started_at).label('run_date'),
             func.count(TestResult.id).label('total_tests'),
-            func.sum(func.case((TestResult.status == 'failed', 1), else_=0)).label('failed_tests'),
-            func.avg(TestResult.response_time_ms).label('avg_latency')
+            func.sum(case((TestResult.status == 'failed', 1), else_=literal(0))).label('failed_tests'),
+            func.avg(TestResult.latency_ms).label('avg_latency')
         ).select_from(
             TestRun.__table__.join(TestResult.__table__, TestRun.id == TestResult.run_id)
         ).where(
@@ -1014,20 +1014,24 @@ async def get_quality_insights(
         end_date = datetime.utcnow()
         start_date = end_date - timedelta(days=days)
         
-        # Get comprehensive test data
+        # Get comprehensive test data (join TestCase to get agent_type)
         query = select(
-            TestResult.agent_type,
+            TestCase.agent_type,
             TestResult.status,
-            TestResult.response_time_ms,
-            func.count(TestResult.id).label('count')
+            func.count(TestResult.id).label('count'),
+            func.avg(TestResult.latency_ms).label('avg_latency')
         ).select_from(
-            TestRun.__table__.join(TestResult.__table__, TestRun.id == TestResult.run_id)
+            TestRun.__table__.join(
+                TestResult.__table__, TestRun.id == TestResult.run_id
+            ).join(
+                TestCase.__table__, TestResult.case_id == TestCase.id
+            )
         ).where(
             and_(
                 TestRun.started_at >= start_date,
                 TestRun.started_at <= end_date
             )
-        ).group_by(TestResult.agent_type, TestResult.status)
+        ).group_by(TestCase.agent_type, TestResult.status)
         
         result = await db.execute(query)
         agent_stats = result.fetchall()
@@ -1039,7 +1043,7 @@ async def get_quality_insights(
         
         for row in agent_stats:
             agent_type = row.agent_type
-            status = row.status
+            test_status = row.status
             count = row.count
             
             if agent_type not in agent_insights:
@@ -1053,12 +1057,12 @@ async def get_quality_insights(
             agent_insights[agent_type]["total_tests"] += count
             total_tests += count
             
-            if status == "failed":
+            if test_status == "failed":
                 agent_insights[agent_type]["failed_tests"] += count
                 total_failures += count
-            elif status == "passed":
+            elif test_status == "passed":
                 agent_insights[agent_type]["passed_tests"] += count
-            elif status == "error":
+            elif test_status == "error":
                 agent_insights[agent_type]["error_tests"] += count
         
         # Calculate failure rates and generate insights

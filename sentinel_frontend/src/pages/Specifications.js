@@ -32,6 +32,7 @@ const Specifications = () => {
   const [selectedAgents, setSelectedAgents] = useState([]);
   const [generating, setGenerating] = useState(false);
   const [generationResult, setGenerationResult] = useState(null);
+  const [generationProgress, setGenerationProgress] = useState('');
   
   // View specification modal state
   const [showViewModal, setShowViewModal] = useState(false);
@@ -144,11 +145,52 @@ const Specifications = () => {
         agent_types: selectedAgents
       };
       
-      const result = await apiService.generateTests(requestData);
+      // Start async test generation
+      const initResult = await apiService.generateTestsAsync(requestData);
+      const taskId = initResult.task_id;
+      setGenerationProgress('Starting test generation...');
+      
+      // Poll for status
+      let status = 'processing';
+      let result = null;
+      let pollCount = 0;
+      const maxPolls = 60; // 60 seconds max
+      
+      while (status === 'processing' && pollCount < maxPolls) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        
+        const statusResponse = await apiService.getTaskStatus(taskId);
+        status = statusResponse.status;
+        
+        // Update progress message
+        if (statusResponse.progress) {
+          setGenerationProgress(statusResponse.progress);
+        } else if (statusResponse.current_agent) {
+          setGenerationProgress(`Running ${statusResponse.current_agent}...`);
+        }
+        
+        if (status === 'completed') {
+          result = statusResponse.result;
+          break;
+        } else if (status === 'failed') {
+          throw new Error(statusResponse.error || 'Test generation failed');
+        }
+        
+        pollCount++;
+      }
+      
+      if (status === 'processing') {
+        throw new Error('Test generation timed out');
+      }
+      
+      if (!result) {
+        throw new Error('Test generation completed but no results were returned');
+      }
+      
       setGenerationResult(result);
       
       // Show success message
-      alert(`Successfully generated ${result.total_test_cases || 0} test cases!`);
+      alert(`Successfully generated ${result?.total_test_cases || 0} test cases!`);
       
       // Close modal after short delay
       setTimeout(() => {
@@ -156,11 +198,13 @@ const Specifications = () => {
         setSelectedSpecForGeneration(null);
         setSelectedAgents([]);
         setGenerationResult(null);
+        setGenerationProgress('');
       }, 2000);
       
     } catch (err) {
       console.error('Error generating tests:', err);
-      alert('Failed to generate tests. Please check if all services are running and try again.');
+      alert(err.message || 'Failed to generate tests. Please check if all services are running and try again.');
+      setGenerationProgress('');
     } finally {
       setGenerating(false);
     }
@@ -702,7 +746,7 @@ const Specifications = () => {
                   {generating ? (
                     <>
                       <div className="spinner mr-2"></div>
-                      Generating...
+                      {generationProgress || 'Generating...'}
                     </>
                   ) : (
                     <>
@@ -718,6 +762,7 @@ const Specifications = () => {
                     setSelectedSpecForGeneration(null);
                     setSelectedAgents([]);
                     setGenerationResult(null);
+                    setGenerationProgress('');
                   }}
                   disabled={generating}
                   className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"

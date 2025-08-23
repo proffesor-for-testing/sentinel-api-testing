@@ -1018,7 +1018,7 @@ class FunctionalStatefulAgent(BaseAgent):
             prompt = f"""Generate a complex multi-step test workflow for this API pattern:
 
 Pattern Type: {pattern['type']}
-Operations involved: {', '.join([op['operation_id'] for op in pattern.get('operations', [])])}
+Operations involved: {', '.join([op.operation_id for op in pattern.get('operations', [])])}
 
 Create a realistic business workflow that:
 1. Tests the complete lifecycle of resources

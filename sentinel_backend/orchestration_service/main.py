@@ -1,10 +1,14 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import os
 import uuid
 import httpx
 import structlog
+import hashlib
+import json
+import asyncio
+from datetime import datetime
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from sentinel_backend.orchestration_service.agents.base_agent import AgentTask, AgentResult
@@ -61,6 +65,9 @@ async def correlation_id_middleware(request: Request, call_next):
 RUST_CORE_URL = getattr(service_settings, 'rust_core_service_url', 'http://127.0.0.1:8088')
 USE_RUST_AGENTS = getattr(app_settings, 'use_rust_agents', True)
 
+# Task tracking for async execution
+task_status_store = {}
+
 # Agents that are available in Rust
 RUST_AVAILABLE_AGENTS = {
     "Functional-Positive-Agent",
@@ -100,6 +107,24 @@ class DataGenerationResponse(BaseModel):
     mock_data: Dict[str, Any]
     global_data: Dict[str, Any]
     metadata: Dict[str, Any]
+
+
+class AsyncTestGenerationResponse(BaseModel):
+    """Response model for async test generation initiation."""
+    task_id: str
+    status: str
+    message: str
+
+
+class TaskStatusResponse(BaseModel):
+    """Response model for task status check."""
+    task_id: str
+    status: str  # "pending", "in_progress", "completed", "failed"
+    progress: Optional[Dict[str, Any]] = None
+    result: Optional[TestGenerationResponse] = None
+    error: Optional[str] = None
+    created_at: str
+    updated_at: str
 
 
 @app.get("/")
@@ -163,6 +188,44 @@ async def check_rust_core_availability() -> bool:
             return response.status_code == 200
     except Exception:
         return False
+
+
+def deduplicate_test_cases(test_cases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Remove duplicate test cases based on test definition content.
+    
+    Args:
+        test_cases: List of test case dictionaries
+        
+    Returns:
+        List of unique test cases
+    """
+    seen_hashes = set()
+    unique_test_cases = []
+    
+    for test_case in test_cases:
+        # Create a hash of the test definition
+        # We'll use the test name, method, path, and test type as the key
+        test_def = test_case
+        
+        # Extract key fields for comparison
+        key_fields = {
+            'test_name': test_def.get('test_name', ''),
+            'method': test_def.get('method', ''),
+            'path': test_def.get('path', ''),
+            'test_type': test_def.get('test_type', ''),
+            'body': json.dumps(test_def.get('body', {}), sort_keys=True) if test_def.get('body') else '',
+            'query_params': json.dumps(test_def.get('query_params', {}), sort_keys=True) if test_def.get('query_params') else ''
+        }
+        
+        # Create a hash from the key fields
+        hash_key = hashlib.md5(json.dumps(key_fields, sort_keys=True).encode()).hexdigest()
+        
+        if hash_key not in seen_hashes:
+            seen_hashes.add(hash_key)
+            unique_test_cases.append(test_case)
+    
+    return unique_test_cases
 
 
 @app.post("/generate-tests", response_model=TestGenerationResponse)
@@ -232,15 +295,20 @@ async def generate_tests(fastapi_request: Request, request: TestGenerationReques
                 agent = python_agents[agent_type]
                 result = await agent.execute(agent_task, api_spec)
             
-            # Store test cases in the Data Service
+            # Deduplicate and store test cases in the Data Service
+            unique_test_cases = []
             if result.status == "success" and result.test_cases:
-                await store_test_cases(fastapi_request, request.spec_id, agent_type, result.test_cases)
-                total_test_cases += len(result.test_cases)
+                # Deduplicate test cases before storing
+                unique_test_cases = deduplicate_test_cases(result.test_cases)
+                logger.info(f"Agent {agent_type} generated {len(result.test_cases)} test cases, {len(unique_test_cases)} unique")
+                
+                await store_test_cases(fastapi_request, request.spec_id, agent_type, unique_test_cases)
+                total_test_cases += len(unique_test_cases)
             
             agent_results.append({
                 "agent_type": agent_type,
                 "status": result.status,
-                "test_cases_generated": len(result.test_cases),
+                "test_cases_generated": len(unique_test_cases) if result.status == "success" else 0,
                 "metadata": result.metadata,
                 "error_message": result.error_message,
                 "execution_engine": "rust" if use_rust else "python"
@@ -258,6 +326,181 @@ async def generate_tests(fastapi_request: Request, request: TestGenerationReques
     except Exception as e:
         logger.error(f"Error in test generation: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Test generation failed: {str(e)}")
+
+
+async def execute_test_generation_task(
+    task_id: str,
+    request: TestGenerationRequest,
+    fastapi_request: Request
+):
+    """
+    Background task for test generation.
+    """
+    try:
+        # Update task status to in_progress
+        task_status_store[task_id]["status"] = "in_progress"
+        task_status_store[task_id]["updated_at"] = datetime.now().isoformat()
+        
+        logger.info(f"Starting async test generation task {task_id}")
+        
+        # Check Rust core availability
+        rust_available = USE_RUST_AGENTS and await check_rust_core_availability()
+        if rust_available:
+            logger.info("Rust core service is available - using hybrid execution")
+        else:
+            logger.info("Rust core service not available - using Python agents only")
+        
+        # Fetch the API specification from the Spec Service
+        api_spec = await fetch_api_specification(fastapi_request, request.spec_id)
+        if not api_spec:
+            raise Exception("API specification not found")
+        
+        # Initialize available Python agents
+        python_agents = {
+            "Functional-Positive-Agent": FunctionalPositiveAgent(),
+            "Functional-Negative-Agent": FunctionalNegativeAgent(),
+            "Functional-Stateful-Agent": FunctionalStatefulAgent(),
+            "Security-Auth-Agent": SecurityAuthAgent(),
+            "Security-Injection-Agent": SecurityInjectionAgent(),
+            "Performance-Planner-Agent": PerformancePlannerAgent(),
+            "Data-Mocking-Agent": DataMockingAgent()
+        }
+        
+        agent_results = []
+        total_test_cases = 0
+        completed_agents = 0
+        
+        # Execute each requested agent
+        for agent_type in request.agent_types:
+            logger.info(f"Executing {agent_type}")
+            
+            # Update progress
+            task_status_store[task_id]["progress"] = {
+                "current_agent": agent_type,
+                "completed_agents": completed_agents,
+                "total_agents": len(request.agent_types)
+            }
+            
+            # Create agent task
+            agent_task = AgentTask(
+                task_id=f"{task_id}_{agent_type}",
+                spec_id=request.spec_id,
+                agent_type=agent_type,
+                parameters=request.parameters,
+                target_environment=request.target_environment
+            )
+            
+            # Determine whether to use Rust or Python agent
+            use_rust = rust_available and agent_type in RUST_AVAILABLE_AGENTS
+            
+            if use_rust:
+                logger.info(f"Using Rust agent for {agent_type}")
+                result = await execute_rust_agent(fastapi_request, agent_type, agent_task, api_spec)
+            else:
+                if agent_type not in python_agents:
+                    logger.warning(f"Unknown agent type: {agent_type}")
+                    continue
+                
+                logger.info(f"Using Python agent for {agent_type}")
+                agent = python_agents[agent_type]
+                result = await agent.execute(agent_task, api_spec)
+            
+            # Deduplicate and store test cases in the Data Service
+            unique_test_cases = []
+            if result.status == "success" and result.test_cases:
+                # Deduplicate test cases before storing
+                unique_test_cases = deduplicate_test_cases(result.test_cases)
+                logger.info(f"Agent {agent_type} generated {len(result.test_cases)} test cases, {len(unique_test_cases)} unique")
+                
+                await store_test_cases(fastapi_request, request.spec_id, agent_type, unique_test_cases)
+                total_test_cases += len(unique_test_cases)
+            
+            agent_results.append({
+                "agent_type": agent_type,
+                "status": result.status,
+                "test_cases_generated": len(unique_test_cases) if result.status == "success" else 0,
+                "metadata": result.metadata,
+                "error_message": result.error_message,
+                "execution_engine": "rust" if use_rust else "python"
+            })
+            
+            completed_agents += 1
+        
+        logger.info(f"Async test generation task {task_id} completed. Total test cases: {total_test_cases}")
+        
+        # Store the final result
+        task_status_store[task_id]["status"] = "completed"
+        task_status_store[task_id]["result"] = {
+            "task_id": task_id,
+            "status": "completed",
+            "total_test_cases": total_test_cases,
+            "agent_results": agent_results
+        }
+        task_status_store[task_id]["updated_at"] = datetime.now().isoformat()
+        
+    except Exception as e:
+        logger.error(f"Error in async test generation task {task_id}: {str(e)}")
+        task_status_store[task_id]["status"] = "failed"
+        task_status_store[task_id]["error"] = str(e)
+        task_status_store[task_id]["updated_at"] = datetime.now().isoformat()
+
+
+@app.post("/generate-tests-async", response_model=AsyncTestGenerationResponse)
+async def generate_tests_async(
+    fastapi_request: Request,
+    request: TestGenerationRequest,
+    background_tasks: BackgroundTasks
+):
+    """
+    Generate test cases asynchronously using specified agents.
+    Returns immediately with a task ID that can be used to check status.
+    """
+    try:
+        task_id = str(uuid.uuid4())
+        
+        # Initialize task status
+        task_status_store[task_id] = {
+            "task_id": task_id,
+            "status": "pending",
+            "progress": None,
+            "result": None,
+            "error": None,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        # Add the task to background tasks
+        background_tasks.add_task(
+            execute_test_generation_task,
+            task_id,
+            request,
+            fastapi_request
+        )
+        
+        logger.info(f"Created async test generation task {task_id} for spec_id: {request.spec_id}")
+        
+        return AsyncTestGenerationResponse(
+            task_id=task_id,
+            status="pending",
+            message=f"Test generation task created. Check status at /task-status/{task_id}"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error creating async test generation task: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create test generation task: {str(e)}")
+
+
+@app.get("/task-status/{task_id}", response_model=TaskStatusResponse)
+async def get_task_status(task_id: str):
+    """
+    Check the status of an async test generation task.
+    """
+    if task_id not in task_status_store:
+        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+    
+    task_info = task_status_store[task_id]
+    
+    return TaskStatusResponse(**task_info)
 
 
 @app.post("/generate-data", response_model=DataGenerationResponse)
