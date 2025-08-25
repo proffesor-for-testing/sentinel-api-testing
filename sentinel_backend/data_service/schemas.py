@@ -116,6 +116,10 @@ class TestRunSummary(BaseModel):
     target_environment: Optional[str] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    passed: int = 0
+    failed: int = 0
+    errors: int = 0
+    total_tests: int = 0
 
     class Config:
         from_attributes = True

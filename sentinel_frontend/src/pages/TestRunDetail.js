@@ -30,7 +30,28 @@ const TestRunDetail = () => {
     try {
       setLoading(true);
       const data = await apiService.getTestRun(runId);
-      setTestRun(data);
+      // Calculate counts from results
+      const passed = data.results?.filter(r => r.status === 'pass').length || 0;
+      const failed = data.results?.filter(r => r.status === 'fail').length || 0;
+      const errors = data.results?.filter(r => r.status === 'error').length || 0;
+      
+      // Calculate duration if timestamps exist
+      let duration = null;
+      if (data.run?.started_at && data.run?.completed_at) {
+        const start = new Date(data.run.started_at);
+        const end = new Date(data.run.completed_at);
+        duration = ((end - start) / 1000).toFixed(2); // Convert to seconds
+      }
+      
+      // Restructure data for easier access in the component
+      setTestRun({
+        ...data.run,
+        passed,
+        failed,
+        errors,
+        duration,
+        results: data.results
+      });
       setError(null);
     } catch (err) {
       console.error('Error loading test run details:', err);
@@ -42,8 +63,10 @@ const TestRunDetail = () => {
 
   const getStatusIcon = (status) => {
     switch (status) {
+      case 'pass':
       case 'passed':
         return <CheckCircle className="h-5 w-5 text-success-500" />;
+      case 'fail':
       case 'failed':
         return <XCircle className="h-5 w-5 text-danger-500" />;
       case 'error':
@@ -55,8 +78,10 @@ const TestRunDetail = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
+      case 'pass':
       case 'passed':
         return <span className="badge badge-success">Passed</span>;
+      case 'fail':
       case 'failed':
         return <span className="badge badge-danger">Failed</span>;
       case 'error':
@@ -285,7 +310,7 @@ const TestRunDetail = () => {
               <div>
                 <dt className="text-sm font-medium text-gray-500">Created</dt>
                 <dd className="mt-1 text-sm text-gray-900">
-                  {testRun.created_at ? new Date(testRun.created_at).toLocaleString() : 'N/A'}
+                  {testRun.started_at ? new Date(testRun.started_at).toLocaleString() : 'N/A'}
                 </dd>
               </div>
               <div>
@@ -364,13 +389,13 @@ const TestRunDetail = () => {
                       <div>
                         <span className="font-medium text-gray-500">Method:</span>
                         <span className="ml-2 font-mono bg-gray-100 px-2 py-1 rounded">
-                          {result.method || 'N/A'}
+                          {result.test_case?.test_definition?.method || 'N/A'}
                         </span>
                       </div>
                       <div>
                         <span className="font-medium text-gray-500">Endpoint:</span>
                         <span className="ml-2 font-mono text-gray-900">
-                          {result.endpoint || 'N/A'}
+                          {result.test_case?.test_definition?.path || result.test_case?.test_definition?.endpoint || 'N/A'}
                         </span>
                       </div>
                       <div>
@@ -435,22 +460,37 @@ const TestRunDetail = () => {
                           Request Details
                         </h5>
                         
-                        {result.request_body && (
+                        {result.test_case?.test_definition?.body && (
                           <div className="mb-4">
                             <h6 className="text-xs font-medium text-gray-700 mb-2">Request Body:</h6>
                             <div className="code-block">
-                              <pre>{JSON.stringify(result.request_body, null, 2)}</pre>
+                              <pre>{JSON.stringify(result.test_case.test_definition.body, null, 2)}</pre>
                             </div>
                           </div>
                         )}
                         
-                        {result.request_headers && (
-                          <div>
-                            <h6 className="text-xs font-medium text-gray-700 mb-2">Headers:</h6>
+                        {result.test_case?.test_definition?.headers && (
+                          <div className="mb-4">
+                            <h6 className="text-xs font-medium text-gray-700 mb-2">Request Headers:</h6>
                             <div className="code-block">
-                              <pre>{JSON.stringify(result.request_headers, null, 2)}</pre>
+                              <pre>{JSON.stringify(result.test_case.test_definition.headers, null, 2)}</pre>
                             </div>
                           </div>
+                        )}
+                        
+                        {result.test_case?.test_definition?.query_params && Object.keys(result.test_case.test_definition.query_params).length > 0 && (
+                          <div>
+                            <h6 className="text-xs font-medium text-gray-700 mb-2">Query Parameters:</h6>
+                            <div className="code-block">
+                              <pre>{JSON.stringify(result.test_case.test_definition.query_params, null, 2)}</pre>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {!result.test_case?.test_definition?.body && 
+                         !result.test_case?.test_definition?.headers && 
+                         (!result.test_case?.test_definition?.query_params || Object.keys(result.test_case.test_definition.query_params).length === 0) && (
+                          <p className="text-sm text-gray-500 italic">No request details available</p>
                         )}
                       </div>
                       
