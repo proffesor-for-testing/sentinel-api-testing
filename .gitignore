@@ -208,3 +208,4 @@ hive-mind-prompt-*.txt
 sentinel_backend/.claude-flow/
 sentinel_frontend/.claude-flow/
 .roo
+petstore_api/

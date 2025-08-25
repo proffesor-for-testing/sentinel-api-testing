@@ -116,8 +116,8 @@ async def execute_test_run(fastapi_request: Request, request: TestRunRequest):
         await store_test_results(fastapi_request, run_id, results)
         
         # Calculate summary statistics
-        passed = sum(1 for r in results if r.status == "passed")
-        failed = sum(1 for r in results if r.status == "failed")
+        passed = sum(1 for r in results if r.status == "pass")
+        failed = sum(1 for r in results if r.status == "fail")
         errors = sum(1 for r in results if r.status == "error")
         
         # Update test run status
@@ -179,15 +179,19 @@ async def fetch_test_cases(request: Request, suite_id: int) -> List[Dict[str, An
     headers = {"X-Correlation-ID": correlation_id} if correlation_id else {}
     try:
         async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+            # Fetch the test suite which includes test cases
             response = await client.get(
-                f"{service_settings.data_service_url}/api/v1/test-suites/{suite_id}/cases",
+                f"{service_settings.data_service_url}/api/v1/test-suites/{suite_id}",
                 headers=headers
             )
             
             if response.status_code == 200:
-                return response.json()
+                suite_data = response.json()
+                # Extract test cases from the suite response
+                test_cases = suite_data.get("test_cases", [])
+                return test_cases
             else:
-                logger.error(f"Error fetching test cases: {response.status_code}")
+                logger.error(f"Error fetching test suite: {response.status_code}")
                 return []
                 
     except Exception as e:
@@ -227,8 +231,8 @@ async def execute_single_test_case(
     test_definition = test_case.get("test_definition", {})
     
     try:
-        # Extract test parameters
-        endpoint = test_definition.get("endpoint", "")
+        # Extract test parameters (support both 'endpoint' and 'path' fields)
+        endpoint = test_definition.get("endpoint") or test_definition.get("path", "")
         method = test_definition.get("method", "GET").upper()
         headers = test_definition.get("headers", {})
         correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
@@ -236,7 +240,15 @@ async def execute_single_test_case(
             headers["X-Correlation-ID"] = correlation_id
         query_params = test_definition.get("query_params", {})
         body = test_definition.get("body")
-        expected_status = test_definition.get("expected_status", 200)
+        # Support multiple ways to define expected status
+        expected_status = test_definition.get("expected_status")
+        expected_status_codes = test_definition.get("expected_status_codes", [])
+        
+        # Use expected_status_codes if available, otherwise use expected_status or default to 200
+        if expected_status_codes:
+            expected_status = expected_status_codes[0]
+        elif expected_status is None:
+            expected_status = 200
         assertions = test_definition.get("assertions", [])
         
         # Build full URL
@@ -260,7 +272,7 @@ async def execute_single_test_case(
         
         # Validate response
         assertion_failures = []
-        status = "passed"
+        status = "pass"
         
         # Check status code
         if response.status_code != expected_status:
@@ -270,14 +282,14 @@ async def execute_single_test_case(
                 "actual": response.status_code,
                 "message": f"Expected status {expected_status}, got {response.status_code}"
             })
-            status = "failed"
+            status = "fail"
         
         # Run additional assertions
         for assertion in assertions:
             failure = await validate_assertion(assertion, response)
             if failure:
                 assertion_failures.append(failure)
-                status = "failed"
+                status = "fail"
         
         return TestCaseResult(
             case_id=case_id,

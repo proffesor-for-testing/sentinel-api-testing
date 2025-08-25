@@ -1183,9 +1183,31 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
         
         recent_runs_data = []
         for run in recent_runs:
+            # Get test result counts for this run
+            passed_count_result = await db.execute(
+                select(func.count(TestResult.id))
+                .where(TestResult.run_id == run.id)
+                .where(TestResult.status == TestStatus.PASS)
+            )
+            passed_count = passed_count_result.scalar() or 0
+            
+            failed_count_result = await db.execute(
+                select(func.count(TestResult.id))
+                .where(TestResult.run_id == run.id)
+                .where(TestResult.status == TestStatus.FAIL)
+            )
+            failed_count = failed_count_result.scalar() or 0
+            
+            error_count_result = await db.execute(
+                select(func.count(TestResult.id))
+                .where(TestResult.run_id == run.id)
+                .where(TestResult.status == TestStatus.ERROR)
+            )
+            error_count = error_count_result.scalar() or 0
+            
             # Map RunStatus to simpler status for frontend
             status_map = {
-                RunStatus.COMPLETED: "passed",
+                RunStatus.COMPLETED: "completed",
                 RunStatus.FAILED: "failed",
                 RunStatus.RUNNING: "running",
                 RunStatus.PENDING: "pending",
@@ -1195,8 +1217,21 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
                 "id": run.id,
                 "status": status_map.get(run.status, "pending"),
                 "started_at": run.started_at.isoformat() if run.started_at else None,
-                "suite_id": run.suite_id
+                "suite_id": run.suite_id,
+                "passed": passed_count,
+                "failed": failed_count,
+                "errors": error_count
             })
+        
+        # Get agent distribution - count test cases by agent_type
+        agent_distribution_result = await db.execute(
+            select(TestCase.agent_type, func.count(TestCase.id))
+            .group_by(TestCase.agent_type)
+        )
+        agent_distribution_data = {}
+        for agent_type, count in agent_distribution_result:
+            if agent_type:
+                agent_distribution_data[agent_type] = count
         
         return {
             "data": {
@@ -1205,7 +1240,8 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
                 "total_test_runs": total_test_runs,
                 "success_rate": success_rate,
                 "avg_response_time_ms": avg_response_time_ms,
-                "recent_runs": recent_runs_data
+                "recent_runs": recent_runs_data,
+                "agent_distribution": agent_distribution_data
             }
         }
     
@@ -1219,7 +1255,8 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
                 "total_test_runs": 0,
                 "success_rate": 0.0,
                 "avg_response_time_ms": 0,
-                "recent_runs": []
+                "recent_runs": [],
+                "agent_distribution": {}
             }
         }
 
@@ -1244,7 +1281,29 @@ async def list_test_runs(
         result = await db.execute(query)
         test_runs = result.scalars().all()
         
-        return [TestRunSummary.model_validate(run) for run in test_runs]
+        # Calculate counts for each test run
+        summaries = []
+        for run in test_runs:
+            # Get test result counts for this run
+            results_query = select(TestResult.status, func.count(TestResult.id))\
+                .where(TestResult.run_id == run.id)\
+                .group_by(TestResult.status)
+            results = await db.execute(results_query)
+            counts = {row[0]: row[1] for row in results}
+            
+            passed = counts.get('pass', 0)
+            failed = counts.get('fail', 0)
+            errors = counts.get('error', 0)
+            total = passed + failed + errors
+            
+            summary = TestRunSummary.model_validate(run)
+            summary.passed = passed
+            summary.failed = failed
+            summary.errors = errors
+            summary.total_tests = total
+            summaries.append(summary)
+        
+        return summaries
     
     except Exception as e:
         logger.error(f"Error retrieving test runs: {str(e)}")
@@ -1363,6 +1422,93 @@ async def update_test_run_status(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error updating test run status: {str(e)}"
+        )
+
+@app.patch("/api/v1/test-runs/{run_id}")
+async def patch_test_run(
+    run_id: int,
+    update_data: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    """Update a test run (PATCH method for partial updates)."""
+    try:
+        result = await db.execute(
+            select(TestRun).where(TestRun.id == run_id)
+        )
+        test_run = result.scalar_one_or_none()
+        
+        if not test_run:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test run with id {run_id} not found"
+            )
+        
+        # Update status if provided
+        if "status" in update_data:
+            test_run.status = update_data["status"]  # Just use string directly
+            
+        # Update completed_at if provided
+        if "completed_at" in update_data:
+            test_run.completed_at = datetime.fromisoformat(update_data["completed_at"].replace("Z", "+00:00"))
+        elif test_run.status in ["completed", "failed", "cancelled"]:
+            test_run.completed_at = datetime.utcnow()
+        
+        await db.commit()
+        
+        # Return simple response to avoid greenlet errors
+        return {"id": test_run.id, "status": test_run.status, "message": "Test run updated"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error patching test run: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error patching test run: {str(e)}"
+        )
+
+@app.post("/api/v1/test-results")
+async def create_test_result(
+    result_data: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new test result."""
+    try:
+        # Create new test result
+        test_result = TestResult(
+            run_id=result_data["run_id"],
+            case_id=result_data["case_id"],
+            status=result_data["status"],  # Just use string directly
+            response_code=result_data.get("response_code"),
+            response_headers=result_data.get("response_headers"),
+            response_body=result_data.get("response_body"),
+            latency_ms=result_data.get("latency_ms"),
+            assertion_failures=result_data.get("assertion_failures"),
+            # error_message field doesn't exist in model, skip it
+            executed_at=datetime.fromisoformat(result_data["executed_at"].replace("Z", "+00:00")) if "executed_at" in result_data else datetime.utcnow()
+        )
+        
+        db.add(test_result)
+        await db.commit()
+        
+        # Return simple response to avoid greenlet errors with relationships
+        return {
+            "id": test_result.id,
+            "run_id": test_result.run_id,
+            "case_id": test_result.case_id,
+            "status": test_result.status,
+            "response_code": test_result.response_code,
+            "latency_ms": test_result.latency_ms,
+            "executed_at": test_result.executed_at.isoformat() if test_result.executed_at else None
+        }
+    
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error creating test result: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creating test result: {str(e)}"
         )
 
 @app.get("/api/v1/test-runs/{run_id}/results", response_model=List[TestResultResponse])
