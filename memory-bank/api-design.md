@@ -33,6 +33,7 @@ All APIs will be designed following RESTful principles and will be documented us
 | `/test-cases/{case_id}`              | `GET`  | Retrieve a specific test case.                                                                              |
 | `/test-cases/{case_id}`              | `PUT`  | Update a test case.                                                                                         |
 | `/test-cases/{case_id}`              | `DELETE`| Delete a test case.                                                                                        |
+| `/test-cases/bulk-delete`            | `DELETE`| Bulk delete multiple test cases with dependency checking and force delete option.                          |
 | `/test-suites`                       | `POST` | Create a new test suite.                                                                                    |
 | `/test-suites`                       | `GET`  | List all available test suites.                                                                             |
 | `/test-suites/{suite_id}`            | `GET`  | Retrieve a specific test suite, including the list of test cases it contains.                               |
@@ -54,6 +55,7 @@ All APIs will be designed following RESTful principles and will be documented us
 | `/test-runs`                         | `GET`  | List all historical and ongoing test runs.                                                                  |
 | `/test-runs/{run_id}`                | `GET`  | Get the status and summary of a specific test run.                                                          |
 | `/test-runs/{run_id}/results`        | `GET`  | Get the detailed, granular results for all test cases within a completed run.                               |
+| `/test-runs/{run_id}`                | `DELETE`| Delete a test run and all associated test results (cascade deletion).                                      |
 | `/agent-tasks`                       | `POST` | **Internal endpoint** used by the Orchestrator to delegate tasks to agents. Not publicly exposed.           |
 
 ---

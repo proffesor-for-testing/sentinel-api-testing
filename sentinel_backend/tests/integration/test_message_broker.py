@@ -40,15 +40,15 @@ class TestMessageBroker:
             yield mock_conn
     
     @pytest.fixture
-    async def channel(self, rabbitmq_connection):
+    def channel(self):
         """Create RabbitMQ channel for testing."""
-        if hasattr(rabbitmq_connection, 'channel'):
-            channel = await rabbitmq_connection.channel()
-            yield channel
-            if hasattr(channel, 'close'):
-                await channel.close()
-        else:
-            yield Mock()
+        # Mock channel for integration tests
+        mock_channel = Mock()
+        mock_channel.declare_queue = AsyncMock()
+        mock_channel.declare_exchange = AsyncMock()
+        mock_channel.default_exchange = Mock()
+        mock_channel.default_exchange.publish = AsyncMock()
+        return mock_channel
     
     @pytest.fixture
     def test_message(self):

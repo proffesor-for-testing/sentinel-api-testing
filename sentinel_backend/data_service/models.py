@@ -27,9 +27,9 @@ class TestSuite(Base):
     description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Relationships
-    suite_entries = relationship("TestSuiteEntry", back_populates="test_suite")
-    test_runs = relationship("TestRun", back_populates="test_suite")
+    # Relationships with proper cascade deletion
+    suite_entries = relationship("TestSuiteEntry", back_populates="test_suite", cascade="all, delete-orphan")
+    test_runs = relationship("TestRun", back_populates="test_suite", cascade="all, delete-orphan")
 
 class TestSuiteEntry(Base):
     __tablename__ = "test_suite_entries"

@@ -473,6 +473,77 @@ async def get_test_cases_for_spec(request: Request, spec_id: int) -> List[Dict[s
         response.raise_for_status()
         return response.json()
 
+@app.put("/api/v1/test-cases/{case_id}")
+async def update_test_case(request: Request, case_id: int):
+    """Update a specific test case."""
+    headers = get_correlation_id_headers(request)
+    body = await request.json()
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.put(
+                f"{service_settings.data_service_url}/api/v1/test-cases/{case_id}",
+                json=body,
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+@app.delete("/api/v1/test-cases/{case_id}")
+async def delete_test_case(request: Request, case_id: int):
+    """Delete a specific test case."""
+    headers = get_correlation_id_headers(request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.delete(f"{service_settings.data_service_url}/api/v1/test-cases/{case_id}", headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+@app.post("/api/v1/test-cases/bulk-update")
+async def bulk_update_test_cases(request: Request):
+    """Bulk update test cases (add/remove tags, change status, etc.)."""
+    headers = get_correlation_id_headers(request)
+    body = await request.json()
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.post(
+                f"{service_settings.data_service_url}/api/v1/test-cases/bulk-update",
+                json=body,
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+@app.delete("/api/v1/test-cases/bulk-delete")
+async def bulk_delete_test_cases(request: Request):
+    """Bulk delete test cases with dependency checking."""
+    headers = get_correlation_id_headers(request)
+    body = await request.json()
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.delete(
+                f"{service_settings.data_service_url}/api/v1/test-cases/bulk-delete",
+                json=body,
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
 
 @app.post("/api/v1/test-suites")
 async def create_test_suite(fastapi_request: Request, request: TestSuiteCreateRequest):

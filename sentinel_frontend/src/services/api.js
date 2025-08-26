@@ -128,6 +128,16 @@ export const apiService = {
     return response.data;
   },
 
+  async bulkDeleteTestCases(caseIds, forceDelete = false) {
+    const response = await api.delete('/api/v1/test-cases/bulk-delete', {
+      data: {
+        case_ids: caseIds,
+        force_delete: forceDelete
+      }
+    });
+    return response.data;
+  },
+
   // Test Generation
   async generateTests(requestData) {
     const response = await api.post('/api/v1/generate-tests', requestData);
@@ -199,6 +209,11 @@ export const apiService = {
 
   async getTestRunResults(runId) {
     const response = await api.get(`/api/v1/test-runs/${runId}/results`);
+    return response.data;
+  },
+
+  async deleteTestRun(runId) {
+    const response = await api.delete(`/api/v1/test-runs/${runId}`);
     return response.data;
   },
 

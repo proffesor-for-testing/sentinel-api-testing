@@ -321,6 +321,157 @@ async def bulk_update_test_cases(
             detail=f"Error in bulk update: {str(e)}"
         )
 
+@app.delete("/api/v1/test-cases/bulk-delete")
+async def bulk_delete_test_cases(
+    request_data: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    """Bulk delete test cases with dependency checking."""
+    try:
+        case_ids = request_data.get("case_ids", [])
+        force_delete = request_data.get("force_delete", False)
+        
+        if not case_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="case_ids is required"
+            )
+        
+        if not isinstance(case_ids, list):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="case_ids must be a list of integers"
+            )
+        
+        # Validate that all case_ids are integers
+        try:
+            case_ids = [int(case_id) for case_id in case_ids]
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="All case_ids must be valid integers"
+            )
+        
+        # Get test cases to check they exist
+        result = await db.execute(
+            select(TestCase).where(TestCase.id.in_(case_ids))
+        )
+        test_cases = result.scalars().all()
+        
+        if not test_cases:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No test cases found with provided IDs"
+            )
+        
+        found_case_ids = [tc.id for tc in test_cases]
+        missing_case_ids = [case_id for case_id in case_ids if case_id not in found_case_ids]
+        
+        # Check for dependencies in test suites
+        suite_entries_result = await db.execute(
+            select(TestSuiteEntry).where(TestSuiteEntry.case_id.in_(case_ids))
+        )
+        suite_entries = suite_entries_result.scalars().all()
+        
+        # Check for dependencies in test results
+        test_results_result = await db.execute(
+            select(TestResult).where(TestResult.case_id.in_(case_ids))
+        )
+        test_results = test_results_result.scalars().all()
+        
+        # Collect dependency information
+        dependencies = {
+            "suite_dependencies": [],
+            "result_dependencies": []
+        }
+        
+        if suite_entries:
+            # Get suite names for better user feedback
+            suite_ids = list(set(entry.suite_id for entry in suite_entries))
+            suites_result = await db.execute(
+                select(TestSuite).where(TestSuite.id.in_(suite_ids))
+            )
+            suites = suites_result.scalars().all()
+            suite_names = {suite.id: suite.name for suite in suites}
+            
+            for entry in suite_entries:
+                dependencies["suite_dependencies"].append({
+                    "case_id": entry.case_id,
+                    "suite_id": entry.suite_id,
+                    "suite_name": suite_names.get(entry.suite_id, f"Suite {entry.suite_id}")
+                })
+        
+        if test_results:
+            # Get run information for better user feedback
+            run_ids = list(set(result.run_id for result in test_results))
+            runs_result = await db.execute(
+                select(TestRun).where(TestRun.id.in_(run_ids))
+            )
+            runs = runs_result.scalars().all()
+            
+            for result in test_results:
+                dependencies["result_dependencies"].append({
+                    "case_id": result.case_id,
+                    "run_id": result.run_id,
+                    "result_id": result.id
+                })
+        
+        # If there are dependencies and force_delete is False, return dependency info
+        if (dependencies["suite_dependencies"] or dependencies["result_dependencies"]) and not force_delete:
+            return {
+                "can_delete": False,
+                "message": "Test cases have dependencies that must be handled before deletion",
+                "dependencies": dependencies,
+                "found_cases": len(found_case_ids),
+                "missing_cases": missing_case_ids,
+                "suggestion": "Use force_delete=true to delete test cases and remove them from suites (test results will be preserved)"
+            }
+        
+        # Proceed with deletion
+        deleted_count = 0
+        warnings = []
+        
+        # If force_delete is True, remove from suites first
+        if force_delete and suite_entries:
+            for entry in suite_entries:
+                await db.delete(entry)
+            warnings.append(f"Removed {len(suite_entries)} test case entries from test suites")
+        
+        # Delete the test cases (test results will be preserved due to FK constraints)
+        if force_delete or (not dependencies["suite_dependencies"] and not dependencies["result_dependencies"]):
+            for test_case in test_cases:
+                await db.delete(test_case)
+                deleted_count += 1
+            
+            await db.commit()
+            
+            response = {
+                "message": f"Successfully deleted {deleted_count} test cases",
+                "deleted_count": deleted_count,
+                "deleted_case_ids": found_case_ids,
+                "missing_case_ids": missing_case_ids
+            }
+            
+            if warnings:
+                response["warnings"] = warnings
+                
+            return response
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete test cases with dependencies. Use force_delete=true or remove dependencies first."
+            )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error in bulk delete: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error in bulk delete: {str(e)}"
+        )
+
 # Test Suites endpoints
 @app.post("/api/v1/test-suites", response_model=TestSuiteResponse)
 async def create_test_suite(
@@ -454,12 +605,13 @@ async def delete_test_suite(
     suite_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    """Delete a test suite."""
+    """Delete a test suite and all its related data (test runs, test results, and suite entries)."""
     try:
-        result = await db.execute(
+        # First, check if the test suite exists
+        suite_result = await db.execute(
             select(TestSuite).where(TestSuite.id == suite_id)
         )
-        test_suite = result.scalar_one_or_none()
+        test_suite = suite_result.scalar_one_or_none()
         
         if not test_suite:
             raise HTTPException(
@@ -467,11 +619,40 @@ async def delete_test_suite(
                 detail=f"Test suite with ID {suite_id} not found"
             )
         
-        await db.delete(test_suite)
+        suite_name = test_suite.name
+        
+        # Delete in the correct order to respect foreign key constraints
+        # 1. Delete test results for all runs associated with this suite
+        test_run_ids_result = await db.execute(
+            select(TestRun.id).where(TestRun.suite_id == suite_id)
+        )
+        test_run_ids = [row[0] for row in test_run_ids_result.fetchall()]
+        
+        if test_run_ids:
+            # Delete test results for these runs
+            await db.execute(
+                TestResult.__table__.delete().where(TestResult.run_id.in_(test_run_ids))
+            )
+        
+        # 2. Delete test runs associated with this suite
+        await db.execute(
+            TestRun.__table__.delete().where(TestRun.suite_id == suite_id)
+        )
+        
+        # 3. Delete test suite entries
+        await db.execute(
+            TestSuiteEntry.__table__.delete().where(TestSuiteEntry.suite_id == suite_id)
+        )
+        
+        # 4. Finally, delete the test suite itself
+        await db.execute(
+            TestSuite.__table__.delete().where(TestSuite.id == suite_id)
+        )
+        
         await db.commit()
         
         return DeleteResponse(
-            message=f"Test suite '{test_suite.name}' deleted successfully",
+            message=f"Test suite '{suite_name}' and all related data deleted successfully",
             deleted_id=suite_id
         )
     
@@ -479,6 +660,7 @@ async def delete_test_suite(
         raise
     except Exception as e:
         await db.rollback()
+        logger.error(f"Error deleting test suite {suite_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error deleting test suite: {str(e)}"
@@ -1548,6 +1730,50 @@ async def get_test_run_results(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error retrieving test run results: {str(e)}"
+        )
+
+@app.delete("/api/v1/test-runs/{run_id}", response_model=DeleteResponse)
+async def delete_test_run(run_id: int, db: AsyncSession = Depends(get_db)):
+    """Delete a test run and all its associated results."""
+    try:
+        # Check if test run exists
+        result = await db.execute(
+            select(TestRun).where(TestRun.id == run_id)
+        )
+        test_run = result.scalar_one_or_none()
+        
+        if not test_run:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test run with ID {run_id} not found"
+            )
+        
+        # Delete associated test results first (cascade deletion)
+        results_to_delete = await db.execute(
+            select(TestResult).where(TestResult.run_id == run_id)
+        )
+        test_results = results_to_delete.scalars().all()
+        
+        for test_result in test_results:
+            await db.delete(test_result)
+        
+        # Delete the test run
+        await db.delete(test_run)
+        await db.commit()
+        
+        return DeleteResponse(
+            message=f"Test run {run_id} and {len(test_results)} associated results deleted successfully",
+            deleted_id=run_id
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error deleting test run: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting test run: {str(e)}"
         )
 
 @app.get("/health")

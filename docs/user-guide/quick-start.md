@@ -16,7 +16,7 @@ Before you begin, ensure you have:
 1. Clone the repository:
 ```bash
 git clone https://github.com/proffesor-for-testing/sentinel-api-testing.git
-cd sentinel-api-testing/sentinel_backend
+cd "Agents for API testing"
 ```
 
 2. (Optional) Configure LLM Provider:
@@ -28,20 +28,27 @@ cd scripts
 cd ..
 ```
 
-3. Start all services:
+3. Start all backend services:
 ```bash
 docker-compose up --build
 ```
 
-4. Wait for all services to be ready (typically 30-60 seconds). You'll see log messages indicating each service is running.
+4. Start the frontend (in a separate terminal):
+```bash
+cd sentinel_frontend
+npm install
+npm start
+```
+
+5. Wait for all services to be ready (typically 30-60 seconds). You'll see log messages indicating each service is running.
 
 ### Verify Installation
 
 Open your browser and navigate to:
-- **API Gateway**: http://localhost:8000/docs
-- **Web Interface**: http://localhost:3000 (if frontend is running)
+- **Web Interface**: http://localhost:3000 (primary interface)
+- **API Gateway**: http://localhost:8000/docs (API documentation)
 
-You should see the interactive API documentation.
+You should see the Sentinel dashboard and can log in with the default credentials.
 
 ## Step 2: Authenticate
 
@@ -323,11 +330,11 @@ If tests fail to execute:
 ### LLM Provider Issues
 
 If LLM features aren't working:
-1. Verify API keys are set in `.env` or `docker.env`
-2. Run validation: `python scripts/validate_llm_config.py`
-3. Try switching providers: `./scripts/switch_llm.sh`
+1. Verify API keys are set in `sentinel_backend/.env.docker`
+2. Run validation: `cd sentinel_backend && python scripts/validate_llm_config.py`
+3. Try switching providers: `cd sentinel_backend && ./scripts/switch_llm.sh`
 4. Use deterministic mode as fallback: `./scripts/switch_llm.sh none`
-3. Check the base URL configuration
+5. Check the base URL configuration
 
 ## Getting Help
 

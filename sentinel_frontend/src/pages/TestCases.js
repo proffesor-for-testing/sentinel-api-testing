@@ -47,6 +47,8 @@ const TestCases = () => {
   const [showCreateSuiteModal, setShowCreateSuiteModal] = useState(false);
   const [suiteName, setSuiteName] = useState('');
   const [suiteDescription, setSuiteDescription] = useState('');
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [deleteDependencies, setDeleteDependencies] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -308,6 +310,53 @@ const TestCases = () => {
     }
   };
 
+  const handleBulkDelete = async (forceDelete = false) => {
+    if (selectedCases.size === 0) return;
+    
+    try {
+      setActionLoading(true);
+      const caseIds = Array.from(selectedCases);
+      
+      const response = await apiService.bulkDeleteTestCases(caseIds, forceDelete);
+      
+      if (response.can_delete === false) {
+        // Show dependency confirmation dialog
+        setDeleteDependencies(response);
+        setShowBulkDeleteModal(true);
+        return;
+      }
+      
+      // Success - reload data and clear selection
+      await loadData();
+      setSelectedCases(new Set());
+      setShowBulkDeleteModal(false);
+      setDeleteDependencies(null);
+      
+      // Show success message with warnings if any
+      let message = response.message;
+      if (response.warnings && response.warnings.length > 0) {
+        message += '\n\nWarnings:\n' + response.warnings.join('\n');
+      }
+      
+      alert(message);
+      
+    } catch (err) {
+      console.error('Error in bulk delete:', err);
+      setError('Failed to delete test cases: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const confirmBulkDelete = () => {
+    const count = selectedCases.size;
+    const message = `Are you sure you want to delete ${count} test case${count > 1 ? 's' : ''}?`;
+    
+    if (window.confirm(message)) {
+      handleBulkDelete(false);
+    }
+  };
+
   // Group test cases by agent type for statistics
   const agentStats = testCases.reduce((acc, testCase) => {
     const agentType = testCase.agent_type || 'Unknown';
@@ -489,6 +538,23 @@ const TestCases = () => {
                 >
                   <Users className="h-4 w-4 mr-1" />
                   Bulk Actions ({selectedCases.size})
+                </button>
+                <button
+                  onClick={confirmBulkDelete}
+                  disabled={actionLoading}
+                  className="btn btn-danger btn-sm"
+                >
+                  {actionLoading ? (
+                    <>
+                      <div className="spinner-sm mr-1"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete Selected ({selectedCases.size})
+                    </>
+                  )}
                 </button>
               </div>
             )}
@@ -975,6 +1041,120 @@ const TestCases = () => {
                 </button>
                 <button
                   onClick={() => setShowCreateSuiteModal(false)}
+                  className="inline-flex justify-center w-full px-4 py-2 mt-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && deleteDependencies && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            {/* Background overlay */}
+            <div 
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              onClick={() => setShowBulkDeleteModal(false)}
+            />
+
+            {/* Modal panel */}
+            <div className="relative inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full sm:p-6">
+              <div className="absolute top-0 right-0 pt-4 pr-4">
+                <button
+                  onClick={() => setShowBulkDeleteModal(false)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="sm:flex sm:items-start">
+                <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto bg-red-100 rounded-full sm:mx-0 sm:h-10 sm:w-10">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                  <h3 className="text-lg font-medium leading-6 text-gray-900">
+                    Confirm Bulk Deletion
+                  </h3>
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-500 mb-4">
+                      {deleteDependencies.message}
+                    </p>
+
+                    {/* Test Suite Dependencies */}
+                    {deleteDependencies.dependencies.suite_dependencies.length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-2">
+                          Test Suite Dependencies ({deleteDependencies.dependencies.suite_dependencies.length})
+                        </h4>
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 max-h-32 overflow-y-auto">
+                          {deleteDependencies.dependencies.suite_dependencies.map((dep, index) => (
+                            <div key={index} className="text-sm text-yellow-800">
+                              Test Case {dep.case_id} → {dep.suite_name}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Test Results Dependencies */}
+                    {deleteDependencies.dependencies.result_dependencies.length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-2">
+                          Test Results Dependencies ({deleteDependencies.dependencies.result_dependencies.length})
+                        </h4>
+                        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                          <p className="text-sm text-blue-800">
+                            {deleteDependencies.dependencies.result_dependencies.length} test results will be preserved in the database.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="bg-gray-50 rounded-md p-3 mb-4">
+                      <p className="text-sm text-gray-700">
+                        <strong>Found:</strong> {deleteDependencies.found_cases} test cases
+                      </p>
+                      {deleteDependencies.missing_cases.length > 0 && (
+                        <p className="text-sm text-gray-700">
+                          <strong>Missing:</strong> {deleteDependencies.missing_cases.join(', ')}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                      <p className="text-sm text-red-800">
+                        <strong>Force Delete:</strong> This will delete the test cases and remove them from test suites. Test results will be preserved for historical data.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button
+                  onClick={() => handleBulkDelete(true)}
+                  disabled={actionLoading}
+                  className="inline-flex justify-center w-full px-4 py-2 text-base font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {actionLoading ? (
+                    <>
+                      <div className="spinner-sm mr-2"></div>
+                      Force Deleting...
+                    </>
+                  ) : (
+                    'Force Delete'
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowBulkDeleteModal(false);
+                    setDeleteDependencies(null);
+                  }}
                   className="inline-flex justify-center w-full px-4 py-2 mt-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm"
                 >
                   Cancel
