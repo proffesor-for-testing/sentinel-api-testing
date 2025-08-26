@@ -54,7 +54,7 @@ The platform employs a workforce of specialized AI agents:
 
 1. **Clone and navigate to the project:**
    ```bash
-   cd "Agents for API testing/sentinel_backend"
+   cd "Agents for API testing"
    ```
 
 2. **Set up LLM configuration (required for AI features):**
@@ -67,7 +67,14 @@ The platform employs a workforce of specialized AI agents:
    docker-compose up --build
    ```
 
-4. **Access the platform:**
+4. **Start the frontend (in a separate terminal):**
+   ```bash
+   cd sentinel_frontend
+   npm install
+   npm start
+   ```
+
+5. **Access the platform:**
    - **Frontend Application**: http://localhost:3000
      - Default credentials: `admin@sentinel.com` / `admin123`
    - API Gateway: http://localhost:8000
@@ -101,19 +108,6 @@ The platform includes comprehensive observability features:
   - Service context and metadata
   - Error details and stack traces
 
-### Testing Observability
-
-Run the comprehensive observability test suite:
-```bash
-python test_observability_e2e.py
-```
-
-This validates:
-- ✅ All services are healthy and responding
-- ✅ Correlation ID propagation across services
-- ✅ Prometheus metrics exposure
-- ✅ Jaeger trace collection
-- ✅ End-to-end request flow tracking
 
 ## 🎨 Frontend Features
 
@@ -156,45 +150,61 @@ The platform includes a comprehensive React-based frontend with the following fe
 
 ```
 Agents for API testing/
-├── memory-bank/                    # Project documentation and memory bank
-│   ├── projectbrief.md            # Project overview and objectives
-│   ├── productContext.md          # Problem statement and vision
-│   ├── systemPatterns.md          # Architecture patterns
-│   ├── techContext.md             # Technology stack
-│   ├── activeContext.md           # Current focus and next steps
-│   ├── progress.md                # Implementation roadmap
-│   ├── agent-specifications.md    # Detailed agent capabilities
-│   ├── database-schema.md         # Database design
-│   └── api-design.md              # REST API specifications
-├── sentinel_backend/               # Backend services
-│   ├── docker-compose.yml         # Multi-container orchestration
-│   ├── pyproject.toml             # Python dependencies
-│   ├── api_gateway/               # API Gateway service
-│   ├── spec_service/              # Specification service
-│   ├── orchestration_service/     # Agent orchestration
-│   │   └── agents/                # AI agent implementations
+├── docs/                          # Comprehensive documentation
+│   ├── index.md                  # Documentation hub
+│   ├── user-guide/               # User guides and tutorials
+│   ├── technical-guide/          # Technical architecture docs
+│   ├── api-reference/            # API documentation
+│   ├── deployment/               # Deployment guides
+│   └── troubleshooting/          # Common issues and solutions
+├── memory-bank/                  # Project documentation and memory bank
+│   ├── projectbrief.md          # Project overview and objectives
+│   ├── agent-specifications.md  # Detailed agent capabilities
+│   ├── database-schema.md       # Database design
+│   ├── api-design.md            # REST API specifications
+│   └── progress.md              # Implementation roadmap
+├── sentinel_backend/             # Backend microservices
+│   ├── pyproject.toml           # Python dependencies
+│   ├── config/                  # Centralized configuration
+│   │   └── settings.py          # Environment-specific settings
+│   ├── api_gateway/             # API Gateway service (8000)
+│   ├── auth_service/            # Authentication service (8005)
+│   ├── spec_service/            # Specification service (8001)
+│   ├── orchestration_service/   # Agent orchestration (8002)
+│   │   └── agents/              # AI agent implementations
 │   │       ├── functional_positive_agent.py
 │   │       ├── functional_negative_agent.py
 │   │       ├── functional_stateful_agent.py
 │   │       ├── security_auth_agent.py
 │   │       ├── security_injection_agent.py
-│   │       └── performance_planner_agent.py
-│   ├── execution_service/         # Test execution
-│   └── data_service/              # Data & analytics
-├── sentinel_frontend/              # React-based frontend UI
-│   ├── src/                       # React application source
-│   │   ├── components/            # Reusable UI components
-│   │   ├── pages/                 # Application pages
-│   │   └── services/              # API communication
-│   ├── package.json               # Node.js dependencies
-│   └── tailwind.config.js         # Tailwind CSS configuration
-├── demo_phase2.py                 # Basic functionality demonstration
-├── demo_phase3.py                 # Agent capabilities demonstration
-├── demo_phase3_frontend.py        # Frontend features demonstration
-├── demo_phase4.py                 # Security & performance demonstration
-├── demo_rbac.py                   # RBAC authentication & authorization demonstration
-├── demo_standalone.py             # Standalone demo (no Docker)
-└── .clinerules                    # Development patterns and preferences
+│   │       ├── performance_planner_agent.py
+│   │       └── data_mocking_agent.py
+│   ├── execution_service/       # Test execution service (8003)
+│   ├── data_service/           # Data & analytics service (8004)
+│   ├── llm_providers/          # Multi-LLM provider support
+│   │   ├── providers/          # Provider implementations
+│   │   ├── templates/          # Model-specific templates
+│   │   └── utils/              # Cost tracking, caching
+│   ├── sentinel_rust_core/     # High-performance agent core (8088)
+│   ├── scripts/                # LLM configuration scripts
+│   └── tests/                  # Comprehensive test suite (540+ tests)
+│       ├── unit/               # Unit tests (456 tests)
+│       ├── integration/        # Integration tests (20 tests)
+│       ├── e2e/                # Backend E2E tests (30 tests)
+│       └── performance/        # Performance tests
+├── sentinel_frontend/          # React-based frontend UI
+│   ├── src/                   # React application source
+│   │   ├── components/        # Reusable UI components
+│   │   ├── pages/             # Application pages
+│   │   ├── features/          # Redux slices
+│   │   └── services/          # API communication
+│   ├── e2e/                   # Playwright E2E tests (45+ tests)
+│   ├── package.json           # Node.js dependencies
+│   └── tailwind.config.js     # Tailwind CSS configuration
+├── docker-compose.yml         # Main Docker orchestration
+├── demo_*.py                  # Demonstration scripts
+├── scripts/                   # Utility scripts
+└── CLAUDE.md                  # SPARC development configuration
 ```
 
 
@@ -293,7 +303,7 @@ For detailed configuration options and scripts, see:
    - Default credentials: `admin@sentinel.com` / `admin123`
 
 **Note**: The frontend requires the backend services to be running. You can either:
-- Use Docker Compose to start all backend services: `docker-compose up` (from `sentinel_backend/`)
+- Use Docker Compose to start all backend services: `docker-compose up` (from project root)
 - Run individual backend services manually as shown above
 
 ### Configuration Management
@@ -450,13 +460,14 @@ For production deployments:
 
 The platform includes a comprehensive testing infrastructure with **539+ tests** covering all critical components across unit, integration, and end-to-end test levels:
 
-#### Current Test Statistics (Updated: August 20, 2025)
-- **Total Tests**: 539+ comprehensive tests
+#### Current Test Statistics (Updated: August 2025)
+- **Total Tests**: 540+ comprehensive tests
 - **Overall Pass Rate**: 97.8%
 - **Test Distribution**:
-  - Unit Tests: ~465 tests (86%)
-  - Integration Tests: ~20 tests (4%)
-  - E2E Tests: ~54 tests (10%)
+  - Unit Tests: 456 tests (84%)
+  - Integration Tests: 20 tests (4%)
+  - Backend E2E Tests: 30 tests (6%)
+  - Frontend E2E Tests: 45+ tests (8%)
 
 #### Test Coverage
 - **AI Agents**: 184 tests covering all 8 specialized agents with comprehensive unit testing (Phase 1 Complete)

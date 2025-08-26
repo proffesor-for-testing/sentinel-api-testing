@@ -15,7 +15,7 @@ from faker import Faker
 from faker.providers import BaseProvider
 import uuid
 
-from .base_agent import BaseAgent
+from .base_agent import BaseAgent, AgentTask, AgentResult
 from sentinel_backend.config.settings import get_application_settings
 
 # Get configuration
@@ -120,70 +120,72 @@ class DataMockingAgent(BaseAgent):
             'time': lambda: self.fake.time(),
         }
     
-    async def execute(self, specification: Dict, config: Dict = None) -> Dict:
+    async def execute(self, task: 'AgentTask', api_spec: Dict[str, Any]) -> 'AgentResult':
         """
-        Generate mock data based on API specification
+        Execute data mocking agent to generate realistic test data.
         
         Args:
-            specification: Parsed API specification
-            config: Configuration options for data generation
+            task: The agent task containing execution parameters
+            api_spec: The parsed API specification
             
         Returns:
-            Dictionary containing generated mock data and metadata
+            AgentResult containing generated test cases with mock data
         """
-        config = config or {}
-        strategy = config.get('strategy', 'realistic')
-        count = config.get('count', self.default_count)
-        seed = config.get('seed')
-        
-        if seed:
-            Faker.seed(seed)
-            random.seed(seed)
-        
         try:
+            self.logger.info(f"Data Mocking Agent executing task {task.task_id}")
+            
+            # Get configuration from task parameters
+            config = task.parameters
+            strategy = config.get('strategy', 'realistic')
+            count = config.get('count', self.default_count)
+            seed = config.get('seed')
+            
+            if seed:
+                Faker.seed(seed)
+                random.seed(seed)
+            
             # Analyze specification
-            analysis = self._analyze_specification(specification)
+            analysis = self._analyze_specification(api_spec)
             
-            # Generate mock data for each endpoint
-            mock_data = {}
-            for path, methods in specification.get('paths', {}).items():
-                mock_data[path] = {}
-                
-                for method, operation in methods.items():
-                    if method.lower() in ['get', 'post', 'put', 'patch', 'delete']:
-                        mock_data[path][method] = await self._generate_operation_data(
-                            operation, analysis, strategy, count
-                        )
+            # Generate test cases with mock data
+            test_cases = await self._generate_data_test_cases(api_spec, analysis, strategy, count)
             
-            # Generate global mock data
-            global_data = await self._generate_global_data(specification, analysis, strategy, count)
-            
-            return {
-                'agent_type': self.agent_type,
-                'strategy': strategy,
-                'mock_data': mock_data,
-                'global_data': global_data,
-                'analysis': analysis,
-                'metadata': {
+            return AgentResult(
+                task_id=task.task_id,
+                agent_type=self.agent_type,
+                status="success",
+                test_cases=test_cases,
+                metadata={
+                    'total_test_cases': len(test_cases),
+                    'strategy': strategy,
+                    'data_count': count,
                     'total_endpoints': len([
                         (path, method) 
-                        for path, methods in specification.get('paths', {}).items()
+                        for path, methods in api_spec.get('paths', {}).items()
                         for method in methods.keys()
                         if method.lower() in ['get', 'post', 'put', 'patch', 'delete']
                     ]),
                     'schemas_analyzed': len(analysis.get('schemas', {})),
                     'data_relationships': len(analysis.get('relationships', [])),
-                    'generation_timestamp': datetime.now().isoformat()
-                }
-            }
+                    'generation_strategy': strategy,
+                    'seed_used': seed is not None,
+                    'llm_enhanced': self.llm_enabled,
+                    'llm_provider': getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
+                    'llm_model': getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
+                },
+                error_message=None
+            )
             
         except Exception as e:
-            return {
-                'agent_type': self.agent_type,
-                'error': f"Data mocking failed: {str(e)}",
-                'mock_data': {},
-                'analysis': {}
-            }
+            self.logger.error(f"Error in Data Mocking Agent: {str(e)}")
+            return AgentResult(
+                task_id=task.task_id,
+                agent_type=self.agent_type,
+                status="failed",
+                test_cases=[],
+                metadata={},
+                error_message=str(e)
+            )
     
     def _analyze_specification(self, specification: Dict) -> Dict:
         """Analyze API specification to understand data requirements"""
@@ -425,6 +427,189 @@ class DataMockingAgent(BaseAgent):
                 global_data['test_entities'][schema_name].append(entity)
         
         return global_data
+    
+    async def _generate_data_test_cases(self, api_spec: Dict[str, Any], analysis: Dict, strategy: str, count: int) -> List[Dict[str, Any]]:
+        """
+        Generate test cases with mock data for API endpoints.
+        
+        Args:
+            api_spec: The API specification
+            analysis: Analysis of the API spec
+            strategy: Data generation strategy
+            count: Number of variations to generate
+            
+        Returns:
+            List of test cases with mock data
+        """
+        test_cases = []
+        
+        # Generate test cases for each endpoint
+        paths = api_spec.get('paths', {})
+        
+        for path, operations in paths.items():
+            for method, operation_spec in operations.items():
+                if method.lower() in ['get', 'post', 'put', 'patch', 'delete']:
+                    # Generate test cases with different data strategies
+                    endpoint_cases = await self._generate_endpoint_data_cases(
+                        path, method, operation_spec, analysis, strategy, count
+                    )
+                    test_cases.extend(endpoint_cases)
+        
+        # If LLM is enabled, generate additional creative test cases
+        if self.llm_enabled and test_cases:
+            self.logger.info("Generating LLM-enhanced data test cases")
+            llm_cases = await self._generate_llm_data_cases(test_cases[:3], api_spec, analysis)
+            test_cases.extend(llm_cases)
+        
+        return test_cases
+    
+    async def _generate_endpoint_data_cases(self, path: str, method: str, operation_spec: Dict[str, Any], 
+                                          analysis: Dict, strategy: str, count: int) -> List[Dict[str, Any]]:
+        """Generate test cases for a specific endpoint with mock data."""
+        test_cases = []
+        
+        # Generate request body data if needed
+        mock_bodies = []
+        request_body = operation_spec.get('requestBody', {})
+        if request_body and method.upper() in ['POST', 'PUT', 'PATCH']:
+            content = request_body.get('content', {})
+            for media_type, media_def in content.items():
+                if media_type == 'application/json':
+                    schema = media_def.get('schema', {})
+                    for i in range(min(count, 3)):  # Generate multiple variations
+                        mock_body = await self._generate_from_schema(schema, analysis, strategy)
+                        mock_bodies.append(mock_body)
+        
+        # Generate query parameters
+        mock_query_params = []
+        parameters = operation_spec.get('parameters', [])
+        query_params = [p for p in parameters if p.get('in') == 'query']
+        
+        if query_params:
+            for i in range(min(count, 3)):
+                params = {}
+                for param in query_params:
+                    param_schema = param.get('schema', {})
+                    param_value = await self._generate_from_schema(param_schema, analysis, strategy)
+                    if param_value is not None:
+                        params[param.get('name')] = param_value
+                mock_query_params.append(params)
+        
+        # Generate path parameters
+        path_params = {}
+        path_parameters = [p for p in parameters if p.get('in') == 'path']
+        for param in path_parameters:
+            param_schema = param.get('schema', {})
+            param_value = await self._generate_from_schema(param_schema, analysis, strategy)
+            if param_value is not None:
+                path_params[param.get('name')] = param_value
+        
+        # Create test cases with different data combinations
+        strategies_to_test = ['realistic']
+        if strategy == 'all':
+            strategies_to_test = ['realistic', 'edge_cases', 'boundary']
+        elif strategy != 'realistic':
+            strategies_to_test = [strategy]
+        
+        for test_strategy in strategies_to_test:
+            # Basic test case
+            test_case = {
+                'test_name': f'Data Mock Test: {method.upper()} {path} - {test_strategy} data',
+                'test_type': 'data-mocking',
+                'test_subtype': test_strategy,
+                'method': method.upper(),
+                'path': path,
+                'headers': {'Content-Type': 'application/json', 'Accept': 'application/json'},
+                'path_params': path_params,
+                'query_params': mock_query_params[0] if mock_query_params else {},
+                'body': mock_bodies[0] if mock_bodies else None,
+                'expected_status_codes': [200, 201, 202, 204],
+                'mock_data': {
+                    'strategy': test_strategy,
+                    'variations': {
+                        'request_bodies': mock_bodies[:3] if mock_bodies else [],
+                        'query_params': mock_query_params[:3],
+                        'path_params': [path_params]
+                    }
+                },
+                'assertions': [
+                    {
+                        'type': 'status_code_range',
+                        'min': 200,
+                        'max': 299
+                    },
+                    {
+                        'type': 'response_format',
+                        'format': 'json'
+                    }
+                ],
+                'tags': ['data-mocking', test_strategy, f'{method.lower()}-method']
+            }
+            
+            test_cases.append(test_case)
+            
+            # Add variations with different data
+            for i, body in enumerate(mock_bodies[1:], 2):
+                if i <= count:
+                    variation_case = test_case.copy()
+                    variation_case['test_name'] = f'Data Mock Test: {method.upper()} {path} - {test_strategy} data variation {i}'
+                    variation_case['body'] = body
+                    if i <= len(mock_query_params):
+                        variation_case['query_params'] = mock_query_params[i-1]
+                    test_cases.append(variation_case)
+        
+        return test_cases
+    
+    async def _generate_llm_data_cases(self, sample_cases: List[Dict[str, Any]], 
+                                     api_spec: Dict[str, Any], analysis: Dict) -> List[Dict[str, Any]]:
+        """
+        Generate additional creative test cases using LLM.
+        
+        LLM can create more realistic and contextually appropriate test data.
+        """
+        if not self.llm_enabled:
+            return []
+        
+        llm_cases = []
+        
+        for case in sample_cases:
+            # Create prompt for creative data generation
+            prompt = f"""Generate creative and realistic test data for this API endpoint:
+
+Method: {case['method']}
+Path: {case['path']}
+Current test data: {json.dumps(case.get('body', {}), indent=2)}
+
+Generate:
+1. More realistic business data that fits the context
+2. Edge cases with valid but unusual data
+3. Data that tests relationships between fields
+4. Industry-specific realistic examples
+
+Focus on creating data that would be used in real-world scenarios."""
+
+            system_prompt = """You are an expert in API testing and data generation.
+Generate realistic, contextually appropriate test data that reflects real-world usage patterns.
+Ensure data maintains proper relationships and constraints."""
+
+            # Get LLM-generated data
+            llm_response = await self.enhance_with_llm(
+                case,
+                prompt,
+                system_prompt=system_prompt,
+                temperature=0.7
+            )
+            
+            # Convert to test case
+            if isinstance(llm_response, dict) and 'test_name' in llm_response:
+                llm_case = case.copy()
+                llm_case.update(llm_response)
+                llm_case['test_name'] = f"[LLM] {llm_case['test_name']}"
+                llm_case['test_subtype'] = 'llm_generated'
+                llm_case['tags'] = llm_case.get('tags', []) + ['llm-generated']
+                llm_cases.append(llm_case)
+        
+        return llm_cases
     
     async def _generate_from_schema(self, schema: Dict, analysis: Dict, strategy: str) -> Any:
         """Generate data from a schema definition"""

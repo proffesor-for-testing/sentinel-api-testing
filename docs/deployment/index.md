@@ -68,16 +68,16 @@ This guide provides comprehensive instructions for deploying Sentinel in various
 1. **Clone the repository:**
 ```bash
 git clone https://github.com/proffesor-for-testing/sentinel-api-testing.git
-cd sentinel-api-testing/sentinel_backend
+cd "Agents for API testing"
 ```
 
 2. **Configure environment:**
 ```bash
 # Copy environment template
-cp .env.docker .env
+cp sentinel_backend/.env.docker sentinel_backend/.env
 
 # Edit configuration
-nano .env
+nano sentinel_backend/.env
 ```
 
 3. **Start services:**

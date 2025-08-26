@@ -11,7 +11,8 @@ import {
   Filter,
   Search,
   Calendar,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { apiService } from '../services/api';
 
@@ -29,6 +30,8 @@ const TestRuns = () => {
     target_environment: ''
   });
   const [createLoading, setCreateLoading] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ show: false, runId: null, runName: '' });
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     loadTestRuns();
@@ -92,6 +95,35 @@ const TestRuns = () => {
     } finally {
       setCreateLoading(false);
     }
+  };
+
+  const handleDeleteTestRun = async () => {
+    if (!deleteModal.runId) return;
+
+    try {
+      setDeleteLoading(true);
+      await apiService.deleteTestRun(deleteModal.runId);
+      
+      // Close modal and reload test runs
+      setDeleteModal({ show: false, runId: null, runName: '' });
+      loadTestRuns();
+      
+      // Show success message
+      alert('Test run deleted successfully');
+    } catch (err) {
+      console.error('Error deleting test run:', err);
+      alert('Failed to delete test run. Please try again.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const openDeleteModal = (run) => {
+    setDeleteModal({ 
+      show: true, 
+      runId: run.id, 
+      runName: `Test Run #${run.id}` 
+    });
   };
 
   const getStatusIcon = (status) => {
@@ -288,6 +320,13 @@ const TestRuns = () => {
                     >
                       View Details
                     </Link>
+                    <button
+                      onClick={() => openDeleteModal(run)}
+                      className="btn btn-danger btn-sm"
+                      title="Delete test run"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -489,6 +528,65 @@ const TestRuns = () => {
                 </button>
                 <button
                   onClick={() => setShowCreateModal(false)}
+                  className="inline-flex justify-center w-full px-4 py-2 mt-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.show && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            {/* Background overlay */}
+            <div 
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              onClick={() => setDeleteModal({ show: false, runId: null, runName: '' })}
+            />
+
+            {/* Modal panel */}
+            <div className="relative inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <div className="absolute top-0 right-0 pt-4 pr-4">
+                <button
+                  onClick={() => setDeleteModal({ show: false, runId: null, runName: '' })}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="sm:flex sm:items-start">
+                <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto bg-danger-100 rounded-full sm:mx-0 sm:h-10 sm:w-10">
+                  <Trash2 className="w-6 h-6 text-danger-600" />
+                </div>
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                  <h3 className="text-lg font-medium leading-6 text-gray-900">
+                    Delete Test Run
+                  </h3>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">
+                      Are you sure you want to delete <strong>{deleteModal.runName}</strong>? 
+                      This action will permanently remove the test run and all its associated 
+                      test results. This action cannot be undone.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button
+                  onClick={handleDeleteTestRun}
+                  disabled={deleteLoading}
+                  className="inline-flex justify-center w-full px-4 py-2 text-base font-medium text-white bg-danger-600 border border-transparent rounded-md shadow-sm hover:bg-danger-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-danger-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deleteLoading ? 'Deleting...' : 'Delete Test Run'}
+                </button>
+                <button
+                  onClick={() => setDeleteModal({ show: false, runId: null, runName: '' })}
                   className="inline-flex justify-center w-full px-4 py-2 mt-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm"
                 >
                   Cancel

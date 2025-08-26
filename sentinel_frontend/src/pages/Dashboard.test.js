@@ -40,14 +40,14 @@ describe('Dashboard', () => {
   it('renders dashboard with data after successful fetch', async () => {
     const mockData = {
       dashboard_stats: {
-        totalSpecs: 10,
-        totalTestRuns: 20,
-        totalTestCases: 30,
-        successRate: 85,
-        recentRuns: [],
-        agentDistribution: { 'Functional-Positive-Agent': 30 },
+        total_test_cases: 30,
+        total_test_runs: 20,
+        total_test_suites: 5,
+        success_rate: 0.85,
+        recent_runs: [],
+        agent_distribution: { 'Functional-Positive-Agent': 30 },
       },
-      recent_specifications: [],
+      recent_specifications: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // 10 specs
     };
     apiService.get.mockResolvedValue(mockData);
 
@@ -55,14 +55,15 @@ describe('Dashboard', () => {
 
     expect(await screen.findByText('API Specifications')).toBeInTheDocument();
 
-    expect(screen.getByText('10')).toBeInTheDocument();
-    expect(screen.getByText('20')).toBeInTheDocument();
-    expect(screen.getByText('30')).toBeInTheDocument();
-    expect(screen.getByText('85%')).toBeInTheDocument();
+    expect(screen.getByText('10')).toBeInTheDocument(); // spec count
+    expect(screen.getByText('20')).toBeInTheDocument(); // test runs
+    expect(screen.getByText('30')).toBeInTheDocument(); // test cases
+    expect(screen.getByText('85%')).toBeInTheDocument(); // success rate
   });
 
   it('renders error state on fetch failure', async () => {
-    apiService.get.mockRejectedValue(new Error('Failed to fetch'));
+    const mockError = { message: 'Failed to fetch' };
+    apiService.get.mockRejectedValue(mockError);
     render(<Dashboard />, { wrapper });
 
     expect(await screen.findByText(/Error/i)).toBeInTheDocument();

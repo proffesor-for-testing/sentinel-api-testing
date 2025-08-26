@@ -105,9 +105,11 @@ class TestRootAndHealthEndpoints:
             mock_client_instance.__aenter__.return_value = mock_client_instance
             mock_client_instance.__aexit__.return_value = None
             
-            # Mock one service failing
+            # Mock one service failing - target the spec service specifically
             async def async_side_effect(url):
-                if "spec" in url:
+                # Check for the actual spec service URL pattern
+                url_str = str(url)
+                if "spec_service:8001" in url_str or "/spec_service:8001" in url_str or url_str.endswith(":8001/"):
                     raise httpx.RequestError("Connection failed", request=None)
                 mock_response = Mock()
                 mock_response.status_code = 200

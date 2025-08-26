@@ -209,3 +209,7 @@ sentinel_backend/.claude-flow/
 sentinel_frontend/.claude-flow/
 .roo
 petstore_api/
+
+# Playwright test artifacts
+sentinel_frontend/playwright-report/
+sentinel_frontend/test-results/

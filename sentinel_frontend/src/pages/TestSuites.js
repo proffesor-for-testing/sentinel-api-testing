@@ -215,17 +215,60 @@ const TestSuites = () => {
   };
 
   const handleDeleteSuite = async (suiteId, suiteName) => {
-    if (!window.confirm(`Are you sure you want to delete the test suite "${suiteName}"?`)) {
+    const confirmMessage = `Are you sure you want to delete the test suite "${suiteName}"?\n\nThis will also delete:\n• All test runs associated with this suite\n• All test results for those runs\n• All suite-test case associations\n\nThis action cannot be undone.`;
+    
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
     try {
       setActionLoading(true);
-      await apiService.deleteTestSuite(suiteId);
-      loadTestSuites();
+      const result = await apiService.deleteTestSuite(suiteId);
+      
+      // Show success message
+      if (result && result.message) {
+        // Use a temporary success notification instead of alert
+        console.log('Success:', result.message);
+      }
+      
+      // If the deleted suite was expanded, clear the expansion
+      if (expandedSuite === suiteId) {
+        setExpandedSuite(null);
+      }
+      
+      // Reload the test suites list
+      await loadTestSuites();
+      
     } catch (err) {
       console.error('Error deleting test suite:', err);
-      alert('Failed to delete test suite. Please try again.');
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to delete test suite. Please try again.';
+      
+      if (err.response) {
+        switch (err.response.status) {
+          case 404:
+            errorMessage = 'Test suite not found. It may have already been deleted.';
+            break;
+          case 403:
+            errorMessage = 'You do not have permission to delete this test suite.';
+            break;
+          case 500:
+            errorMessage = 'Server error occurred while deleting the test suite. Please try again later.';
+            break;
+          default:
+            if (err.response.data && err.response.data.detail) {
+              errorMessage = `Error: ${err.response.data.detail}`;
+            }
+        }
+      } else if (err.message) {
+        errorMessage = `Network error: ${err.message}`;
+      }
+      
+      alert(errorMessage);
+      
+      // Refresh the list in case the suite was actually deleted despite the error
+      await loadTestSuites();
     } finally {
       setActionLoading(false);
     }
@@ -453,9 +496,15 @@ const TestSuites = () => {
                               </button>
                               <button
                                 onClick={() => handleDeleteSuite(suite.id, suite.name)}
+                                disabled={actionLoading}
                                 className="btn btn-danger btn-sm"
+                                title="Delete test suite and all related data"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                {actionLoading ? (
+                                  <RefreshCw className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
                               </button>
                             </>
                           )}
