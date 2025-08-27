@@ -69,10 +69,16 @@ USE_RUST_AGENTS = getattr(app_settings, 'use_rust_agents', True)
 task_status_store = {}
 
 # Agents that are available in Rust
+# All agents now have Rust implementations for better performance
 RUST_AVAILABLE_AGENTS = {
     "Functional-Positive-Agent",
-    "data-mocking",
+    "Functional-Negative-Agent",
+    "Functional-Stateful-Agent",
     "Security-Auth-Agent",
+    "Security-Injection-Agent",
+    "Performance-Planner-Agent",
+    "data-mocking",
+    # Note: Data-Mocking-Agent maps to "data-mocking" in Rust
 }
 
 
@@ -280,12 +286,18 @@ async def generate_tests(fastapi_request: Request, request: TestGenerationReques
                 target_environment=request.target_environment
             )
             
+            # Map Python agent names to Rust agent names if needed
+            rust_agent_type = "data-mocking" if agent_type == "Data-Mocking-Agent" else agent_type
+            
             # Determine whether to use Rust or Python agent
-            use_rust = rust_available and agent_type in RUST_AVAILABLE_AGENTS
+            use_rust = rust_available and (agent_type in RUST_AVAILABLE_AGENTS or rust_agent_type in RUST_AVAILABLE_AGENTS)
             
             if use_rust:
                 logger.info(f"Using Rust agent for {agent_type}")
-                result = await execute_rust_agent(fastapi_request, agent_type, agent_task, api_spec)
+                # Use mapped name for Rust agent if needed
+                if rust_agent_type != agent_type:
+                    agent_task.agent_type = rust_agent_type
+                result = await execute_rust_agent(fastapi_request, rust_agent_type, agent_task, api_spec)
             else:
                 if agent_type not in python_agents:
                     logger.warning(f"Unknown agent type: {agent_type}")
@@ -390,12 +402,18 @@ async def execute_test_generation_task(
                 target_environment=request.target_environment
             )
             
+            # Map Python agent names to Rust agent names if needed
+            rust_agent_type = "data-mocking" if agent_type == "Data-Mocking-Agent" else agent_type
+            
             # Determine whether to use Rust or Python agent
-            use_rust = rust_available and agent_type in RUST_AVAILABLE_AGENTS
+            use_rust = rust_available and (agent_type in RUST_AVAILABLE_AGENTS or rust_agent_type in RUST_AVAILABLE_AGENTS)
             
             if use_rust:
                 logger.info(f"Using Rust agent for {agent_type}")
-                result = await execute_rust_agent(fastapi_request, agent_type, agent_task, api_spec)
+                # Use mapped name for Rust agent if needed
+                if rust_agent_type != agent_type:
+                    agent_task.agent_type = rust_agent_type
+                result = await execute_rust_agent(fastapi_request, rust_agent_type, agent_task, api_spec)
             else:
                 if agent_type not in python_agents:
                     logger.warning(f"Unknown agent type: {agent_type}")

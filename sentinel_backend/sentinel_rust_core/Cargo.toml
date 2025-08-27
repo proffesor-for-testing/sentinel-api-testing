@@ -5,6 +5,14 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "sentinel-rust-core"
+path = "src/main.rs"
+
+[lib]
+name = "sentinel_rust_core"
+path = "src/lib.rs"
+
 [dependencies]
 actix-web = "4"
 tokio = { version = "1", features = ["full"] }
