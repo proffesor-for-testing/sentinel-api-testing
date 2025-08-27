@@ -10,8 +10,12 @@ use std::time::Instant;
 use crate::types::{AgentTask, AgentResult, TestCase, EndpointInfo, Assertion};
 
 pub mod functional_positive;
+pub mod functional_negative;
+pub mod functional_stateful;
 pub mod data_mocking;
 pub mod security_auth;
+pub mod security_injection;
+pub mod performance_planner;
 pub mod utils;
 
 /// Base trait that all agents must implement
@@ -45,12 +49,28 @@ impl AgentOrchestrator {
             Box::new(functional_positive::FunctionalPositiveAgent::new()),
         );
         agents.insert(
+            "Functional-Negative-Agent".to_string(),
+            Box::new(functional_negative::FunctionalNegativeAgent::new()),
+        );
+        agents.insert(
+            "Functional-Stateful-Agent".to_string(),
+            Box::new(functional_stateful::FunctionalStatefulAgent::new()),
+        );
+        agents.insert(
             "data-mocking".to_string(),
             Box::new(data_mocking::DataMockingAgent::new()),
         );
         agents.insert(
             "Security-Auth-Agent".to_string(),
             Box::new(security_auth::SecurityAuthAgent::new()),
+        );
+        agents.insert(
+            "Security-Injection-Agent".to_string(),
+            Box::new(security_injection::SecurityInjectionAgent::new()),
+        );
+        agents.insert(
+            "Performance-Planner-Agent".to_string(),
+            Box::new(performance_planner::PerformancePlannerAgent::new()),
         );
         
         Self { agents }
