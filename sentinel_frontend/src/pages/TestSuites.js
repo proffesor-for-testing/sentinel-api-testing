@@ -18,6 +18,9 @@ import {
   FileText
 } from 'lucide-react';
 import { apiService } from '../services/api';
+import NotificationModal from '../components/NotificationModal';
+import ConfirmationModal from '../components/ConfirmationModal';
+import useNotification from '../hooks/useNotification';
 
 const TestSuites = () => {
   const [testSuites, setTestSuites] = useState([]);
@@ -39,6 +42,17 @@ const TestSuites = () => {
   const [selectedTestCaseIds, setSelectedTestCaseIds] = useState([]);
   const [testCaseSearchTerm, setTestCaseSearchTerm] = useState('');
   const [specifications, setSpecifications] = useState([]);
+  
+  // Notification system
+  const { 
+    notification, 
+    confirmation, 
+    showSuccess, 
+    showError, 
+    showWarning, 
+    hideNotification, 
+    confirm 
+  } = useNotification();
 
   useEffect(() => {
     loadTestSuites();
@@ -107,7 +121,7 @@ const TestSuites = () => {
 
   const handleAddTestCasesToSuite = async () => {
     if (selectedTestCaseIds.length === 0) {
-      alert('Please select at least one test case to add');
+      showWarning('Please select at least one test case to add');
       return;
     }
 
@@ -139,7 +153,7 @@ const TestSuites = () => {
       }
     } catch (err) {
       console.error('Error adding test cases to suite:', err);
-      alert('Failed to add test cases. Please try again.');
+      showError('Failed to add test cases. Please try again.');
     } finally {
       setActionLoading(false);
     }
@@ -157,7 +171,7 @@ const TestSuites = () => {
 
   const handleCreateSuite = async () => {
     if (!createForm.name.trim()) {
-      alert('Please enter a suite name');
+      showWarning('Please enter a suite name');
       return;
     }
 
@@ -176,7 +190,7 @@ const TestSuites = () => {
       loadTestSuites();
     } catch (err) {
       console.error('Error creating test suite:', err);
-      alert('Failed to create test suite. Please try again.');
+      showError('Failed to create test suite. Please try again.');
     } finally {
       setActionLoading(false);
     }
@@ -192,7 +206,7 @@ const TestSuites = () => {
 
   const handleSaveEdit = async (suiteId) => {
     if (!editForm.name.trim()) {
-      alert('Suite name cannot be empty');
+      showWarning('Suite name cannot be empty');
       return;
     }
 
@@ -208,7 +222,7 @@ const TestSuites = () => {
       loadTestSuites();
     } catch (err) {
       console.error('Error updating test suite:', err);
-      alert('Failed to update test suite. Please try again.');
+      showError('Failed to update test suite. Please try again.');
     } finally {
       setActionLoading(false);
     }
@@ -217,9 +231,14 @@ const TestSuites = () => {
   const handleDeleteSuite = async (suiteId, suiteName) => {
     const confirmMessage = `Are you sure you want to delete the test suite "${suiteName}"?\n\nThis will also delete:\n• All test runs associated with this suite\n• All test results for those runs\n• All suite-test case associations\n\nThis action cannot be undone.`;
     
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Delete Test Suite',
+      message: confirmMessage,
+      confirmText: 'Delete',
+      confirmStyle: 'danger'
+    });
+    
+    if (!confirmed) return;
 
     try {
       setActionLoading(true);
@@ -265,7 +284,7 @@ const TestSuites = () => {
         errorMessage = `Network error: ${err.message}`;
       }
       
-      alert(errorMessage);
+      showError(errorMessage);
       
       // Refresh the list in case the suite was actually deleted despite the error
       await loadTestSuites();
@@ -275,9 +294,14 @@ const TestSuites = () => {
   };
 
   const handleRemoveTestCase = async (suiteId, caseId) => {
-    if (!window.confirm('Are you sure you want to remove this test case from the suite?')) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Remove Test Case',
+      message: 'Are you sure you want to remove this test case from the suite?',
+      confirmText: 'Remove',
+      confirmStyle: 'warning'
+    });
+    
+    if (!confirmed) return;
 
     try {
       setActionLoading(true);
@@ -303,7 +327,7 @@ const TestSuites = () => {
       loadTestSuites();
     } catch (err) {
       console.error('Error removing test case:', err);
-      alert('Failed to remove test case. Please try again.');
+      showError('Failed to remove test case. Please try again.');
     } finally {
       setActionLoading(false);
     }
@@ -845,6 +869,26 @@ const TestSuites = () => {
           </div>
         </div>
       )}
+      
+      {/* Notification Modal */}
+      <NotificationModal
+        show={notification.show}
+        type={notification.type}
+        message={notification.message}
+        onClose={hideNotification}
+      />
+      
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        show={confirmation.show}
+        title={confirmation.title}
+        message={confirmation.message}
+        confirmText={confirmation.confirmText}
+        cancelText={confirmation.cancelText}
+        confirmStyle={confirmation.confirmStyle}
+        onConfirm={confirmation.onConfirm}
+        onCancel={confirmation.onCancel}
+      />
     </div>
   );
 };

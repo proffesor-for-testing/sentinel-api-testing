@@ -32,6 +32,10 @@ const TestRuns = () => {
   const [createLoading, setCreateLoading] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ show: false, runId: null, runName: '' });
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [selectedRuns, setSelectedRuns] = useState([]);
+  const [bulkDeleteModal, setBulkDeleteModal] = useState(false);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+  const [notification, setNotification] = useState({ show: false, type: '', message: '' });
 
   useEffect(() => {
     loadTestRuns();
@@ -72,7 +76,7 @@ const TestRuns = () => {
 
   const handleCreateTestRun = async () => {
     if (!createForm.suite_id || !createForm.target_environment) {
-      alert('Please select a test suite and enter target environment URL');
+      showNotification('warning', 'Please select a test suite and enter target environment URL');
       return;
     }
 
@@ -89,12 +93,23 @@ const TestRuns = () => {
       
       // Reload test runs
       loadTestRuns();
+      
+      // Show success message
+      showNotification('success', 'Test run created successfully');
     } catch (err) {
       console.error('Error creating test run:', err);
-      alert('Failed to create test run. Please try again.');
+      showNotification('error', 'Failed to create test run. Please try again.');
     } finally {
       setCreateLoading(false);
     }
+  };
+
+  const showNotification = (type, message) => {
+    setNotification({ show: true, type, message });
+    // Auto-hide notification after 5 seconds
+    setTimeout(() => {
+      setNotification({ show: false, type: '', message: '' });
+    }, 5000);
   };
 
   const handleDeleteTestRun = async () => {
@@ -109,10 +124,10 @@ const TestRuns = () => {
       loadTestRuns();
       
       // Show success message
-      alert('Test run deleted successfully');
+      showNotification('success', 'Test run deleted successfully');
     } catch (err) {
       console.error('Error deleting test run:', err);
-      alert('Failed to delete test run. Please try again.');
+      showNotification('error', 'Failed to delete test run. Please try again.');
     } finally {
       setDeleteLoading(false);
     }
@@ -124,6 +139,46 @@ const TestRuns = () => {
       runId: run.id, 
       runName: `Test Run #${run.id}` 
     });
+  };
+
+  const handleSelectRun = (runId) => {
+    setSelectedRuns(prev => {
+      if (prev.includes(runId)) {
+        return prev.filter(id => id !== runId);
+      }
+      return [...prev, runId];
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedRuns.length === filteredRuns.length) {
+      setSelectedRuns([]);
+    } else {
+      setSelectedRuns(filteredRuns.map(run => run.id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedRuns.length === 0) return;
+
+    try {
+      setBulkDeleteLoading(true);
+      const count = selectedRuns.length;
+      await apiService.bulkDeleteTestRuns(selectedRuns);
+      
+      // Close modal, clear selection and reload test runs
+      setBulkDeleteModal(false);
+      setSelectedRuns([]);
+      loadTestRuns();
+      
+      // Show success message
+      showNotification('success', `Successfully deleted ${count} test run${count > 1 ? 's' : ''}`);
+    } catch (err) {
+      console.error('Error deleting test runs:', err);
+      showNotification('error', 'Failed to delete test runs. Please try again.');
+    } finally {
+      setBulkDeleteLoading(false);
+    }
   };
 
   const getStatusIcon = (status) => {
@@ -209,6 +264,15 @@ const TestRuns = () => {
         </div>
         
         <div className="flex items-center space-x-3">
+          {selectedRuns.length > 0 && (
+            <button 
+              onClick={() => setBulkDeleteModal(true)}
+              className="btn btn-danger"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected ({selectedRuns.length})
+            </button>
+          )}
           <button onClick={loadTestRuns} className="btn btn-secondary">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -255,10 +319,35 @@ const TestRuns = () => {
       {/* Test Runs List */}
       {filteredRuns.length > 0 ? (
         <div className="space-y-4">
+          {/* Select All Checkbox */}
+          {testRuns.length > 0 && (
+            <div className="card bg-gray-50 px-4 py-2">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedRuns.length === filteredRuns.length && filteredRuns.length > 0}
+                  onChange={handleSelectAll}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Select All ({filteredRuns.length} runs)
+                </span>
+              </label>
+            </div>
+          )}
+          
           {filteredRuns.map((run) => (
             <div key={run.id} className="card hover:shadow-md transition-shadow duration-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
+                  {/* Checkbox for selection */}
+                  <input
+                    type="checkbox"
+                    checked={selectedRuns.includes(run.id)}
+                    onChange={() => handleSelectRun(run.id)}
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  
                   {getStatusIcon(run.status)}
                   
                   <div>
@@ -592,6 +681,118 @@ const TestRuns = () => {
                   Cancel
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {bulkDeleteModal && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Confirm Bulk Delete</h2>
+              <button
+                onClick={() => setBulkDeleteModal(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="sm:flex sm:items-start">
+              <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto bg-danger-100 rounded-full sm:mx-0 sm:h-10 sm:w-10">
+                <Trash2 className="w-6 h-6 text-danger-600" />
+              </div>
+              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                <h3 className="text-lg font-medium leading-6 text-gray-900">
+                  Delete {selectedRuns.length} Test Runs
+                </h3>
+                <div className="mt-2">
+                  <p className="text-sm text-gray-500">
+                    Are you sure you want to delete <strong>{selectedRuns.length} test runs</strong>? 
+                    This action will permanently remove all selected test runs and their associated 
+                    test results. This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkDeleteLoading}
+                className="inline-flex justify-center w-full px-4 py-2 text-base font-medium text-white bg-danger-600 border border-transparent rounded-md shadow-sm hover:bg-danger-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-danger-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {bulkDeleteLoading ? 'Deleting...' : `Delete ${selectedRuns.length} Runs`}
+              </button>
+              <button
+                onClick={() => setBulkDeleteModal(false)}
+                className="inline-flex justify-center w-full px-4 py-2 mt-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Modal */}
+      {notification.show && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-sm w-full p-6 transform transition-all">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                {notification.type === 'success' && (
+                  <div className="flex-shrink-0 w-10 h-10 bg-success-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="h-6 w-6 text-success-600" />
+                  </div>
+                )}
+                {notification.type === 'error' && (
+                  <div className="flex-shrink-0 w-10 h-10 bg-danger-100 rounded-full flex items-center justify-center">
+                    <XCircle className="h-6 w-6 text-danger-600" />
+                  </div>
+                )}
+                {notification.type === 'warning' && (
+                  <div className="flex-shrink-0 w-10 h-10 bg-warning-100 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="h-6 w-6 text-warning-600" />
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">
+                    {notification.type === 'success' && 'Success'}
+                    {notification.type === 'error' && 'Error'}
+                    {notification.type === 'warning' && 'Warning'}
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setNotification({ show: false, type: '', message: '' })}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="text-sm text-gray-600 mb-4">
+              {notification.message}
+            </div>
+            
+            <div className="flex justify-end">
+              <button
+                onClick={() => setNotification({ show: false, type: '', message: '' })}
+                className={`px-4 py-2 rounded-md text-white font-medium text-sm ${
+                  notification.type === 'success' ? 'bg-success-600 hover:bg-success-700' :
+                  notification.type === 'error' ? 'bg-danger-600 hover:bg-danger-700' :
+                  'bg-warning-600 hover:bg-warning-700'
+                } focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  notification.type === 'success' ? 'focus:ring-success-500' :
+                  notification.type === 'error' ? 'focus:ring-danger-500' :
+                  'focus:ring-warning-500'
+                }`}
+              >
+                OK
+              </button>
             </div>
           </div>
         </div>

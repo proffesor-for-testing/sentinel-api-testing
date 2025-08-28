@@ -13,6 +13,9 @@ import {
   Trash2
 } from 'lucide-react';
 import { apiService } from '../services/api';
+import NotificationModal from '../components/NotificationModal';
+import ConfirmationModal from '../components/ConfirmationModal';
+import useNotification from '../hooks/useNotification';
 
 const Specifications = () => {
   const [specifications, setSpecifications] = useState([]);
@@ -38,6 +41,17 @@ const Specifications = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedSpecForViewing, setSelectedSpecForViewing] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
+  
+  // Notification system
+  const { 
+    notification, 
+    confirmation, 
+    showSuccess, 
+    showError, 
+    showWarning, 
+    hideNotification, 
+    confirm 
+  } = useNotification();
 
   useEffect(() => {
     loadSpecifications();
@@ -63,7 +77,7 @@ const Specifications = () => {
     e.preventDefault();
     
     if (!uploadData.raw_spec.trim()) {
-      alert('Please provide the API specification content');
+      showWarning('Please provide the API specification content');
       return;
     }
 
@@ -75,7 +89,7 @@ const Specifications = () => {
       await loadSpecifications();
     } catch (err) {
       console.error('Error uploading specification:', err);
-      alert('Failed to upload specification. Please check the format and try again.');
+      showError('Failed to upload specification. Please check the format and try again.');
     } finally {
       setUploading(false);
     }
@@ -105,13 +119,23 @@ const Specifications = () => {
       };
       
       const result = await apiService.generateTests(requestData);
-      alert(`Quick test completed! Generated ${result.total_test_cases || 0} test cases with Positive and Negative agents.`);
+      
+      // Show success message with agent breakdown
+      const agentBreakdown = result?.agent_results?.filter(agent => agent.test_cases_generated > 0)
+        .map(agent => `${agent.agent_type.replace('-Agent', '')}: ${agent.test_cases_generated}`)
+        .join(', ') || '';
+      
+      const successMessage = agentBreakdown 
+        ? `Quick test completed! Generated ${result.total_test_cases || 0} test cases (${agentBreakdown})`
+        : `Quick test completed! Generated ${result.total_test_cases || 0} test cases with Positive and Negative agents.`;
+      
+      showSuccess(successMessage);
       
       // Reload specifications to show updated test count if available
       await loadSpecifications();
     } catch (err) {
       console.error('Error running quick test:', err);
-      alert('Failed to run quick test. Please check if all services are running and try again.');
+      showError('Failed to run quick test. Please check if all services are running and try again.');
     }
   };
 
@@ -134,7 +158,7 @@ const Specifications = () => {
 
   const handleGenerateTests = async () => {
     if (!selectedSpecForGeneration || selectedAgents.length === 0) {
-      alert('Please select at least one agent type');
+      showWarning('Please select at least one agent type');
       return;
     }
 
@@ -189,8 +213,16 @@ const Specifications = () => {
       
       setGenerationResult(result);
       
-      // Show success message
-      alert(`Successfully generated ${result?.total_test_cases || 0} test cases!`);
+      // Show success message with agent breakdown
+      const agentBreakdown = result?.agent_results?.filter(agent => agent.test_cases_generated > 0)
+        .map(agent => `${agent.agent_type}: ${agent.test_cases_generated}`)
+        .join(', ') || '';
+      
+      const successMessage = agentBreakdown 
+        ? `Successfully generated ${result?.total_test_cases || 0} test cases! (${agentBreakdown})`
+        : `Successfully generated ${result?.total_test_cases || 0} test cases!`;
+      
+      showSuccess(successMessage);
       
       // Close modal after short delay
       setTimeout(() => {
@@ -203,7 +235,7 @@ const Specifications = () => {
       
     } catch (err) {
       console.error('Error generating tests:', err);
-      alert(err.message || 'Failed to generate tests. Please check if all services are running and try again.');
+      showError(err.message || 'Failed to generate tests. Please check if all services are running and try again.');
       setGenerationProgress('');
     } finally {
       setGenerating(false);
@@ -219,7 +251,7 @@ const Specifications = () => {
       setSelectedSpecForViewing(fullSpec);
     } catch (err) {
       console.error('Error fetching specification details:', err);
-      alert('Failed to load specification details');
+      showError('Failed to load specification details');
       setShowViewModal(false);
     } finally {
       setViewLoading(false);
@@ -227,19 +259,24 @@ const Specifications = () => {
   };
 
   const handleDeleteSpecification = async (specId, specName) => {
-    if (!window.confirm(`Are you sure you want to delete the specification "${specName}"? This action cannot be undone.`)) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Delete Specification',
+      message: `Are you sure you want to delete the specification "${specName}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      confirmStyle: 'danger'
+    });
+    
+    if (!confirmed) return;
 
     try {
       await apiService.deleteSpecification(specId);
       // Reload specifications after successful deletion
       loadSpecifications();
       // Show success message
-      alert(`Specification "${specName}" has been deleted successfully.`);
+      showSuccess(`Specification "${specName}" has been deleted successfully.`);
     } catch (err) {
       console.error('Error deleting specification:', err);
-      alert('Failed to delete specification. Please try again.');
+      showError('Failed to delete specification. Please try again.');
     }
   };
 
@@ -725,11 +762,45 @@ const Specifications = () => {
                       
                       {/* Generation result */}
                       {generationResult && (
-                        <div className="mt-4 p-3 bg-success-50 border border-success-200 rounded-md">
-                          <p className="text-sm text-success-800">
-                            <CheckCircle className="inline h-4 w-4 mr-1" />
-                            Successfully generated {generationResult.total_test_cases || 0} test cases!
-                          </p>
+                        <div className="mt-4 p-4 bg-success-50 border border-success-200 rounded-md">
+                          <div className="flex items-center mb-2">
+                            <CheckCircle className="h-5 w-5 text-success-600 mr-2" />
+                            <h4 className="text-sm font-medium text-success-800">
+                              Successfully generated {generationResult.total_test_cases || 0} test cases!
+                            </h4>
+                          </div>
+                          
+                          {generationResult.agent_results && generationResult.agent_results.length > 0 && (
+                            <div className="mt-3">
+                              <p className="text-xs font-medium text-success-700 mb-2">Results by Agent:</p>
+                              <div className="grid grid-cols-1 gap-2">
+                                {generationResult.agent_results
+                                  .filter(agent => agent.status === 'success' && agent.test_cases_generated > 0)
+                                  .map((agent, index) => (
+                                    <div key={index} className="flex items-center justify-between bg-white px-3 py-2 rounded border border-success-200">
+                                      <span className="text-xs text-gray-700">
+                                        {agent.agent_type.replace('-Agent', '').replace('-', ' ')}
+                                      </span>
+                                      <span className="text-xs font-medium text-success-600">
+                                        {agent.test_cases_generated} tests
+                                      </span>
+                                    </div>
+                                  ))}
+                                {generationResult.agent_results
+                                  .filter(agent => agent.status === 'success' && agent.test_cases_generated === 0)
+                                  .map((agent, index) => (
+                                    <div key={`zero-${index}`} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded border border-gray-200">
+                                      <span className="text-xs text-gray-500">
+                                        {agent.agent_type.replace('-Agent', '').replace('-', ' ')}
+                                      </span>
+                                      <span className="text-xs text-gray-400">
+                                        0 tests (no applicable scenarios)
+                                      </span>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -958,6 +1029,26 @@ const Specifications = () => {
           </div>
         </div>
       </div>
+      
+      {/* Notification Modal */}
+      <NotificationModal
+        show={notification.show}
+        type={notification.type}
+        message={notification.message}
+        onClose={hideNotification}
+      />
+      
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        show={confirmation.show}
+        title={confirmation.title}
+        message={confirmation.message}
+        confirmText={confirmation.confirmText}
+        cancelText={confirmation.cancelText}
+        confirmStyle={confirmation.confirmStyle}
+        onConfirm={confirmation.onConfirm}
+        onCancel={confirmation.onCancel}
+      />
     </div>
   );
 };

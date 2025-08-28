@@ -178,3 +178,6 @@ class HealthSummary(BaseModel):
 class DeleteResponse(BaseModel):
     message: str
     deleted_id: int
+
+class BulkDeleteRequest(BaseModel):
+    run_ids: List[int] = Field(..., description="List of test run IDs to delete")

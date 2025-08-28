@@ -492,20 +492,6 @@ async def update_test_case(request: Request, case_id: int):
         except httpx.RequestError:
             raise HTTPException(status_code=503, detail="Data service is unavailable")
 
-@app.delete("/api/v1/test-cases/{case_id}")
-async def delete_test_case(request: Request, case_id: int):
-    """Delete a specific test case."""
-    headers = get_correlation_id_headers(request)
-    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
-        try:
-            response = await client.delete(f"{service_settings.data_service_url}/api/v1/test-cases/{case_id}", headers=headers)
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
-        except httpx.RequestError:
-            raise HTTPException(status_code=503, detail="Data service is unavailable")
-
 @app.post("/api/v1/test-cases/bulk-update")
 async def bulk_update_test_cases(request: Request):
     """Bulk update test cases (add/remove tags, change status, etc.)."""
@@ -532,11 +518,26 @@ async def bulk_delete_test_cases(request: Request):
     body = await request.json()
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
-            response = await client.delete(
+            response = await client.request(
+                "DELETE",
                 f"{service_settings.data_service_url}/api/v1/test-cases/bulk-delete",
                 json=body,
                 headers=headers
             )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+@app.delete("/api/v1/test-cases/{case_id}")
+async def delete_test_case(request: Request, case_id: int):
+    """Delete a specific test case."""
+    headers = get_correlation_id_headers(request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.delete(f"{service_settings.data_service_url}/api/v1/test-cases/{case_id}", headers=headers)
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -736,6 +737,41 @@ async def get_test_run_results_endpoint(request: Request, run_id: int):
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             response = await client.get(f"{service_settings.data_service_url}/api/v1/test-runs/{run_id}/results", headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+
+@app.delete("/api/v1/test-runs/{run_id}")
+async def delete_test_run(request: Request, run_id: int):
+    """Delete a specific test run."""
+    headers = get_correlation_id_headers(request)
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.delete(f"{service_settings.data_service_url}/api/v1/test-runs/{run_id}", headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Data service is unavailable")
+
+
+@app.post("/api/v1/test-runs/bulk-delete")
+async def bulk_delete_test_runs(request: Request):
+    """Bulk delete test runs."""
+    headers = get_correlation_id_headers(request)
+    body = await request.json()
+    async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
+        try:
+            response = await client.post(
+                f"{service_settings.data_service_url}/api/v1/test-runs/bulk-delete",
+                json=body,
+                headers=headers
+            )
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
