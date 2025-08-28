@@ -217,6 +217,13 @@ export const apiService = {
     return response.data;
   },
 
+  async bulkDeleteTestRuns(runIds) {
+    const response = await api.post('/api/v1/test-runs/bulk-delete', {
+      run_ids: runIds
+    });
+    return response.data;
+  },
+
   // Complete Flow
   async runCompleteFlow(flowData) {
     const response = await api.post('/api/v1/test-complete-flow', flowData);

@@ -15,14 +15,12 @@ import {
   Plus,
   Save,
   X,
-  MoreHorizontal,
-  Copy,
-  Archive,
-  Star,
-  Users,
-  MessageSquare
+  Users
 } from 'lucide-react';
 import { apiService } from '../services/api';
+import NotificationModal from '../components/NotificationModal';
+import ConfirmationModal from '../components/ConfirmationModal';
+import useNotification from '../hooks/useNotification';
 
 const TestCases = () => {
   const [testCases, setTestCases] = useState([]);
@@ -35,6 +33,7 @@ const TestCases = () => {
   });
   const [specifications, setSpecifications] = useState([]);
   const [expandedCase, setExpandedCase] = useState(null);
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'list'
   
   // Collaborative features state
   const [selectedCases, setSelectedCases] = useState(new Set());
@@ -48,6 +47,17 @@ const TestCases = () => {
   const [suiteName, setSuiteName] = useState('');
   const [suiteDescription, setSuiteDescription] = useState('');
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  
+  // Notification system
+  const { 
+    notification, 
+    confirmation, 
+    showSuccess, 
+    showError, 
+    showWarning, 
+    hideNotification, 
+    confirm 
+  } = useNotification();
   const [deleteDependencies, setDeleteDependencies] = useState(null);
 
   useEffect(() => {
@@ -110,9 +120,60 @@ const TestCases = () => {
     return '🧪';
   };
 
+  // Helper function to extract method, endpoint and status from test case
+  const getTestCaseData = (testCase) => {
+    const agentType = testCase.agent_type || '';
+    const testDef = testCase.test_definition || {};
+    
+    // Handle Performance-Planner-Agent which might have different data structure
+    let endpoint = testDef.endpoint || testDef.url || '';
+    let method = testDef.method || testDef.http_method || '';
+    let expectedStatus = testDef.expected_status || testDef.status_code || 0;
+    
+    // For Performance agents, try to extract from metadata or other fields
+    if (agentType === 'Performance-Planner-Agent' && (!method || !endpoint)) {
+      const metadata = testCase.metadata || {};
+      method = method || metadata.method || metadata.http_method || '';
+      endpoint = endpoint || metadata.endpoint || metadata.url || metadata.path || '';
+      expectedStatus = expectedStatus || metadata.expected_status || metadata.status_code || 0;
+      
+      // Try to parse from description if still missing
+      const desc = testCase.description || '';
+      if (!method && desc.includes('GET')) method = 'GET';
+      if (!method && desc.includes('POST')) method = 'POST';
+      if (!method && desc.includes('PUT')) method = 'PUT';
+      if (!method && desc.includes('DELETE')) method = 'DELETE';
+    }
+    
+    return { method, endpoint, expectedStatus };
+  };
+
   const getTestTypeInsight = (testCase) => {
     const description = testCase.description?.toLowerCase() || '';
+    const agentType = testCase.agent_type || '';
+    const testDef = testCase.test_definition || {};
     
+    // Handle Performance-Planner-Agent which might have different data structure
+    let endpoint = testDef.endpoint || testDef.url || '';
+    let method = testDef.method || testDef.http_method || '';
+    let expectedStatus = testDef.expected_status || testDef.status_code || 0;
+    
+    // For Performance agents, try to extract from metadata or other fields
+    if (agentType === 'Performance-Planner-Agent' && (!method || !endpoint)) {
+      const metadata = testCase.metadata || {};
+      method = method || metadata.method || metadata.http_method || '';
+      endpoint = endpoint || metadata.endpoint || metadata.url || metadata.path || '';
+      expectedStatus = expectedStatus || metadata.expected_status || metadata.status_code || 0;
+      
+      // Try to parse from description if still missing
+      const desc = testCase.description || '';
+      if (!method && desc.includes('GET')) method = 'GET';
+      if (!method && desc.includes('POST')) method = 'POST';
+      if (!method && desc.includes('PUT')) method = 'PUT';
+      if (!method && desc.includes('DELETE')) method = 'DELETE';
+    }
+    
+    // First check description for specific patterns
     if (description.includes('boundary') || description.includes('bva')) {
       return {
         type: 'Boundary Value Analysis',
@@ -139,10 +200,56 @@ const TestCases = () => {
       };
     }
     
+    // If no description match, use agent type for better insights
+    if (agentType === 'Functional-Positive-Agent') {
+      return {
+        type: 'Positive Testing',
+        color: 'text-green-600',
+        description: `Tests ${method} ${endpoint} with valid data expecting ${expectedStatus || 'success'}`
+      };
+    } else if (agentType === 'Functional-Negative-Agent') {
+      return {
+        type: 'Negative Testing',
+        color: 'text-red-600',
+        description: `Tests ${method} ${endpoint} with invalid data expecting error ${expectedStatus || 'response'}`
+      };
+    } else if (agentType === 'Functional-Stateful-Agent') {
+      return {
+        type: 'Stateful Workflow',
+        color: 'text-purple-600',
+        description: `Tests ${method} ${endpoint} as part of multi-step workflow`
+      };
+    } else if (agentType === 'Security-Auth-Agent') {
+      return {
+        type: 'Security Authentication',
+        color: 'text-orange-600',
+        description: `Tests ${method} ${endpoint} for authentication vulnerabilities`
+      };
+    } else if (agentType === 'Security-Injection-Agent') {
+      return {
+        type: 'Security Injection',
+        color: 'text-red-700',
+        description: `Tests ${method} ${endpoint} for injection vulnerabilities`
+      };
+    } else if (agentType === 'Performance-Planner-Agent') {
+      return {
+        type: 'Performance Test',
+        color: 'text-indigo-600',
+        description: `Performance test scenario for ${method || 'API'} ${endpoint || ''}`
+      };
+    } else if (agentType === 'Data-Mocking-Agent') {
+      return {
+        type: 'Data Generation',
+        color: 'text-teal-600',
+        description: `Tests ${method} ${endpoint} with realistic mock data`
+      };
+    }
+    
+    // Fallback with more specific information
     return {
-      type: 'Standard Test',
+      type: method ? `${method} API Test` : 'API Test',
       color: 'text-gray-600',
-      description: 'Standard API test case'
+      description: endpoint ? `Tests ${method} ${endpoint}` : 'API endpoint test'
     };
   };
 
@@ -215,7 +322,14 @@ const TestCases = () => {
   };
 
   const deleteTestCase = async (caseId) => {
-    if (!window.confirm('Are you sure you want to delete this test case?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Test Case',
+      message: 'Are you sure you want to delete this test case?',
+      confirmText: 'Delete',
+      confirmStyle: 'danger'
+    });
+    
+    if (!confirmed) return;
     
     try {
       setActionLoading(true);
@@ -231,7 +345,7 @@ const TestCases = () => {
 
   const handleCreateTestSuite = () => {
     if (selectedCases.size === 0) {
-      alert('Please select test cases to include in the suite');
+      showWarning('Please select test cases to include in the suite');
       return;
     }
     setShowCreateSuiteModal(true);
@@ -239,7 +353,7 @@ const TestCases = () => {
 
   const handleSubmitCreateSuite = async () => {
     if (!suiteName.trim()) {
-      alert('Please enter a suite name');
+      showWarning('Please enter a suite name');
       return;
     }
 
@@ -267,10 +381,10 @@ const TestCases = () => {
       setSelectedCases(new Set());
       setShowCreateSuiteModal(false);
       
-      alert(`Test suite "${suiteName}" created successfully with ${caseIds.length} test cases!`);
+      showSuccess(`Test suite "${suiteName}" created successfully with ${caseIds.length} test cases!`);
     } catch (err) {
       console.error('Error creating test suite:', err);
-      alert('Failed to create test suite. Please try again.');
+      showError('Failed to create test suite. Please try again.');
     } finally {
       setActionLoading(false);
     }
@@ -338,7 +452,7 @@ const TestCases = () => {
         message += '\n\nWarnings:\n' + response.warnings.join('\n');
       }
       
-      alert(message);
+      showSuccess(message);
       
     } catch (err) {
       console.error('Error in bulk delete:', err);
@@ -348,11 +462,18 @@ const TestCases = () => {
     }
   };
 
-  const confirmBulkDelete = () => {
+  const confirmBulkDelete = async () => {
     const count = selectedCases.size;
     const message = `Are you sure you want to delete ${count} test case${count > 1 ? 's' : ''}?`;
     
-    if (window.confirm(message)) {
+    const confirmed = await confirm({
+      title: 'Delete Test Cases',
+      message: message,
+      confirmText: 'Delete',
+      confirmStyle: 'danger'
+    });
+    
+    if (confirmed) {
       handleBulkDelete(false);
     }
   };
@@ -405,6 +526,45 @@ const TestCases = () => {
         </div>
         
         <div className="flex items-center space-x-3">
+          {/* View Mode Toggle */}
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                viewMode === 'cards'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <div className="flex items-center space-x-1">
+                <div className="w-3 h-3 grid grid-cols-2 gap-0.5">
+                  <div className="bg-current w-1 h-1 rounded-sm"></div>
+                  <div className="bg-current w-1 h-1 rounded-sm"></div>
+                  <div className="bg-current w-1 h-1 rounded-sm"></div>
+                  <div className="bg-current w-1 h-1 rounded-sm"></div>
+                </div>
+                <span>Cards</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <div className="flex items-center space-x-1">
+                <div className="w-3 h-3 flex flex-col justify-between">
+                  <div className="bg-current w-full h-0.5"></div>
+                  <div className="bg-current w-full h-0.5"></div>
+                  <div className="bg-current w-full h-0.5"></div>
+                </div>
+                <span>List</span>
+              </div>
+            </button>
+          </div>
+          
           <button onClick={loadData} className="btn btn-secondary">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -635,13 +795,15 @@ const TestCases = () => {
         )}
       </div>
 
-      {/* Test Cases List */}
+      {/* Test Cases Display */}
       {filteredTestCases.length > 0 ? (
-        <div className="space-y-4">
-          {filteredTestCases.map((testCase, index) => {
+        viewMode === 'cards' ? (
+          // Cards View
+          <div className="space-y-4">
+            {filteredTestCases.map((testCase, index) => {
             const testInsight = getTestTypeInsight(testCase);
             const isExpanded = expandedCase === index;
-            const testDef = testCase.test_definition || {};
+            const testData = getTestCaseData(testCase);
             
             return (
               <div key={testCase.id || index} className="card hover:shadow-md transition-shadow duration-200">
@@ -695,25 +857,25 @@ const TestCases = () => {
                         <div>
                           <span className="font-medium text-gray-500">Method:</span>
                           <span className="ml-2 font-mono bg-gray-100 px-2 py-1 rounded">
-                            {testDef.method || 'N/A'}
+                            {testData.method || 'N/A'}
                           </span>
                         </div>
                         <div>
                           <span className="font-medium text-gray-500">Endpoint:</span>
                           <span className="ml-2 font-mono text-gray-900">
-                            {testDef.endpoint || 'N/A'}
+                            {testData.endpoint || 'N/A'}
                           </span>
                         </div>
                         <div>
                           <span className="font-medium text-gray-500">Expected Status:</span>
                           <span className={`ml-2 font-mono px-2 py-1 rounded ${
-                            testDef.expected_status >= 200 && testDef.expected_status < 300 
+                            testData.expectedStatus >= 200 && testData.expectedStatus < 300 
                               ? 'bg-success-100 text-success-800'
-                              : testDef.expected_status >= 400 
+                              : testData.expectedStatus >= 400 
                               ? 'bg-danger-100 text-danger-800'
                               : 'bg-gray-100 text-gray-800'
                           }`}>
-                            {testDef.expected_status || 'N/A'}
+                            {testData.expectedStatus || 'N/A'}
                           </span>
                         </div>
                       </div>
@@ -835,38 +997,38 @@ const TestCases = () => {
                         </h5>
                         
                         <div className="space-y-3">
-                          {testDef.headers && Object.keys(testDef.headers).length > 0 && (
+                          {testCase.test_definition?.headers && Object.keys(testCase.test_definition.headers).length > 0 && (
                             <div>
                               <h6 className="text-xs font-medium text-gray-700 mb-2">Headers:</h6>
                               <div className="code-block">
-                                <pre>{JSON.stringify(testDef.headers, null, 2)}</pre>
+                                <pre>{JSON.stringify(testCase.test_definition.headers, null, 2)}</pre>
                               </div>
                             </div>
                           )}
                           
-                          {testDef.query_params && Object.keys(testDef.query_params).length > 0 && (
+                          {testCase.test_definition?.query_params && Object.keys(testCase.test_definition.query_params).length > 0 && (
                             <div>
                               <h6 className="text-xs font-medium text-gray-700 mb-2">Query Parameters:</h6>
                               <div className="code-block">
-                                <pre>{JSON.stringify(testDef.query_params, null, 2)}</pre>
+                                <pre>{JSON.stringify(testCase.test_definition.query_params, null, 2)}</pre>
                               </div>
                             </div>
                           )}
                           
-                          {testDef.path_params && Object.keys(testDef.path_params).length > 0 && (
+                          {testCase.test_definition?.path_params && Object.keys(testCase.test_definition.path_params).length > 0 && (
                             <div>
                               <h6 className="text-xs font-medium text-gray-700 mb-2">Path Parameters:</h6>
                               <div className="code-block">
-                                <pre>{JSON.stringify(testDef.path_params, null, 2)}</pre>
+                                <pre>{JSON.stringify(testCase.test_definition.path_params, null, 2)}</pre>
                               </div>
                             </div>
                           )}
                           
-                          {testDef.body && (
+                          {testCase.test_definition?.body && (
                             <div>
                               <h6 className="text-xs font-medium text-gray-700 mb-2">Request Body:</h6>
                               <div className="code-block">
-                                <pre>{JSON.stringify(testDef.body, null, 2)}</pre>
+                                <pre>{JSON.stringify(testCase.test_definition.body, null, 2)}</pre>
                               </div>
                             </div>
                           )}
@@ -916,6 +1078,138 @@ const TestCases = () => {
             );
           })}
         </div>
+        ) : (
+          // List View
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <input
+                        type="checkbox"
+                        checked={selectedCases.size === filteredTestCases.length && filteredTestCases.length > 0}
+                        onChange={handleSelectAll}
+                        className="rounded border-gray-300"
+                      />
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Test
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Agent
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Method
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Endpoint
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Spec
+                    </th>
+                    <th className="relative px-6 py-3">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredTestCases.map((testCase, index) => {
+                    const testInsight = getTestTypeInsight(testCase);
+                    const testData = getTestCaseData(testCase);
+                    
+                    return (
+                      <tr key={testCase.id || index} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedCases.has(testCase.id)}
+                            onChange={() => handleSelectCase(testCase.id)}
+                            className="rounded border-gray-300"
+                          />
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <span className="text-lg mr-2">{getTestTypeIcon(testCase.description)}</span>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {testCase.description || `Test Case ${testCase.id || index + 1}`}
+                              </div>
+                              <div className={`text-xs ${testInsight.color}`}>
+                                {testInsight.type}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {testCase.agent_type && getAgentTypeBadge(testCase.agent_type)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="font-mono bg-gray-100 px-2 py-1 rounded text-sm">
+                            {testData.method || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">
+                          {getTestCaseData(testCase).endpoint || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 rounded font-mono text-xs ${
+                            testData.expectedStatus >= 200 && testData.expectedStatus < 300 
+                              ? 'bg-success-100 text-success-800'
+                              : testData.expectedStatus >= 400 
+                              ? 'bg-danger-100 text-danger-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {testData.expectedStatus || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {testCase.spec_id && (
+                            <span className="badge badge-secondary text-xs">
+                              {getSpecificationName(testCase.spec_id)}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center space-x-2 justify-end">
+                            <button
+                              onClick={() => {
+                                // Switch to cards view and expand the case
+                                setViewMode('cards');
+                                setTimeout(() => setExpandedCase(index), 100);
+                              }}
+                              className="text-gray-400 hover:text-gray-600"
+                              title="View Details"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => startEditing(testCase)}
+                              className="text-gray-400 hover:text-gray-600"
+                              title="Edit Test Case"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteTestCase(testCase.id)}
+                              className="text-red-400 hover:text-red-600"
+                              title="Delete Test Case"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
       ) : (
         <div className="card text-center py-12">
           <TestTube className="h-16 w-16 mx-auto text-gray-300 mb-4" />
@@ -1164,6 +1458,26 @@ const TestCases = () => {
           </div>
         </div>
       )}
+      
+      {/* Notification Modal */}
+      <NotificationModal
+        show={notification.show}
+        type={notification.type}
+        message={notification.message}
+        onClose={hideNotification}
+      />
+      
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        show={confirmation.show}
+        title={confirmation.title}
+        message={confirmation.message}
+        confirmText={confirmation.confirmText}
+        cancelText={confirmation.cancelText}
+        confirmStyle={confirmation.confirmStyle}
+        onConfirm={confirmation.onConfirm}
+        onCancel={confirmation.onCancel}
+      />
     </div>
   );
 };

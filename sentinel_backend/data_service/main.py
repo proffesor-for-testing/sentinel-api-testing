@@ -23,7 +23,7 @@ from sentinel_backend.data_service.schemas import (
     TestRunCreate, TestRunResponse, TestRunSummary,
     TestResultCreate, TestResultResponse,
     FailureRateData, LatencyData, HealthSummary,
-    DeleteResponse, RunStatus, TestStatus
+    DeleteResponse, BulkDeleteRequest, RunStatus, TestStatus
 )
 
 # Get configuration settings
@@ -222,112 +222,14 @@ async def update_test_case(
             detail=f"Error updating test case: {str(e)}"
         )
 
-@app.delete("/api/v1/test-cases/{case_id}", response_model=DeleteResponse)
-async def delete_test_case(case_id: int, db: AsyncSession = Depends(get_db)):
-    """Delete a test case."""
-    try:
-        result = await db.execute(
-            select(TestCase).where(TestCase.id == case_id)
-        )
-        test_case = result.scalar_one_or_none()
-        
-        if not test_case:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Test case with ID {case_id} not found"
-            )
-        
-        await db.delete(test_case)
-        await db.commit()
-        
-        return DeleteResponse(
-            message=f"Test case {case_id} deleted successfully",
-            deleted_id=case_id
-        )
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error deleting test case: {str(e)}"
-        )
-
-@app.post("/api/v1/test-cases/bulk-update")
-async def bulk_update_test_cases(
-    updates: dict,
-    db: AsyncSession = Depends(get_db)
-):
-    """Bulk update test cases (add/remove tags, change status, etc.)."""
-    try:
-        case_ids = updates.get("case_ids", [])
-        action = updates.get("action")
-        data = updates.get("data", {})
-        
-        if not case_ids or not action:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="case_ids and action are required"
-            )
-        
-        # Get test cases
-        result = await db.execute(
-            select(TestCase).where(TestCase.id.in_(case_ids))
-        )
-        test_cases = result.scalars().all()
-        
-        if not test_cases:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No test cases found with provided IDs"
-            )
-        
-        updated_count = 0
-        
-        for test_case in test_cases:
-            if action == "add_tags":
-                new_tags = data.get("tags", [])
-                existing_tags = test_case.tags or []
-                test_case.tags = list(set(existing_tags + new_tags))
-                updated_count += 1
-            
-            elif action == "remove_tags":
-                tags_to_remove = data.get("tags", [])
-                existing_tags = test_case.tags or []
-                test_case.tags = [tag for tag in existing_tags if tag not in tags_to_remove]
-                updated_count += 1
-            
-            elif action == "set_tags":
-                test_case.tags = data.get("tags", [])
-                updated_count += 1
-            
-            test_case.updated_at = datetime.utcnow()
-        
-        await db.commit()
-        
-        return {
-            "message": f"Successfully updated {updated_count} test cases",
-            "updated_count": updated_count,
-            "action": action
-        }
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error in bulk update: {str(e)}"
-        )
-
 @app.delete("/api/v1/test-cases/bulk-delete")
 async def bulk_delete_test_cases(
-    request_data: dict,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """Bulk delete test cases with dependency checking."""
     try:
+        request_data = await request.json()
         case_ids = request_data.get("case_ids", [])
         force_delete = request_data.get("force_delete", False)
         
@@ -437,8 +339,15 @@ async def bulk_delete_test_cases(
                 await db.delete(entry)
             warnings.append(f"Removed {len(suite_entries)} test case entries from test suites")
         
-        # Delete the test cases (test results will be preserved due to FK constraints)
+        # Delete test results first to avoid FK constraint violations
         if force_delete or (not dependencies["suite_dependencies"] and not dependencies["result_dependencies"]):
+            # Delete associated test results first
+            if test_results:
+                for result in test_results:
+                    await db.delete(result)
+                warnings.append(f"Deleted {len(test_results)} test results associated with the test cases")
+            
+            # Now delete the test cases
             for test_case in test_cases:
                 await db.delete(test_case)
                 deleted_count += 1
@@ -470,6 +379,105 @@ async def bulk_delete_test_cases(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error in bulk delete: {str(e)}"
+        )
+
+@app.delete("/api/v1/test-cases/{case_id}", response_model=DeleteResponse)
+async def delete_test_case(case_id: int, db: AsyncSession = Depends(get_db)):
+    """Delete a test case."""
+    try:
+        result = await db.execute(
+            select(TestCase).where(TestCase.id == case_id)
+        )
+        test_case = result.scalar_one_or_none()
+        
+        if not test_case:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test case with ID {case_id} not found"
+            )
+        
+        await db.delete(test_case)
+        await db.commit()
+        
+        return DeleteResponse(
+            message=f"Test case {case_id} deleted successfully",
+            deleted_id=case_id
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting test case: {str(e)}"
+        )
+
+@app.post("/api/v1/test-cases/bulk-update")
+async def bulk_update_test_cases(
+    updates: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    """Bulk update test cases (add/remove tags, change status, etc.)."""
+    try:
+        case_ids = updates.get("case_ids", [])
+        action = updates.get("action")
+        data = updates.get("data", {})
+        
+        if not case_ids or not action:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="case_ids and action are required"
+            )
+        
+        # Get test cases
+        result = await db.execute(
+            select(TestCase).where(TestCase.id.in_(case_ids))
+        )
+        test_cases = result.scalars().all()
+        
+        if not test_cases:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No test cases found with provided IDs"
+            )
+        
+        updated_count = 0
+        
+        for test_case in test_cases:
+            if action == "add_tags":
+                new_tags = data.get("tags", [])
+                existing_tags = test_case.tags or []
+                test_case.tags = list(set(existing_tags + new_tags))
+                updated_count += 1
+            
+            elif action == "remove_tags":
+                tags_to_remove = data.get("tags", [])
+                existing_tags = test_case.tags or []
+                test_case.tags = [tag for tag in existing_tags if tag not in tags_to_remove]
+                updated_count += 1
+            
+            elif action == "set_tags":
+                test_case.tags = data.get("tags", [])
+                updated_count += 1
+            
+            test_case.updated_at = datetime.utcnow()
+        
+        await db.commit()
+        
+        return {
+            "message": f"Successfully updated {updated_count} test cases",
+            "updated_count": updated_count,
+            "action": action
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error in bulk update: {str(e)}"
         )
 
 # Test Suites endpoints
@@ -1775,6 +1783,79 @@ async def delete_test_run(run_id: int, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error deleting test run: {str(e)}"
         )
+
+@app.post("/api/v1/test-runs/bulk-delete")
+async def bulk_delete_test_runs(
+    request: BulkDeleteRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Bulk delete test runs and all their associated results.
+    
+    Args:
+        request: Contains run_ids - list of test run IDs to delete
+        db: Database session
+    
+    Returns:
+        Summary of deletion operation
+    """
+    try:
+        if not request.run_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No test run IDs provided"
+            )
+        
+        deleted_runs = []
+        deleted_results_count = 0
+        not_found_ids = []
+        
+        for run_id in request.run_ids:
+            # Check if test run exists
+            result = await db.execute(
+                select(TestRun).where(TestRun.id == run_id)
+            )
+            test_run = result.scalar_one_or_none()
+            
+            if not test_run:
+                not_found_ids.append(run_id)
+                continue
+            
+            # Delete associated test results first
+            results_to_delete = await db.execute(
+                select(TestResult).where(TestResult.run_id == run_id)
+            )
+            test_results = results_to_delete.scalars().all()
+            
+            for test_result in test_results:
+                await db.delete(test_result)
+                deleted_results_count += 1
+            
+            # Delete the test run
+            await db.delete(test_run)
+            deleted_runs.append(run_id)
+        
+        await db.commit()
+        
+        return {
+            "message": f"Successfully deleted {len(deleted_runs)} test runs and {deleted_results_count} associated results",
+            "deleted_run_ids": deleted_runs,
+            "not_found_ids": not_found_ids,
+            "total_requested": len(request.run_ids),
+            "total_deleted": len(deleted_runs),
+            "total_results_deleted": deleted_results_count
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error in bulk delete test runs: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting test runs: {str(e)}"
+        )
+
 
 @app.get("/health")
 async def health_check():
