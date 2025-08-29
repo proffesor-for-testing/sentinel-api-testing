@@ -188,11 +188,11 @@ impl FunctionalPositiveAgent {
         // Resolve schema references
         let resolved_schema = resolve_schema_ref(schema, api_spec);
         
-        Some(self.generate_realistic_object(&resolved_schema))
+        Some(self.generate_realistic_object(&resolved_schema, api_spec))
     }
     
     /// Generate a realistic object based on schema with enhanced data generation
-    fn generate_realistic_object(&self, schema: &Value) -> Value {
+    fn generate_realistic_object(&self, schema: &Value, api_spec: &Value) -> Value {
         if schema.get("type").and_then(|t| t.as_str()) != Some("object") {
             return generate_schema_example(schema);
         }
@@ -214,9 +214,11 @@ impl FunctionalPositiveAgent {
             for (prop_name, prop_schema) in props {
                 // Always include required properties, sometimes include optional ones
                 if required.contains(&prop_name.as_str()) || rng.gen_bool(0.8) {
+                    // Resolve any schema references before generating the value
+                    let resolved_prop_schema = resolve_schema_ref(prop_schema, api_spec);
                     obj.insert(
                         prop_name.clone(),
-                        generate_realistic_property_value(prop_name, prop_schema),
+                        generate_realistic_property_value(prop_name, &resolved_prop_schema),
                     );
                 }
             }

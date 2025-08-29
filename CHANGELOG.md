@@ -5,7 +5,17 @@ All notable changes to the Sentinel API Testing Platform will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-08-22
+## [Unreleased] - 2025-08-29
+
+### Fixed
+- **Rust AI Agent Test Data Generation**
+  - Fixed integer path parameters to use numeric IDs instead of string IDs (e.g., `56` instead of `"usr_6833"`)
+  - Fixed path parameter substitution in test cases (e.g., `/api/v1/pets/56` instead of `/api/v1/pets/{pet_id}`)
+  - Enhanced enum value handling to use valid values from OpenAPI schema
+  - Updated `generate_parameter_value()` in utils.rs to respect schema types (integer vs string)
+  - Updated `generate_schema_example()` to properly select random enum values
+  - Enhanced `generate_realistic_object()` in functional_positive.rs to resolve schema references
+  - Fixed Docker build configuration for sentinel_rust_core (added missing lib.rs creation)
 
 ### Added
 - **Asynchronous Test Generation**

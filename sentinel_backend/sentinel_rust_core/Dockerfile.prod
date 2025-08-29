@@ -9,9 +9,9 @@ WORKDIR /usr/src/sentinel_rust_core
 # Copy the Cargo manifest and lock file from root context
 COPY sentinel_backend/sentinel_rust_core/Cargo.toml ./
 
-# Create a dummy src directory with a main.rs file to cache dependencies.
+# Create a dummy src directory with main.rs and lib.rs files to cache dependencies.
 # This layer will only be rebuilt if Cargo.toml or Cargo.lock changes.
-RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN mkdir src && echo "fn main() {}" > src/main.rs && echo "// lib" > src/lib.rs
 RUN cargo build --release
 RUN rm -f target/release/deps/sentinel_rust_core*
 
