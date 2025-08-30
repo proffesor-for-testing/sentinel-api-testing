@@ -44,11 +44,19 @@ pub fn generate_parameter_value(param_name: &str, schema: &Value) -> Value {
     }
     
     let param_name_lower = param_name.to_lowercase();
-    let _param_type = schema.get("type").and_then(|t| t.as_str()).unwrap_or("string");
+    let param_type = schema.get("type").and_then(|t| t.as_str()).unwrap_or("string");
     
     // Generate realistic values based on common parameter names
     if param_name_lower.contains("id") {
-        return Value::String(generate_realistic_id());
+        // Check if the schema type is integer
+        if param_type == "integer" || param_type == "number" {
+            // Return a numeric ID for integer/number types
+            let mut rng = thread_rng();
+            return Value::Number(serde_json::Number::from(rng.gen_range(1..=100)));
+        } else {
+            // For string IDs, still generate a realistic string ID
+            return Value::String(generate_realistic_id());
+        }
     } else if param_name_lower.contains("email") {
         return Value::String("test@example.com".to_string());
     } else if param_name_lower.contains("name") {
@@ -76,7 +84,12 @@ pub fn generate_schema_example(schema: &Value) -> Value {
     match schema_type {
         "string" => {
             if let Some(enum_values) = schema.get("enum").and_then(|e| e.as_array()) {
-                return enum_values.first().unwrap_or(&Value::String("example".to_string())).clone();
+                if !enum_values.is_empty() {
+                    // Pick a random enum value for more variety in positive tests
+                    let mut rng = thread_rng();
+                    let index = rng.gen_range(0..enum_values.len());
+                    return enum_values[index].clone();
+                }
             }
             Value::String("example_string".to_string())
         }
@@ -128,6 +141,25 @@ pub fn generate_realistic_property_value(prop_name: &str, schema: &Value) -> Val
     // Use existing example if available
     if let Some(example) = schema.get("example") {
         return example.clone();
+    }
+    
+    // Check if this is a reference to an enum (e.g., for category)
+    // The schema might have an anyOf with a $ref to an enum
+    if let Some(any_of) = schema.get("anyOf").and_then(|a| a.as_array()) {
+        for item in any_of {
+            // Skip null type
+            if item.get("type").and_then(|t| t.as_str()) == Some("null") {
+                continue;
+            }
+            // If there's an enum directly, use it
+            if let Some(enum_values) = item.get("enum").and_then(|e| e.as_array()) {
+                if !enum_values.is_empty() {
+                    let mut rng = thread_rng();
+                    let index = rng.gen_range(0..enum_values.len());
+                    return enum_values[index].clone();
+                }
+            }
+        }
     }
     
     let mut rng = thread_rng();

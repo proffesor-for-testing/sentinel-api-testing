@@ -109,42 +109,98 @@ const TestRunDetail = () => {
     return result.status === filter;
   }) || [];
 
-  const getTestTypeInsight = (testCase) => {
-    const description = testCase.description?.toLowerCase() || '';
-    const testDef = testCase.test_definition || {};
+  const getTestTypeInsight = (result) => {
+    // Check multiple fields for test type information
+    const description = (result.description || result.test_case?.description || '')?.toLowerCase();
+    const testName = (result.test_case?.name || '')?.toLowerCase();
+    const agentType = result.agent_type || result.test_case?.agent_type || '';
     
-    if (description.includes('boundary') || description.includes('bva')) {
+    // Check agent type first for more accurate categorization
+    if (agentType) {
+      if (agentType.includes('Negative')) {
+        return {
+          type: 'Negative Testing',
+          icon: '❌',
+          color: 'text-red-600',
+          description: 'Tests invalid inputs and error conditions'
+        };
+      } else if (agentType.includes('Positive')) {
+        return {
+          type: 'Positive Testing',
+          icon: '✅',
+          color: 'text-green-600',
+          description: 'Tests valid inputs and happy paths'
+        };
+      } else if (agentType.includes('Stateful')) {
+        return {
+          type: 'Stateful Testing',
+          icon: '🔄',
+          color: 'text-purple-600',
+          description: 'Tests multi-step workflows and state management'
+        };
+      }
+    }
+    
+    // Fallback to description/name analysis
+    const combinedText = `${description} ${testName}`;
+    
+    if (combinedText.includes('boundary') || combinedText.includes('bva') || combinedText.includes('edge')) {
       return {
         type: 'Boundary Value Analysis',
         icon: '📊',
         color: 'text-blue-600',
         description: 'Tests edge cases and boundary conditions'
       };
-    } else if (description.includes('invalid') || description.includes('negative')) {
+    } else if (combinedText.includes('invalid') || combinedText.includes('negative') || combinedText.includes('error')) {
       return {
         type: 'Negative Testing',
         icon: '❌',
         color: 'text-red-600',
         description: 'Tests invalid inputs and error conditions'
       };
-    } else if (description.includes('stateful') || description.includes('workflow')) {
+    } else if (combinedText.includes('stateful') || combinedText.includes('workflow') || combinedText.includes('sequence')) {
       return {
         type: 'Stateful Testing',
         icon: '🔄',
-        color: 'text-green-600',
+        color: 'text-purple-600',
         description: 'Tests multi-step workflows and state management'
       };
-    } else if (description.includes('positive') || description.includes('valid')) {
+    } else if (combinedText.includes('positive') || combinedText.includes('valid') || combinedText.includes('success')) {
       return {
         type: 'Positive Testing',
         icon: '✅',
         color: 'text-green-600',
         description: 'Tests valid inputs and happy paths'
       };
+    } else if (combinedText.includes('security') || combinedText.includes('auth') || combinedText.includes('injection')) {
+      return {
+        type: 'Security Testing',
+        icon: '🔐',
+        color: 'text-yellow-600',
+        description: 'Tests security vulnerabilities and authentication'
+      };
+    } else if (combinedText.includes('performance') || combinedText.includes('load') || combinedText.includes('stress')) {
+      return {
+        type: 'Performance Testing',
+        icon: '⚡',
+        color: 'text-orange-600',
+        description: 'Tests performance and load handling'
+      };
+    }
+    
+    // Better default based on HTTP method
+    const method = result.test_case?.test_definition?.method || '';
+    if (method) {
+      return {
+        type: `${method} API Test`,
+        icon: '🧪',
+        color: 'text-indigo-600',
+        description: `Standard ${method} API test case`
+      };
     }
     
     return {
-      type: 'Standard Test',
+      type: 'API Test',
       icon: '🧪',
       color: 'text-gray-600',
       description: 'Standard API test case'
