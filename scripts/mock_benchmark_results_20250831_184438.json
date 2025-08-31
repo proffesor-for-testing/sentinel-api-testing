@@ -1,0 +1,155 @@
+{
+  "timestamp": "2025-08-31T18:44:38.138826",
+  "configuration": {
+    "iterations": 5,
+    "warmup": 1,
+    "agents": 7,
+    "llm": "mock"
+  },
+  "results": {
+    "rust": {
+      "Functional-Positive-Agent": {
+        "mean": 57.274775000000005,
+        "median": 37.09954200000004,
+        "min": 36.774958999999996,
+        "max": 137.367916,
+        "std": 44.77759581126536,
+        "runs": 5,
+        "avg_tests": 5,
+        "engine": "python"
+      },
+      "Functional-Negative-Agent": {
+        "mean": 134.48917480000003,
+        "median": 124.18341600000005,
+        "min": 112.84304199999995,
+        "max": 168.99595800000012,
+        "std": 24.123421659843324,
+        "runs": 5,
+        "avg_tests": 51,
+        "engine": "python"
+      },
+      "Functional-Stateful-Agent": {
+        "mean": 36.404033199999965,
+        "median": 36.56783300000011,
+        "min": 34.466874999999895,
+        "max": 37.83779199999992,
+        "std": 1.2153879660467428,
+        "runs": 5,
+        "avg_tests": 4,
+        "engine": "python"
+      },
+      "Security-Auth-Agent": {
+        "mean": 106.34010800000001,
+        "median": 90.85579100000007,
+        "min": 85.97883299999998,
+        "max": 160.81720799999988,
+        "std": 31.286299836952452,
+        "runs": 5,
+        "avg_tests": 34,
+        "engine": "python"
+      },
+      "Security-Injection-Agent": {
+        "mean": 75.49867499999996,
+        "median": 60.70983299999977,
+        "min": 59.806625000000224,
+        "max": 132.5049169999999,
+        "std": 31.908528314304338,
+        "runs": 5,
+        "avg_tests": 19,
+        "engine": "python"
+      },
+      "Performance-Planner-Agent": {
+        "mean": 65.6555086,
+        "median": 57.70454200000019,
+        "min": 56.82129199999997,
+        "max": 96.69358399999962,
+        "std": 17.38685048085053,
+        "runs": 5,
+        "avg_tests": 17,
+        "engine": "python"
+      },
+      "Data-Mocking-Agent": {
+        "mean": 27.30211680000023,
+        "median": 22.786334000000075,
+        "min": 21.54745800000013,
+        "max": 46.214917000000355,
+        "std": 10.600212157512807,
+        "runs": 5,
+        "avg_tests": 1.8,
+        "engine": "python"
+      }
+    },
+    "python": {
+      "Functional-Positive-Agent": {
+        "mean": 36.70806680000016,
+        "median": 36.34379200000026,
+        "min": 35.36354200000069,
+        "max": 38.616292000000385,
+        "std": 1.3746635766154287,
+        "runs": 5,
+        "avg_tests": 5,
+        "engine": "python"
+      },
+      "Functional-Negative-Agent": {
+        "mean": 134.68587480000008,
+        "median": 119.2233749999998,
+        "min": 110.70662500000061,
+        "max": 167.23866600000025,
+        "std": 27.993306414653155,
+        "runs": 5,
+        "avg_tests": 51,
+        "engine": "python"
+      },
+      "Functional-Stateful-Agent": {
+        "mean": 43.55814140000014,
+        "median": 35.929541000000675,
+        "min": 35.18479099999983,
+        "max": 74.52516700000001,
+        "std": 17.323676937416042,
+        "runs": 5,
+        "avg_tests": 4,
+        "engine": "python"
+      },
+      "Security-Auth-Agent": {
+        "mean": 97.22161640000006,
+        "median": 88.22408300000006,
+        "min": 83.20925000000034,
+        "max": 139.45041599999985,
+        "std": 23.711214394567705,
+        "runs": 5,
+        "avg_tests": 34,
+        "engine": "python"
+      },
+      "Security-Injection-Agent": {
+        "mean": 71.71128360000019,
+        "median": 61.32683399999994,
+        "min": 60.01829200000053,
+        "max": 114.5357090000001,
+        "std": 23.94963048241681,
+        "runs": 5,
+        "avg_tests": 19,
+        "engine": "python"
+      },
+      "Performance-Planner-Agent": {
+        "mean": 66.27582500000031,
+        "median": 56.940457999999694,
+        "min": 55.93120900000059,
+        "max": 100.68775000000052,
+        "std": 19.362691442490316,
+        "runs": 5,
+        "avg_tests": 17,
+        "engine": "python"
+      },
+      "Data-Mocking-Agent": {
+        "mean": 32.065891600000285,
+        "median": 24.321291000001466,
+        "min": 22.688332999999616,
+        "max": 47.38683400000099,
+        "std": 12.113350392110464,
+        "runs": 5,
+        "avg_tests": 3.6,
+        "engine": "python"
+      }
+    }
+  }
+}

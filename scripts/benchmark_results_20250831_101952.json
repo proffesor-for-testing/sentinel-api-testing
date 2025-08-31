@@ -1,0 +1,154 @@
+{
+  "timestamp": "2025-08-31T10:19:52.994228",
+  "iterations": 10,
+  "warmup_iterations": 2,
+  "results": {
+    "Functional-Positive-Agent": {
+      "rust": {
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "python": {
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "speedup": 0
+    },
+    "Functional-Negative-Agent": {
+      "rust": {
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "python": {
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "speedup": 0
+    },
+    "Functional-Stateful-Agent": {
+      "rust": {
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "python": {
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "speedup": 0
+    },
+    "Security-Auth-Agent": {
+      "rust": {
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "python": {
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "speedup": 0
+    },
+    "Security-Injection-Agent": {
+      "rust": {
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "python": {
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "speedup": 0
+    },
+    "Performance-Planner-Agent": {
+      "rust": {
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "python": {
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "speedup": 0
+    },
+    "data-mocking": {
+      "rust": {
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "python": {
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "p99": 0
+      },
+      "speedup": 0
+    }
+  }
+}

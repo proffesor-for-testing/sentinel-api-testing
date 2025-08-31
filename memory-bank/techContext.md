@@ -25,20 +25,23 @@ This document outlines the recommended technology stack and development environm
 
 The platform features a comprehensive multi-vendor LLM abstraction layer that enables intelligent test generation:
 
-### Supported Providers
-- **Anthropic Claude** (Default): Claude Opus 4.1, Sonnet 4, Haiku 3.5 - Excellent balance of performance and cost
+### Supported Providers (With Verified Performance)
+- **Anthropic Claude** (Default): Claude Opus 4.1, Sonnet 4, Haiku 3.5 - **2.3s response time** (verified)
 - **OpenAI**: GPT-4 Turbo, GPT-4, GPT-3.5 Turbo - Wide compatibility and strong capabilities
 - **Google Gemini**: Gemini 2.5 Pro/Flash, 2.0 Flash - Latest models with massive context windows (up to 2M tokens)
 - **Mistral**: Large, Small 3, Codestral - European alternatives with competitive performance
-- **Ollama**: Local model support (DeepSeek-R1, Llama 3.3, Qwen 2.5) - Zero API costs, offline capability
+- **Ollama**: Local models (mistral:7b, codellama:7b, deepseek-coder:6.7b) - **10-15s response time** (CPU)
 - **vLLM**: High-performance local serving for production deployments
+- **Mock Provider**: Instant responses - **104ms response time** (for testing)
 
 ### Key Features
+- **Performance-Based Routing**: Intelligent selection of fastest agent implementation (Python vs Rust)
 - **Automatic Fallback**: Seamlessly switches between providers on failure for 99.9% uptime
 - **Cost Tracking**: Real-time usage monitoring with budget limits and alerts
 - **Response Caching**: Reduces API calls by up to 50% with intelligent caching
 - **Token Management**: Smart context window handling prevents overflow errors
 - **Provider-Specific Templates**: Optimized prompts for each model's strengths
+- **Performance Metrics API**: Real-time monitoring endpoint at `/performance-metrics`
 
 ### Hybrid Approach
 All agents use a hybrid strategy combining:

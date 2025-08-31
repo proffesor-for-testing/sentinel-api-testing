@@ -1,0 +1,1142 @@
+{
+  "timestamp": "2025-08-31T19:11:30.408100",
+  "configuration": {
+    "iterations": 10,
+    "warmup": 2,
+    "agents": 7,
+    "spec_id": 6,
+    "llm": "mock"
+  },
+  "summary_statistics": {
+    "rust": {
+      "Functional-Positive-Agent": {
+        "mean": 39.69967930000001,
+        "median": 39.397437500000024,
+        "min": 37.48208399999997,
+        "max": 41.786624999999965,
+        "std": 1.2233558422657653,
+        "variance": 1.49659951680578,
+        "percentile_25": 39.14329175000002,
+        "percentile_75": 40.58385425,
+        "percentile_95": 41.36998124999998,
+        "cv": 3.0815257549593484,
+        "runs": 10,
+        "failures": 0,
+        "avg_tests": 5,
+        "min_tests": 5,
+        "max_tests": 5,
+        "engine": "rust"
+      },
+      "Functional-Negative-Agent": {
+        "mean": 121.00583759999999,
+        "median": 102.53445849999991,
+        "min": 99.73104099999996,
+        "max": 179.5315420000001,
+        "std": 29.318639150008195,
+        "variance": 859.5826016083932,
+        "percentile_25": 101.77515674999998,
+        "percentile_75": 137.21893725000007,
+        "percentile_95": 170.67089215000001,
+        "cv": 24.229111364796005,
+        "runs": 10,
+        "failures": 0,
+        "avg_tests": 45,
+        "min_tests": 45,
+        "max_tests": 45,
+        "engine": "rust"
+      },
+      "Functional-Stateful-Agent": {
+        "mean": 40.02693759999993,
+        "median": 38.33937500000006,
+        "min": 37.165499999999966,
+        "max": 53.83995899999982,
+        "std": 5.027254681776138,
+        "variance": 25.273289635440094,
+        "percentile_25": 37.40295850000008,
+        "percentile_75": 40.23302074999991,
+        "percentile_95": 47.90610869999972,
+        "cv": 12.559678514541533,
+        "runs": 10,
+        "failures": 0,
+        "avg_tests": 4,
+        "min_tests": 4,
+        "max_tests": 4,
+        "engine": "rust"
+      },
+      "Security-Auth-Agent": {
+        "mean": 115.49012099999993,
+        "median": 106.3082919999998,
+        "min": 98.22483399999982,
+        "max": 144.61900000000006,
+        "std": 19.650625758313105,
+        "variance": 386.1470926932785,
+        "percentile_25": 99.50657299999988,
+        "percentile_75": 135.49108325000014,
+        "percentile_95": 143.38826890000004,
+        "cv": 17.01498412865384,
+        "runs": 10,
+        "failures": 0,
+        "avg_tests": 42,
+        "min_tests": 42,
+        "max_tests": 42,
+        "engine": "rust"
+      },
+      "Security-Injection-Agent": {
+        "mean": 98.75795830000004,
+        "median": 91.81591699999991,
+        "min": 78.51141700000053,
+        "max": 133.27562499999956,
+        "std": 20.117182241365683,
+        "variance": 404.7010213323188,
+        "percentile_25": 81.21754125000001,
+        "percentile_75": 116.70523925000009,
+        "percentile_95": 127.69223109999996,
+        "cv": 20.370188476613812,
+        "runs": 10,
+        "failures": 0,
+        "avg_tests": 27,
+        "min_tests": 27,
+        "max_tests": 27,
+        "engine": "rust"
+      },
+      "Performance-Planner-Agent": {
+        "mean": 70.64800830000007,
+        "median": 61.4732499999997,
+        "min": 58.88304200000061,
+        "max": 106.38012500000028,
+        "std": 17.94991914412303,
+        "variance": 322.19959728055437,
+        "percentile_25": 60.493864750000185,
+        "percentile_75": 71.18577025000006,
+        "percentile_95": 103.89526235000015,
+        "cv": 25.407537418323813,
+        "runs": 10,
+        "failures": 0,
+        "avg_tests": 17,
+        "min_tests": 17,
+        "max_tests": 17,
+        "engine": "rust"
+      },
+      "Data-Mocking-Agent": {
+        "mean": 34.739491799999996,
+        "median": 34.56160450000034,
+        "min": 32.9746670000004,
+        "max": 39.771124999999685,
+        "std": 1.9539068815664222,
+        "variance": 3.8177521018326206,
+        "percentile_25": 33.4325312499999,
+        "percentile_75": 34.99726049999996,
+        "percentile_95": 37.82185639999987,
+        "cv": 5.624454418663725,
+        "runs": 10,
+        "failures": 0,
+        "avg_tests": 2,
+        "min_tests": 2,
+        "max_tests": 2,
+        "engine": "rust"
+      }
+    },
+    "python": {
+      "Functional-Positive-Agent": {
+        "mean": 36.44948320000001,
+        "median": 35.99999999999959,
+        "min": 34.204291,
+        "max": 41.106958000000304,
+        "std": 2.0727490681551126,
+        "variance": 4.296288699537887,
+        "percentile_25": 35.02087525000075,
+        "percentile_75": 37.000093499999664,
+        "percentile_95": 39.96067659999989,
+        "cv": 5.686634997763458,
+        "runs": 10,
+        "failures": 0,
+        "avg_tests": 5,
+        "min_tests": 5,
+        "max_tests": 5,
+        "engine": "python"
+      },
+      "Functional-Negative-Agent": {
+        "mean": 132.3076416000001,
+        "median": 120.88577050000015,
+        "min": 109.74858300000001,
+        "max": 174.31337500000055,
+        "std": 24.47938119634467,
+        "variance": 599.2401037559529,
+        "percentile_25": 111.55712500000048,
+        "percentile_75": 154.11569799999916,
+        "percentile_95": 165.89694985000057,
+        "cv": 18.501864971905484,
+        "runs": 10,
+        "failures": 0,
+        "avg_tests": 51,
+        "min_tests": 51,
+        "max_tests": 51,
+        "engine": "python"
+      },
+      "Functional-Stateful-Agent": {
+        "mean": 35.85390420000021,
+        "median": 35.95558350000072,
+        "min": 34.41999999999901,
+        "max": 37.710209000000106,
+        "std": 0.8868579440851343,
+        "variance": 0.7865170129869112,
+        "percentile_25": 35.51750024999967,
+        "percentile_75": 36.18771875000127,
+        "percentile_95": 37.05707089999999,
+        "cv": 2.4735324196161854,
+        "runs": 10,
+        "failures": 0,
+        "avg_tests": 4,
+        "min_tests": 4,
+        "max_tests": 4,
+        "engine": "python"
+      },
+      "Security-Auth-Agent": {
+        "mean": 101.52626679999965,
+        "median": 90.87333350000026,
+        "min": 84.75424999999959,
+        "max": 136.04733399999878,
+        "std": 21.703647656453498,
+        "variance": 471.0483215954794,
+        "percentile_25": 86.18171925000028,
+        "percentile_75": 121.34106274999913,
+        "percentile_95": 133.82063994999953,
+        "cv": 21.377371926033998,
+        "runs": 10,
+        "failures": 0,
+        "avg_tests": 34,
+        "min_tests": 34,
+        "max_tests": 34,
+        "engine": "python"
+      },
+      "Security-Injection-Agent": {
+        "mean": 70.43968740000004,
+        "median": 62.418708000000045,
+        "min": 60.58933300000113,
+        "max": 123.9137079999999,
+        "std": 19.626436893958243,
+        "variance": 385.1970251525252,
+        "percentile_25": 61.06711500000017,
+        "percentile_75": 67.1094477499996,
+        "percentile_95": 103.81181425000014,
+        "cv": 27.86275410693863,
+        "runs": 10,
+        "failures": 0,
+        "avg_tests": 19,
+        "min_tests": 19,
+        "max_tests": 19,
+        "engine": "python"
+      },
+      "Performance-Planner-Agent": {
+        "mean": 63.74959139999987,
+        "median": 59.287208000000646,
+        "min": 57.037582999999614,
+        "max": 107.57824999999954,
+        "std": 15.446897700762552,
+        "variance": 238.6066485778234,
+        "percentile_25": 58.31659349999896,
+        "percentile_75": 59.81460425000007,
+        "percentile_95": 86.60851234999981,
+        "cv": 24.230583069686283,
+        "runs": 10,
+        "failures": 0,
+        "avg_tests": 17,
+        "min_tests": 17,
+        "max_tests": 17,
+        "engine": "python"
+      },
+      "Data-Mocking-Agent": {
+        "mean": 37.424570899999665,
+        "median": 43.56943749999953,
+        "min": 22.695583999999158,
+        "max": 56.839999999999336,
+        "std": 13.041906928445217,
+        "variance": 170.09133633022734,
+        "percentile_25": 22.928874750000716,
+        "percentile_75": 46.01479175000023,
+        "percentile_95": 52.34770624999916,
+        "cv": 34.84851426431541,
+        "runs": 10,
+        "failures": 0,
+        "avg_tests": 5.4,
+        "min_tests": 0,
+        "max_tests": 9,
+        "engine": "python"
+      }
+    }
+  },
+  "raw_data": {
+    "rust": {
+      "Functional-Positive-Agent": [
+        {
+          "run": 1,
+          "time_ms": 40.704249999999966,
+          "tests": 5,
+          "engine": "rust"
+        },
+        {
+          "run": 2,
+          "time_ms": 37.48208399999997,
+          "tests": 5,
+          "engine": "rust"
+        },
+        {
+          "run": 3,
+          "time_ms": 39.17079200000001,
+          "tests": 5,
+          "engine": "rust"
+        },
+        {
+          "run": 4,
+          "time_ms": 41.786624999999965,
+          "tests": 5,
+          "engine": "rust"
+        },
+        {
+          "run": 5,
+          "time_ms": 39.547957999999994,
+          "tests": 5,
+          "engine": "rust"
+        },
+        {
+          "run": 6,
+          "time_ms": 39.13412500000002,
+          "tests": 5,
+          "engine": "rust"
+        },
+        {
+          "run": 7,
+          "time_ms": 38.84062500000002,
+          "tests": 5,
+          "engine": "rust"
+        },
+        {
+          "run": 8,
+          "time_ms": 40.2226670000001,
+          "tests": 5,
+          "engine": "rust"
+        },
+        {
+          "run": 9,
+          "time_ms": 39.246917000000046,
+          "tests": 5,
+          "engine": "rust"
+        },
+        {
+          "run": 10,
+          "time_ms": 40.86075,
+          "tests": 5,
+          "engine": "rust"
+        }
+      ],
+      "Functional-Negative-Agent": [
+        {
+          "run": 1,
+          "time_ms": 103.03883299999994,
+          "tests": 45,
+          "engine": "rust"
+        },
+        {
+          "run": 2,
+          "time_ms": 99.73104099999996,
+          "tests": 45,
+          "engine": "rust"
+        },
+        {
+          "run": 3,
+          "time_ms": 144.04195800000008,
+          "tests": 45,
+          "engine": "rust"
+        },
+        {
+          "run": 4,
+          "time_ms": 101.94075000000002,
+          "tests": 45,
+          "engine": "rust"
+        },
+        {
+          "run": 5,
+          "time_ms": 101.71995899999997,
+          "tests": 45,
+          "engine": "rust"
+        },
+        {
+          "run": 6,
+          "time_ms": 159.84120899999988,
+          "tests": 45,
+          "engine": "rust"
+        },
+        {
+          "run": 7,
+          "time_ms": 102.0300839999999,
+          "tests": 45,
+          "engine": "rust"
+        },
+        {
+          "run": 8,
+          "time_ms": 101.43312500000002,
+          "tests": 45,
+          "engine": "rust"
+        },
+        {
+          "run": 9,
+          "time_ms": 179.5315420000001,
+          "tests": 45,
+          "engine": "rust"
+        },
+        {
+          "run": 10,
+          "time_ms": 116.749875,
+          "tests": 45,
+          "engine": "rust"
+        }
+      ],
+      "Functional-Stateful-Agent": [
+        {
+          "run": 1,
+          "time_ms": 37.165499999999966,
+          "tests": 4,
+          "engine": "rust"
+        },
+        {
+          "run": 2,
+          "time_ms": 37.667583999999806,
+          "tests": 4,
+          "engine": "rust"
+        },
+        {
+          "run": 3,
+          "time_ms": 37.314750000000174,
+          "tests": 4,
+          "engine": "rust"
+        },
+        {
+          "run": 4,
+          "time_ms": 40.6137499999999,
+          "tests": 4,
+          "engine": "rust"
+        },
+        {
+          "run": 5,
+          "time_ms": 38.83904200000021,
+          "tests": 4,
+          "engine": "rust"
+        },
+        {
+          "run": 6,
+          "time_ms": 40.65362499999958,
+          "tests": 4,
+          "engine": "rust"
+        },
+        {
+          "run": 7,
+          "time_ms": 37.24462500000003,
+          "tests": 4,
+          "engine": "rust"
+        },
+        {
+          "run": 8,
+          "time_ms": 37.839707999999916,
+          "tests": 4,
+          "engine": "rust"
+        },
+        {
+          "run": 9,
+          "time_ms": 53.83995899999982,
+          "tests": 4,
+          "engine": "rust"
+        },
+        {
+          "run": 10,
+          "time_ms": 39.09083299999993,
+          "tests": 4,
+          "engine": "rust"
+        }
+      ],
+      "Security-Auth-Agent": [
+        {
+          "run": 1,
+          "time_ms": 141.88404200000005,
+          "tests": 42,
+          "engine": "rust"
+        },
+        {
+          "run": 2,
+          "time_ms": 98.61312499999997,
+          "tests": 42,
+          "engine": "rust"
+        },
+        {
+          "run": 3,
+          "time_ms": 108.51091699999982,
+          "tests": 42,
+          "engine": "rust"
+        },
+        {
+          "run": 4,
+          "time_ms": 144.61900000000006,
+          "tests": 42,
+          "engine": "rust"
+        },
+        {
+          "run": 5,
+          "time_ms": 104.10566699999978,
+          "tests": 42,
+          "engine": "rust"
+        },
+        {
+          "run": 6,
+          "time_ms": 118.37783299999982,
+          "tests": 42,
+          "engine": "rust"
+        },
+        {
+          "run": 7,
+          "time_ms": 141.19550000000027,
+          "tests": 42,
+          "engine": "rust"
+        },
+        {
+          "run": 8,
+          "time_ms": 100.04229199999992,
+          "tests": 42,
+          "engine": "rust"
+        },
+        {
+          "run": 9,
+          "time_ms": 98.22483399999982,
+          "tests": 42,
+          "engine": "rust"
+        },
+        {
+          "run": 10,
+          "time_ms": 99.32799999999986,
+          "tests": 42,
+          "engine": "rust"
+        }
+      ],
+      "Security-Injection-Agent": [
+        {
+          "run": 1,
+          "time_ms": 80.92149999999964,
+          "tests": 27,
+          "engine": "rust"
+        },
+        {
+          "run": 2,
+          "time_ms": 81.1859159999999,
+          "tests": 27,
+          "engine": "rust"
+        },
+        {
+          "run": 3,
+          "time_ms": 120.86808300000041,
+          "tests": 27,
+          "engine": "rust"
+        },
+        {
+          "run": 4,
+          "time_ms": 133.27562499999956,
+          "tests": 27,
+          "engine": "rust"
+        },
+        {
+          "run": 5,
+          "time_ms": 78.51141700000053,
+          "tests": 27,
+          "engine": "rust"
+        },
+        {
+          "run": 6,
+          "time_ms": 108.39870800000017,
+          "tests": 27,
+          "engine": "rust"
+        },
+        {
+          "run": 7,
+          "time_ms": 92.89091700000007,
+          "tests": 27,
+          "engine": "rust"
+        },
+        {
+          "run": 8,
+          "time_ms": 119.47408300000006,
+          "tests": 27,
+          "engine": "rust"
+        },
+        {
+          "run": 9,
+          "time_ms": 81.31241700000035,
+          "tests": 27,
+          "engine": "rust"
+        },
+        {
+          "run": 10,
+          "time_ms": 90.74091699999975,
+          "tests": 27,
+          "engine": "rust"
+        }
+      ],
+      "Performance-Planner-Agent": [
+        {
+          "run": 1,
+          "time_ms": 61.27504100000003,
+          "tests": 17,
+          "engine": "rust"
+        },
+        {
+          "run": 2,
+          "time_ms": 106.38012500000028,
+          "tests": 17,
+          "engine": "rust"
+        },
+        {
+          "run": 3,
+          "time_ms": 60.325167000000235,
+          "tests": 17,
+          "engine": "rust"
+        },
+        {
+          "run": 4,
+          "time_ms": 61.67145899999937,
+          "tests": 17,
+          "engine": "rust"
+        },
+        {
+          "run": 5,
+          "time_ms": 58.88304200000061,
+          "tests": 17,
+          "engine": "rust"
+        },
+        {
+          "run": 6,
+          "time_ms": 74.20116599999993,
+          "tests": 17,
+          "engine": "rust"
+        },
+        {
+          "run": 7,
+          "time_ms": 62.13958300000044,
+          "tests": 17,
+          "engine": "rust"
+        },
+        {
+          "run": 8,
+          "time_ms": 60.99995800000002,
+          "tests": 17,
+          "engine": "rust"
+        },
+        {
+          "run": 9,
+          "time_ms": 59.746333999999734,
+          "tests": 17,
+          "engine": "rust"
+        },
+        {
+          "run": 10,
+          "time_ms": 100.858208,
+          "tests": 17,
+          "engine": "rust"
+        }
+      ],
+      "Data-Mocking-Agent": [
+        {
+          "run": 1,
+          "time_ms": 33.607749999999825,
+          "tests": 2,
+          "engine": "rust"
+        },
+        {
+          "run": 2,
+          "time_ms": 39.771124999999685,
+          "tests": 2,
+          "engine": "rust"
+        },
+        {
+          "run": 3,
+          "time_ms": 34.729041000000294,
+          "tests": 2,
+          "engine": "rust"
+        },
+        {
+          "run": 4,
+          "time_ms": 35.08666699999985,
+          "tests": 2,
+          "engine": "rust"
+        },
+        {
+          "run": 5,
+          "time_ms": 34.61045900000048,
+          "tests": 2,
+          "engine": "rust"
+        },
+        {
+          "run": 6,
+          "time_ms": 33.28891699999925,
+          "tests": 2,
+          "engine": "rust"
+        },
+        {
+          "run": 7,
+          "time_ms": 35.439417000000084,
+          "tests": 2,
+          "engine": "rust"
+        },
+        {
+          "run": 8,
+          "time_ms": 34.5127500000002,
+          "tests": 2,
+          "engine": "rust"
+        },
+        {
+          "run": 9,
+          "time_ms": 33.37412499999992,
+          "tests": 2,
+          "engine": "rust"
+        },
+        {
+          "run": 10,
+          "time_ms": 32.9746670000004,
+          "tests": 2,
+          "engine": "rust"
+        }
+      ]
+    },
+    "python": {
+      "Functional-Positive-Agent": [
+        {
+          "run": 1,
+          "time_ms": 36.44174999999983,
+          "tests": 5,
+          "engine": "python"
+        },
+        {
+          "run": 2,
+          "time_ms": 38.55966599999938,
+          "tests": 5,
+          "engine": "python"
+        },
+        {
+          "run": 3,
+          "time_ms": 34.79529200000009,
+          "tests": 5,
+          "engine": "python"
+        },
+        {
+          "run": 4,
+          "time_ms": 34.94141700000064,
+          "tests": 5,
+          "engine": "python"
+        },
+        {
+          "run": 5,
+          "time_ms": 34.204291,
+          "tests": 5,
+          "engine": "python"
+        },
+        {
+          "run": 6,
+          "time_ms": 35.259250000001074,
+          "tests": 5,
+          "engine": "python"
+        },
+        {
+          "run": 7,
+          "time_ms": 36.23087499999933,
+          "tests": 5,
+          "engine": "python"
+        },
+        {
+          "run": 8,
+          "time_ms": 35.769124999999846,
+          "tests": 5,
+          "engine": "python"
+        },
+        {
+          "run": 9,
+          "time_ms": 41.106958000000304,
+          "tests": 5,
+          "engine": "python"
+        },
+        {
+          "run": 10,
+          "time_ms": 37.18620799999961,
+          "tests": 5,
+          "engine": "python"
+        }
+      ],
+      "Functional-Negative-Agent": [
+        {
+          "run": 1,
+          "time_ms": 109.74858300000001,
+          "tests": 51,
+          "engine": "python"
+        },
+        {
+          "run": 2,
+          "time_ms": 154.47674999999884,
+          "tests": 51,
+          "engine": "python"
+        },
+        {
+          "run": 3,
+          "time_ms": 110.30141700000051,
+          "tests": 51,
+          "engine": "python"
+        },
+        {
+          "run": 4,
+          "time_ms": 153.03254200000003,
+          "tests": 51,
+          "engine": "python"
+        },
+        {
+          "run": 5,
+          "time_ms": 111.20325000000086,
+          "tests": 51,
+          "engine": "python"
+        },
+        {
+          "run": 6,
+          "time_ms": 127.11183300000073,
+          "tests": 51,
+          "engine": "python"
+        },
+        {
+          "run": 7,
+          "time_ms": 174.31337500000055,
+          "tests": 51,
+          "engine": "python"
+        },
+        {
+          "run": 8,
+          "time_ms": 114.65970799999958,
+          "tests": 51,
+          "engine": "python"
+        },
+        {
+          "run": 9,
+          "time_ms": 155.61020800000057,
+          "tests": 51,
+          "engine": "python"
+        },
+        {
+          "run": 10,
+          "time_ms": 112.61874999999932,
+          "tests": 51,
+          "engine": "python"
+        }
+      ],
+      "Functional-Stateful-Agent": [
+        {
+          "run": 1,
+          "time_ms": 35.53050000000013,
+          "tests": 4,
+          "engine": "python"
+        },
+        {
+          "run": 2,
+          "time_ms": 36.10100000000038,
+          "tests": 4,
+          "engine": "python"
+        },
+        {
+          "run": 3,
+          "time_ms": 36.21662500000156,
+          "tests": 4,
+          "engine": "python"
+        },
+        {
+          "run": 4,
+          "time_ms": 35.51316699999951,
+          "tests": 4,
+          "engine": "python"
+        },
+        {
+          "run": 5,
+          "time_ms": 34.8775830000001,
+          "tests": 4,
+          "engine": "python"
+        },
+        {
+          "run": 6,
+          "time_ms": 36.06866700000033,
+          "tests": 4,
+          "engine": "python"
+        },
+        {
+          "run": 7,
+          "time_ms": 36.258790999999846,
+          "tests": 4,
+          "engine": "python"
+        },
+        {
+          "run": 8,
+          "time_ms": 35.84250000000111,
+          "tests": 4,
+          "engine": "python"
+        },
+        {
+          "run": 9,
+          "time_ms": 34.41999999999901,
+          "tests": 4,
+          "engine": "python"
+        },
+        {
+          "run": 10,
+          "time_ms": 37.710209000000106,
+          "tests": 4,
+          "engine": "python"
+        }
+      ],
+      "Security-Auth-Agent": [
+        {
+          "run": 1,
+          "time_ms": 86.09208400000057,
+          "tests": 34,
+          "engine": "python"
+        },
+        {
+          "run": 2,
+          "time_ms": 136.04733399999878,
+          "tests": 34,
+          "engine": "python"
+        },
+        {
+          "run": 3,
+          "time_ms": 92.57187499999908,
+          "tests": 34,
+          "engine": "python"
+        },
+        {
+          "run": 4,
+          "time_ms": 85.56991599999897,
+          "tests": 34,
+          "engine": "python"
+        },
+        {
+          "run": 5,
+          "time_ms": 84.75424999999959,
+          "tests": 34,
+          "engine": "python"
+        },
+        {
+          "run": 6,
+          "time_ms": 131.0991250000004,
+          "tests": 34,
+          "engine": "python"
+        },
+        {
+          "run": 7,
+          "time_ms": 86.45062499999945,
+          "tests": 34,
+          "engine": "python"
+        },
+        {
+          "run": 8,
+          "time_ms": 90.82329199999961,
+          "tests": 34,
+          "engine": "python"
+        },
+        {
+          "run": 9,
+          "time_ms": 90.92337500000092,
+          "tests": 34,
+          "engine": "python"
+        },
+        {
+          "run": 10,
+          "time_ms": 130.93079199999914,
+          "tests": 34,
+          "engine": "python"
+        }
+      ],
+      "Security-Injection-Agent": [
+        {
+          "run": 1,
+          "time_ms": 60.95933299999956,
+          "tests": 19,
+          "engine": "python"
+        },
+        {
+          "run": 2,
+          "time_ms": 60.58933300000113,
+          "tests": 19,
+          "engine": "python"
+        },
+        {
+          "run": 3,
+          "time_ms": 61.55420800000044,
+          "tests": 19,
+          "engine": "python"
+        },
+        {
+          "run": 4,
+          "time_ms": 123.9137079999999,
+          "tests": 19,
+          "engine": "python"
+        },
+        {
+          "run": 5,
+          "time_ms": 79.24283300000035,
+          "tests": 19,
+          "engine": "python"
+        },
+        {
+          "run": 6,
+          "time_ms": 60.96329200000028,
+          "tests": 19,
+          "engine": "python"
+        },
+        {
+          "run": 7,
+          "time_ms": 61.37858399999985,
+          "tests": 19,
+          "engine": "python"
+        },
+        {
+          "run": 8,
+          "time_ms": 64.54966699999964,
+          "tests": 19,
+          "engine": "python"
+        },
+        {
+          "run": 9,
+          "time_ms": 63.28320799999965,
+          "tests": 19,
+          "engine": "python"
+        },
+        {
+          "run": 10,
+          "time_ms": 67.9627079999996,
+          "tests": 19,
+          "engine": "python"
+        }
+      ],
+      "Performance-Planner-Agent": [
+        {
+          "run": 1,
+          "time_ms": 57.1960409999992,
+          "tests": 17,
+          "engine": "python"
+        },
+        {
+          "run": 2,
+          "time_ms": 60.978833000000066,
+          "tests": 17,
+          "engine": "python"
+        },
+        {
+          "run": 3,
+          "time_ms": 59.35416600000032,
+          "tests": 17,
+          "engine": "python"
+        },
+        {
+          "run": 4,
+          "time_ms": 58.376624999999294,
+          "tests": 17,
+          "engine": "python"
+        },
+        {
+          "run": 5,
+          "time_ms": 57.037582999999614,
+          "tests": 17,
+          "engine": "python"
+        },
+        {
+          "run": 6,
+          "time_ms": 58.29658299999885,
+          "tests": 17,
+          "engine": "python"
+        },
+        {
+          "run": 7,
+          "time_ms": 107.57824999999954,
+          "tests": 17,
+          "engine": "python"
+        },
+        {
+          "run": 8,
+          "time_ms": 59.55716600000116,
+          "tests": 17,
+          "engine": "python"
+        },
+        {
+          "run": 9,
+          "time_ms": 59.22025000000097,
+          "tests": 17,
+          "engine": "python"
+        },
+        {
+          "run": 10,
+          "time_ms": 59.900416999999706,
+          "tests": 17,
+          "engine": "python"
+        }
+      ],
+      "Data-Mocking-Agent": [
+        {
+          "run": 1,
+          "time_ms": 56.839999999999336,
+          "tests": 9,
+          "engine": "python"
+        },
+        {
+          "run": 2,
+          "time_ms": 23.28937499999917,
+          "tests": 0,
+          "engine": "python"
+        },
+        {
+          "run": 3,
+          "time_ms": 22.78120899999969,
+          "tests": 0,
+          "engine": "python"
+        },
+        {
+          "run": 4,
+          "time_ms": 45.722665999999634,
+          "tests": 9,
+          "engine": "python"
+        },
+        {
+          "run": 5,
+          "time_ms": 46.112167000000426,
+          "tests": 9,
+          "engine": "python"
+        },
+        {
+          "run": 6,
+          "time_ms": 46.857124999998945,
+          "tests": 9,
+          "engine": "python"
+        },
+        {
+          "run": 7,
+          "time_ms": 43.22283299999974,
+          "tests": 9,
+          "engine": "python"
+        },
+        {
+          "run": 8,
+          "time_ms": 22.808708000001232,
+          "tests": 0,
+          "engine": "python"
+        },
+        {
+          "run": 9,
+          "time_ms": 22.695583999999158,
+          "tests": 0,
+          "engine": "python"
+        },
+        {
+          "run": 10,
+          "time_ms": 43.91604199999932,
+          "tests": 9,
+          "engine": "python"
+        }
+      ]
+    }
+  }
+}

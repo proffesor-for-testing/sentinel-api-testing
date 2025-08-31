@@ -1,0 +1,153 @@
+{
+  "timestamp": "2025-08-31T13:45:04.157793",
+  "specification": "Petstore API",
+  "method": "Same orchestration flow for both",
+  "iterations": 10,
+  "warmup_iterations": 2,
+  "results": {
+    "rust": {
+      "Functional-Positive-Agent": {
+        "runs": 10,
+        "mean": 17038.462699999996,
+        "median": 15498.710603999996,
+        "std": 4645.549175702237,
+        "min": 13021.196959,
+        "max": 28842.234040999996,
+        "avg_tests": 5,
+        "engine": "python"
+      },
+      "Functional-Negative-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Functional-Stateful-Agent": {
+        "runs": 10,
+        "mean": 44.10889980002821,
+        "median": 38.31370800003242,
+        "std": 12.782785833428445,
+        "min": 36.681375000057415,
+        "max": 68.51858300001368,
+        "avg_tests": 4,
+        "engine": "python"
+      },
+      "Security-Auth-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Security-Injection-Agent": {
+        "runs": 10,
+        "mean": 72.34812909999846,
+        "median": 61.52377049994584,
+        "std": 26.812354805345734,
+        "min": 58.948750000013206,
+        "max": 144.02262499993412,
+        "avg_tests": 19,
+        "engine": "python"
+      },
+      "Performance-Planner-Agent": {
+        "runs": 10,
+        "mean": 64.54900019999741,
+        "median": 57.53383350003105,
+        "std": 20.937614729004576,
+        "min": 56.3895830000547,
+        "max": 124.03516699998818,
+        "avg_tests": 17,
+        "engine": "python"
+      },
+      "Data-Mocking-Agent": {
+        "runs": 6,
+        "mean": 37.75120133330271,
+        "median": 34.76518749999968,
+        "std": 13.762071101854303,
+        "min": 24.6569159999126,
+        "max": 53.84254199998395,
+        "avg_tests": 0,
+        "engine": "python"
+      }
+    },
+    "python": {
+      "Functional-Positive-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Functional-Negative-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Functional-Stateful-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Security-Auth-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Security-Injection-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Performance-Planner-Agent": {
+        "runs": 3,
+        "mean": 109.78331933332204,
+        "median": 63.31579099992268,
+        "std": 82.96001188546315,
+        "min": 60.47095899998567,
+        "max": 205.56320800005778,
+        "avg_tests": 17,
+        "engine": "python"
+      },
+      "Data-Mocking-Agent": {
+        "runs": 8,
+        "mean": 30.095130374974133,
+        "median": 28.25702150005327,
+        "std": 6.495872371460457,
+        "min": 24.025875000006636,
+        "max": 44.99633399996128,
+        "avg_tests": 0,
+        "engine": "python"
+      }
+    }
+  }
+}

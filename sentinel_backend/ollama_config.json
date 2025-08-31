@@ -1,0 +1,18 @@
+{
+  "selected_model": "deepseek-coder:6.7b",
+  "available_models": [
+    "mistral:7b",
+    "codellama:7b",
+    "deepseek-coder:6.7b"
+  ],
+  "api_base": "http://localhost:11434",
+  "agent_models": {
+    "Functional-Positive-Agent": "mistral:7b",
+    "Functional-Negative-Agent": "codellama:7b",
+    "Functional-Stateful-Agent": "deepseek-coder:6.7b",
+    "Security-Auth-Agent": "deepseek-coder:6.7b",
+    "Security-Injection-Agent": "deepseek-coder:6.7b",
+    "Performance-Planner-Agent": "codellama:7b",
+    "Data-Mocking-Agent": "mistral:7b"
+  }
+}
