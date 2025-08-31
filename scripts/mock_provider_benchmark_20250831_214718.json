@@ -1,0 +1,103 @@
+{
+  "timestamp": "2025-08-31T21:47:06.376299",
+  "provider": "mock",
+  "configuration": {
+    "iterations": 10,
+    "warmup": 2,
+    "agents": [
+      "Functional-Positive-Agent",
+      "Functional-Negative-Agent",
+      "Security-Auth-Agent",
+      "Security-Injection-Agent",
+      "Data-Mocking-Agent"
+    ],
+    "spec_id": 6
+  },
+  "agent_results": {
+    "Functional-Positive-Agent": {
+      "mean": 64.33000564575195,
+      "median": 64.52298164367676,
+      "min": 54.25691604614258,
+      "max": 82.0000171661377,
+      "std": 8.023634535609371,
+      "percentile_95": 82.0000171661377,
+      "runs": 10,
+      "errors": 0,
+      "avg_tests": 5
+    },
+    "Functional-Negative-Agent": {
+      "mean": 140.11337757110596,
+      "median": 129.60851192474365,
+      "min": 112.56980895996094,
+      "max": 188.55977058410645,
+      "std": 25.617041575178952,
+      "percentile_95": 188.55977058410645,
+      "runs": 10,
+      "errors": 0,
+      "avg_tests": 45
+    },
+    "Security-Auth-Agent": {
+      "mean": 150.61380863189697,
+      "median": 122.06792831420898,
+      "min": 115.325927734375,
+      "max": 343.8990116119385,
+      "std": 71.36765127604671,
+      "percentile_95": 343.8990116119385,
+      "runs": 10,
+      "errors": 0,
+      "avg_tests": 42
+    },
+    "Security-Injection-Agent": {
+      "mean": 105.87596893310547,
+      "median": 97.15640544891357,
+      "min": 91.76111221313477,
+      "max": 148.2870578765869,
+      "std": 20.767495578580842,
+      "percentile_95": 148.2870578765869,
+      "runs": 10,
+      "errors": 0,
+      "avg_tests": 27
+    },
+    "Data-Mocking-Agent": {
+      "mean": 56.819820404052734,
+      "median": 56.88357353210449,
+      "min": 45.18914222717285,
+      "max": 76.54905319213867,
+      "std": 8.980194724555485,
+      "percentile_95": 76.54905319213867,
+      "runs": 10,
+      "errors": 0,
+      "avg_tests": 2
+    }
+  },
+  "summary": {
+    "overall_stats": {
+      "mean_response_time_ms": 103.55059623718262,
+      "median_response_time_ms": 105.87596893310547,
+      "mean_response_time_seconds": 0.10355059623718262
+    },
+    "by_agent": {
+      "Functional-Positive-Agent": {
+        "mean_ms": 64.33000564575195,
+        "median_ms": 64.52298164367676
+      },
+      "Functional-Negative-Agent": {
+        "mean_ms": 140.11337757110596,
+        "median_ms": 129.60851192474365
+      },
+      "Security-Auth-Agent": {
+        "mean_ms": 150.61380863189697,
+        "median_ms": 122.06792831420898
+      },
+      "Security-Injection-Agent": {
+        "mean_ms": 105.87596893310547,
+        "median_ms": 97.15640544891357
+      },
+      "Data-Mocking-Agent": {
+        "mean_ms": 56.819820404052734,
+        "median_ms": 56.88357353210449
+      }
+    },
+    "total_benchmark_time": 12.615581035614014
+  }
+}

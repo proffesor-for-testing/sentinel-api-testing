@@ -1,0 +1,153 @@
+{
+  "timestamp": "2025-08-31T13:23:05.743515",
+  "specification": "Petstore API",
+  "method": "Same orchestration flow for both",
+  "iterations": 10,
+  "warmup_iterations": 2,
+  "results": {
+    "rust": {
+      "Functional-Positive-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Functional-Negative-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Functional-Stateful-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Security-Auth-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Security-Injection-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Performance-Planner-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Data-Mocking-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      }
+    },
+    "python": {
+      "Functional-Positive-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Functional-Negative-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Functional-Stateful-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Security-Auth-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Security-Injection-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Performance-Planner-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      },
+      "Data-Mocking-Agent": {
+        "runs": 0,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "avg_tests": 0,
+        "engine": "unknown"
+      }
+    }
+  }
+}

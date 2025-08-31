@@ -21,6 +21,7 @@ class LLMProvider(str, Enum):
     OLLAMA = "ollama"
     VLLM = "vllm"
     HUGGINGFACE = "huggingface"
+    MOCK = "mock"  # For benchmarking
 
 
 class ModelCapability(str, Enum):

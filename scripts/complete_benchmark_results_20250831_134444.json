@@ -1,0 +1,196 @@
+{
+  "timestamp": "2025-08-31T13:44:44.251365",
+  "configuration": {
+    "iterations": 10,
+    "warmup_iterations": 2,
+    "agents_tested": 7
+  },
+  "results": {
+    "rust": {
+      "Functional-Positive-Agent": {
+        "runs": 0,
+        "errors": 10,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "avg_tests": 0,
+        "engine": "failed",
+        "phase": "rust"
+      },
+      "Functional-Negative-Agent": {
+        "runs": 0,
+        "errors": 10,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "avg_tests": 0,
+        "engine": "failed",
+        "phase": "rust"
+      },
+      "Functional-Stateful-Agent": {
+        "runs": 0,
+        "errors": 10,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "avg_tests": 0,
+        "engine": "failed",
+        "phase": "rust"
+      },
+      "Security-Auth-Agent": {
+        "runs": 0,
+        "errors": 10,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "avg_tests": 0,
+        "engine": "failed",
+        "phase": "rust"
+      },
+      "Security-Injection-Agent": {
+        "runs": 0,
+        "errors": 10,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "avg_tests": 0,
+        "engine": "failed",
+        "phase": "rust"
+      },
+      "Performance-Planner-Agent": {
+        "runs": 0,
+        "errors": 10,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "avg_tests": 0,
+        "engine": "failed",
+        "phase": "rust"
+      },
+      "Data-Mocking-Agent": {
+        "runs": 0,
+        "errors": 10,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "avg_tests": 0,
+        "engine": "failed",
+        "phase": "rust"
+      }
+    },
+    "python": {
+      "Functional-Positive-Agent": {
+        "runs": 0,
+        "errors": 10,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "avg_tests": 0,
+        "engine": "failed",
+        "phase": "python"
+      },
+      "Functional-Negative-Agent": {
+        "runs": 0,
+        "errors": 10,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "avg_tests": 0,
+        "engine": "failed",
+        "phase": "python"
+      },
+      "Functional-Stateful-Agent": {
+        "runs": 0,
+        "errors": 10,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "avg_tests": 0,
+        "engine": "failed",
+        "phase": "python"
+      },
+      "Security-Auth-Agent": {
+        "runs": 0,
+        "errors": 10,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "avg_tests": 0,
+        "engine": "failed",
+        "phase": "python"
+      },
+      "Security-Injection-Agent": {
+        "runs": 0,
+        "errors": 10,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "avg_tests": 0,
+        "engine": "failed",
+        "phase": "python"
+      },
+      "Performance-Planner-Agent": {
+        "runs": 0,
+        "errors": 10,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "avg_tests": 0,
+        "engine": "failed",
+        "phase": "python"
+      },
+      "Data-Mocking-Agent": {
+        "runs": 0,
+        "errors": 10,
+        "mean": 0,
+        "median": 0,
+        "std": 0,
+        "min": 0,
+        "max": 0,
+        "p95": 0,
+        "avg_tests": 0,
+        "engine": "failed",
+        "phase": "python"
+      }
+    }
+  }
+}

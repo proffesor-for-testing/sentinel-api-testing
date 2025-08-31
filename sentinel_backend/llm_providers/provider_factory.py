@@ -190,6 +190,9 @@ class LLMProviderFactory:
             elif provider_type == LLMProvider.VLLM:
                 from .providers.vllm_provider import VLLMProvider
                 cls.register_provider(LLMProvider.VLLM, VLLMProvider)
+            elif provider_type == LLMProvider.MOCK:
+                from .mock_provider import MockLLMProvider
+                cls.register_provider(LLMProvider.MOCK, MockLLMProvider)
         except ImportError as e:
             logger.debug(f"Could not auto-import provider {provider_type.value}: {e}")
     

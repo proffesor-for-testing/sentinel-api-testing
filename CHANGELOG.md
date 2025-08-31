@@ -5,7 +5,47 @@ All notable changes to the Sentinel API Testing Platform will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-08-29
+## [Unreleased] - 2025-08-31
+
+### Added
+- **Performance-Based Agent Routing System**
+  - Intelligent routing based on actual performance metrics instead of language
+  - Tracks execution time, success rate, and test generation efficiency
+  - Automatically selects fastest implementation (Python vs Rust) per agent type
+  - Persistent metrics storage with sliding window of 100 samples
+  - REST API endpoint `/performance-metrics` for monitoring
+  - Default routing based on comprehensive benchmark results
+
+- **Ollama LLM Integration**
+  - Complete support for local LLM inference with 3 models
+  - mistral:7b - General purpose, fast responses
+  - codellama:7b - Code-focused tasks
+  - deepseek-coder:6.7b - Advanced reasoning
+  - Agent-optimized model selection configuration
+  - Configuration scripts for easy setup (`configure_ollama.py`)
+  - Docker support with host.docker.internal configuration
+
+- **Comprehensive LLM Benchmarking Suite**
+  - Benchmark scripts for all LLM providers
+  - Mock Provider: 104ms average (baseline)
+  - Anthropic Claude Sonnet 4: 2.3 seconds (verified via direct API)
+  - Ollama: 10-15 seconds on CPU
+  - Discovered and documented provider caching issue
+
+### Changed
+- **Agent Performance Reality Check**
+  - Debunked claimed 18-21x Rust speedup over Python
+  - Actual results: Python 1.09x faster overall
+  - Python faster for 4/7 agents, Rust faster for 3/7
+  - Updated documentation to reflect real performance data
+
+### Fixed
+- **Provider Factory Caching Issue**
+  - Identified provider instance caching preventing configuration changes
+  - Documented workaround and impact on benchmarks
+  - Service restart required for configuration changes
+
+## [Previous] - 2025-08-29
 
 ### Fixed
 - **Rust AI Agent Test Data Generation**

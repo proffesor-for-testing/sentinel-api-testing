@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::agents::{Agent, BaseAgent};
 use crate::agents::utils::*;
-use crate::types::{AgentTask, AgentResult, DataGenConfig};
+use crate::types::{AgentTask, AgentResult, DataGenConfig, TestCase};
 
 /// Intelligent Data Mocking Agent
 pub struct DataMockingAgent {
@@ -581,6 +581,125 @@ impl DataMockingAgent {
         
         format!("sk-{}-{}", prefix, key)
     }
+    
+    /// Generate test cases with mock data
+    fn generate_data_test_cases(&self, api_spec: &Value, mock_data: &Value, config: &DataGenConfig) -> Vec<TestCase> {
+        let mut test_cases = Vec::new();
+        
+        // Extract endpoints from the specification
+        let endpoints = self.base.extract_endpoints(api_spec);
+        
+        // Generate test cases for each endpoint with mock data
+        for endpoint in endpoints.iter().take(config.count.min(10)) {
+            // Only generate for POST/PUT endpoints that accept data
+            if ["POST", "PUT", "PATCH"].contains(&endpoint.method.as_str()) {
+                let test_name = format!("Mock data test: {} {}", endpoint.method, endpoint.path);
+                
+                // Generate mock request body based on endpoint schema
+                let mock_body = if let Some(request_body) = &endpoint.request_body {
+                    self.generate_mock_body(request_body, api_spec, &config.strategy)
+                } else {
+                    None
+                };
+                
+                // Create headers
+                let mut headers = HashMap::new();
+                headers.insert("Content-Type".to_string(), "application/json".to_string());
+                headers.insert("Accept".to_string(), "application/json".to_string());
+                
+                // Create test case
+                let test_case = self.base.create_test_case(
+                    endpoint.path.clone(),
+                    endpoint.method.clone(),
+                    test_name,
+                    Some(headers),
+                    Some(HashMap::new()),
+                    mock_body,
+                    200,  // Expected success status
+                    None,
+                );
+                
+                test_cases.push(test_case);
+            }
+        }
+        
+        // If no POST/PUT endpoints, generate data validation test cases for GET endpoints
+        if test_cases.is_empty() {
+            for endpoint in endpoints.iter().take(config.count.min(5)) {
+                if endpoint.method == "GET" {
+                    let test_name = format!("Data validation test: GET {}", endpoint.path);
+                    
+                    // Create headers
+                    let mut headers = HashMap::new();
+                    headers.insert("Accept".to_string(), "application/json".to_string());
+                    
+                    // Generate query parameters with mock data
+                    let query_params = self.generate_mock_query_params(&endpoint.parameters);
+                    
+                    // Convert HashMap<String, String> to HashMap<String, Value>
+                    let query_params_value: HashMap<String, Value> = query_params
+                        .into_iter()
+                        .map(|(k, v)| (k, Value::String(v)))
+                        .collect();
+                    
+                    // Create test case
+                    let test_case = self.base.create_test_case(
+                        endpoint.path.clone(),
+                        endpoint.method.clone(),
+                        test_name,
+                        Some(headers),
+                        Some(query_params_value),
+                        None,
+                        200,
+                        None,
+                    );
+                    
+                    test_cases.push(test_case);
+                }
+            }
+        }
+        
+        test_cases
+    }
+    
+    /// Generate mock request body
+    fn generate_mock_body(&self, request_body: &Value, api_spec: &Value, strategy: &str) -> Option<Value> {
+        if let Some(content) = request_body.get("content") {
+            if let Some(json_content) = content.get("application/json") {
+                if let Some(schema) = json_content.get("schema") {
+                    return Some(self.generate_from_schema(schema, strategy));
+                }
+            }
+        }
+        None
+    }
+    
+    /// Generate mock query parameters
+    fn generate_mock_query_params(&self, parameters: &[Value]) -> HashMap<String, String> {
+        let mut params = HashMap::new();
+        
+        for param in parameters {
+            if let Some(name) = param.get("name").and_then(|n| n.as_str()) {
+                if let Some(param_in) = param.get("in").and_then(|i| i.as_str()) {
+                    if param_in == "query" {
+                        // Generate appropriate mock value based on parameter type
+                        let value = if let Some(schema) = param.get("schema") {
+                            self.generate_from_schema(schema, "realistic")
+                        } else {
+                            Value::String("test_value".to_string())
+                        };
+                        
+                        params.insert(
+                            name.to_string(),
+                            value.as_str().unwrap_or("test").to_string()
+                        );
+                    }
+                }
+            }
+        }
+        
+        params
+    }
 }
 
 #[async_trait]
@@ -606,16 +725,20 @@ impl Agent for DataMockingAgent {
         };
         
         match self.generate_mock_data(&api_spec, &config).await {
-            Ok(_mock_data) => {
+            Ok(mock_data) => {
+                // Generate test cases with mock data
+                let test_cases = self.generate_data_test_cases(&api_spec, &mock_data, &config);
+                
                 let mut metadata = HashMap::new();
-                metadata.insert("strategy".to_string(), Value::String(config.strategy));
+                metadata.insert("strategy".to_string(), Value::String(config.strategy.clone()));
                 metadata.insert("count".to_string(), Value::Number(serde_json::Number::from(config.count)));
+                metadata.insert("total_test_cases".to_string(), Value::Number(serde_json::Number::from(test_cases.len())));
                 
                 AgentResult {
                     task_id: task.task_id,
                     agent_type: self.agent_type().to_string(),
                     status: "success".to_string(),
-                    test_cases: vec![], // Data mocking doesn't generate test cases
+                    test_cases,
                     metadata,
                     error_message: None,
                 }

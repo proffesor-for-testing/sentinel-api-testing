@@ -1,0 +1,133 @@
+{
+  "timestamp": "2025-08-31T21:55:24.065282",
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-20250514",
+  "configuration": {
+    "iterations": 10,
+    "warmup": 2,
+    "agents": [
+      "Functional-Positive-Agent",
+      "Functional-Negative-Agent",
+      "Security-Auth-Agent",
+      "Security-Injection-Agent",
+      "Data-Mocking-Agent"
+    ],
+    "spec_id": 6
+  },
+  "agent_results": {
+    "Functional-Positive-Agent": {
+      "mean": 81.14397525787354,
+      "median": 81.21311664581299,
+      "min": 73.65608215332031,
+      "max": 88.93203735351562,
+      "std": 5.072269449866477,
+      "percentile_95": 88.93203735351562,
+      "runs": 10,
+      "errors": 0,
+      "avg_tests": 5,
+      "total_tests": 50
+    },
+    "Functional-Negative-Agent": {
+      "mean": 163.6885643005371,
+      "median": 154.72733974456787,
+      "min": 138.06796073913574,
+      "max": 210.88600158691406,
+      "std": 24.714163726478763,
+      "percentile_95": 210.88600158691406,
+      "runs": 10,
+      "errors": 0,
+      "avg_tests": 45,
+      "total_tests": 450
+    },
+    "Security-Auth-Agent": {
+      "mean": 167.52030849456787,
+      "median": 158.36107730865479,
+      "min": 140.41686058044434,
+      "max": 209.80405807495117,
+      "std": 25.86022287690772,
+      "percentile_95": 209.80405807495117,
+      "runs": 10,
+      "errors": 0,
+      "avg_tests": 42,
+      "total_tests": 420
+    },
+    "Security-Injection-Agent": {
+      "mean": 126.40204429626465,
+      "median": 121.54650688171387,
+      "min": 93.8119888305664,
+      "max": 178.4980297088623,
+      "std": 27.857817831923743,
+      "percentile_95": 178.4980297088623,
+      "runs": 10,
+      "errors": 0,
+      "avg_tests": 27,
+      "total_tests": 270
+    },
+    "Data-Mocking-Agent": {
+      "mean": 72.37281799316406,
+      "median": 76.36260986328125,
+      "min": 53.07817459106445,
+      "max": 86.07792854309082,
+      "std": 10.112215029436268,
+      "percentile_95": 86.07792854309082,
+      "runs": 10,
+      "errors": 0,
+      "avg_tests": 2,
+      "total_tests": 20
+    }
+  },
+  "summary": {
+    "overall_stats": {
+      "mean_response_time_ms": 122.22554206848145,
+      "median_response_time_ms": 126.40204429626465,
+      "min_response_time_ms": 72.37281799316406,
+      "max_response_time_ms": 167.52030849456787,
+      "mean_response_time_seconds": 0.12222554206848145
+    },
+    "by_agent": {
+      "Functional-Positive-Agent": {
+        "mean_ms": 81.14397525787354,
+        "median_ms": 81.21311664581299,
+        "min_ms": 73.65608215332031,
+        "max_ms": 88.93203735351562,
+        "test_count": 5
+      },
+      "Functional-Negative-Agent": {
+        "mean_ms": 163.6885643005371,
+        "median_ms": 154.72733974456787,
+        "min_ms": 138.06796073913574,
+        "max_ms": 210.88600158691406,
+        "test_count": 45
+      },
+      "Security-Auth-Agent": {
+        "mean_ms": 167.52030849456787,
+        "median_ms": 158.36107730865479,
+        "min_ms": 140.41686058044434,
+        "max_ms": 209.80405807495117,
+        "test_count": 42
+      },
+      "Security-Injection-Agent": {
+        "mean_ms": 126.40204429626465,
+        "median_ms": 121.54650688171387,
+        "min_ms": 93.8119888305664,
+        "max_ms": 178.4980297088623,
+        "test_count": 27
+      },
+      "Data-Mocking-Agent": {
+        "mean_ms": 72.37281799316406,
+        "median_ms": 76.36260986328125,
+        "min_ms": 53.07817459106445,
+        "max_ms": 86.07792854309082,
+        "test_count": 2
+      }
+    },
+    "comparison": {
+      "anthropic_mean_seconds": 0.12222554206848145,
+      "ollama_mean_seconds": 15,
+      "mock_mean_seconds": 0.05,
+      "anthropic_vs_ollama_speedup": 122.72393925318562,
+      "anthropic_vs_mock_slowdown": 2.444510841369629
+    },
+    "total_benchmark_time": 37.43336510658264
+  }
+}
