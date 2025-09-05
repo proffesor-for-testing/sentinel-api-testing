@@ -305,9 +305,9 @@ def get_performance_tracker() -> AgentPerformanceTracker:
     return _tracker_instance
 
 
-async def track_agent_execution(agent_type: str, 
-                                language: str,
-                                spec_id: Optional[int] = None):
+def track_agent_execution(agent_type: str, 
+                         language: str,
+                         spec_id: Optional[int] = None):
     """
     Context manager for tracking agent execution performance.
     
