@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, BigInteger, DateTime, func, ForeignKey
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -12,7 +12,7 @@ class TestCase(Base):
     agent_type = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     test_definition = Column(JSONB, nullable=False)
-    tags = Column(JSONB, nullable=True)
+    tags = Column(ARRAY(Text), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
