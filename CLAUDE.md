@@ -6,15 +6,34 @@
 1. ALL operations MUST be concurrent/parallel in a single message
 2. **NEVER save working files, text/mds and tests to the root folder**
 3. ALWAYS organize files in appropriate subdirectories
+4. **USE CLAUDE CODE'S TASK TOOL** for spawning agents concurrently, not just MCP
 
 ### ⚡ GOLDEN RULE: "1 MESSAGE = ALL RELATED OPERATIONS"
 
 **MANDATORY PATTERNS:**
 - **TodoWrite**: ALWAYS batch ALL todos in ONE call (5-10+ todos minimum)
-- **Task tool**: ALWAYS spawn ALL agents in ONE message with full instructions
+- **Task tool (Claude Code)**: ALWAYS spawn ALL agents in ONE message with full instructions
 - **File operations**: ALWAYS batch ALL reads/writes/edits in ONE message
 - **Bash commands**: ALWAYS batch ALL terminal operations in ONE message
 - **Memory operations**: ALWAYS batch ALL memory store/retrieve in ONE message
+
+### 🎯 CRITICAL: Claude Code Task Tool for Agent Execution
+
+**Claude Code's Task tool is the PRIMARY way to spawn agents:**
+```javascript
+// ✅ CORRECT: Use Claude Code's Task tool for parallel agent execution
+[Single Message]:
+  Task("Research agent", "Analyze requirements and patterns...", "researcher")
+  Task("Coder agent", "Implement core features...", "coder")
+  Task("Tester agent", "Create comprehensive tests...", "tester")
+  Task("Reviewer agent", "Review code quality...", "reviewer")
+  Task("Architect agent", "Design system architecture...", "system-architect")
+```
+
+**MCP tools are ONLY for coordination setup:**
+- `mcp__claude-flow__swarm_init` - Initialize coordination topology
+- `mcp__claude-flow__agent_spawn` - Define agent types for coordination
+- `mcp__claude-flow__task_orchestrate` - Orchestrate high-level workflows
 
 ### 📁 File Organization Rules
 
@@ -29,8 +48,6 @@
 ## Project Overview
 
 This project uses SPARC (Specification, Pseudocode, Architecture, Refinement, Completion) methodology with Claude-Flow orchestration for systematic Test-Driven Development.
-
-**Sentinel Platform**: AI-powered API testing platform with specialized ephemeral agents for intelligent test generation across functional, security, and performance domains.
 
 ## SPARC Commands
 
@@ -50,81 +67,6 @@ This project uses SPARC (Specification, Pseudocode, Architecture, Refinement, Co
 - `npm run test` - Run tests
 - `npm run lint` - Linting
 - `npm run typecheck` - Type checking
-
-### Backend Development (Python/FastAPI)
-```bash
-# Navigate to backend
-cd sentinel_backend
-
-# Install dependencies
-poetry install
-
-# Run individual services
-cd api_gateway && poetry run uvicorn main:app --reload --port 8000
-cd spec_service && poetry run uvicorn main:app --reload --port 8001
-cd orchestration_service && poetry run uvicorn main:app --reload --port 8002
-cd execution_service && poetry run uvicorn main:app --reload --port 8003
-cd data_service && poetry run uvicorn main:app --reload --port 8004
-cd auth_service && poetry run uvicorn main:app --reload --port 8005
-
-# Full platform startup (Docker)
-docker-compose up --build
-
-# Run tests
-./run_tests.sh                    # All tests with comprehensive options
-./run_tests.sh -t unit           # Unit tests only
-./run_tests.sh -t integration -d # Integration tests in Docker
-./run_tests.sh -t agents         # Run AI agent tests
-./run_agent_tests.sh             # Run agent tests with colored output
-./run_agent_tests.sh -c          # Run agent tests with coverage
-./run_agent_tests.sh base auth   # Run specific agent tests
-
-# Run E2E tests
-pytest tests/e2e/ -v             # All E2E tests
-pytest tests/e2e/test_spec_to_execution.py -v  # Specific E2E test
-pytest tests/e2e/ -k "security"  # Run security E2E tests
-pytest tests/e2e/ --maxfail=1    # Stop on first failure
-```
-
-### Frontend Development (React)
-```bash
-# Navigate to frontend
-cd sentinel_frontend
-
-# Install dependencies
-npm install
-
-# Start development server
-npm start
-
-# Build for production
-npm run build
-
-# Run unit tests
-npm test
-
-# Run E2E tests (Playwright)
-npm run test:e2e                 # Run all E2E tests
-npm run test:e2e:ui              # Run with Playwright UI
-npm run test:e2e:headed          # Run in headed mode (see browser)
-npm run test:e2e:debug           # Debug mode
-npx playwright test e2e/tests/auth.spec.ts  # Run specific test file
-npx playwright test -g "should login"       # Run test by name pattern
-npx playwright show-report       # View last test report
-```
-
-### Rust Core Development
-```bash
-# Navigate to Rust core
-cd sentinel_backend/sentinel_rust_core
-
-# Build and run
-cargo build --release
-cargo run
-
-# Run tests
-cargo test
-```
 
 ## SPARC Workflow Phases
 
@@ -173,7 +115,8 @@ cargo test
 
 ## 🎯 Claude Code vs MCP Tools
 
-### Claude Code Handles ALL:
+### Claude Code Handles ALL EXECUTION:
+- **Task tool**: Spawn and run agents concurrently for actual work
 - File operations (Read, Write, Edit, MultiEdit, Glob, Grep)
 - Code generation and programming
 - Bash commands and system operations
@@ -184,51 +127,24 @@ cargo test
 - Package management
 - Testing and debugging
 
-### MCP Tools ONLY:
-- Coordination and planning
+### MCP Tools ONLY COORDINATE:
+- Swarm initialization (topology setup)
+- Agent type definitions (coordination patterns)
+- Task orchestration (high-level planning)
 - Memory management
 - Neural features
 - Performance tracking
-- Swarm orchestration
 - GitHub integration
 
-**KEY**: MCP coordinates, Claude Code executes.
+**KEY**: MCP coordinates the strategy, Claude Code's Task tool executes with real agents.
 
 ## 🚀 Quick Setup
 
 ```bash
-# Add Claude Flow MCP server
+# Add MCP servers (Claude Flow required, others optional)
 claude mcp add claude-flow npx claude-flow@alpha mcp start
-```
-
-## 🧪 Testing Strategy
-
-### Backend Testing
-- **Unit Tests**: 456+ tests (Agents: 184, LLM Providers: 272+)
-- **Integration Tests**: 6 comprehensive test files (2,342 lines)
-  - Service communication
-  - Database operations
-  - Message broker (RabbitMQ)
-  - Security flows
-- **API Workflow Tests**: End-to-end API testing scenarios
-  - Complete workflow from spec to results
-  - Authentication flows
-
-### Frontend Testing (Playwright E2E)
-- **Real Browser Testing**: Chrome, Firefox, Safari, Mobile
-- **Page Object Model**: Maintainable test architecture
-- **Test Coverage**:
-  - Authentication & RBAC
-  - API Specification Management
-  - Test Generation Workflow
-  - Results Visualization
-
-```bash
-# Run Playwright E2E tests
-cd sentinel_frontend
-npm install
-npx playwright install
-npm run test:e2e
+claude mcp add ruv-swarm npx ruv-swarm mcp start  # Optional: Enhanced coordination
+claude mcp add flow-nexus npx flow-nexus@latest mcp start  # Optional: Cloud features
 ```
 
 ## MCP Tool Categories
@@ -248,9 +164,56 @@ npm run test:e2e
 ### System
 `benchmark_run`, `features_detect`, `swarm_monitor`
 
+### Flow-Nexus MCP Tools (Optional Advanced Features)
+Flow-Nexus extends MCP capabilities with 70+ cloud-based orchestration tools:
+
+**Key MCP Tool Categories:**
+- **Swarm & Agents**: `swarm_init`, `swarm_scale`, `agent_spawn`, `task_orchestrate`
+- **Sandboxes**: `sandbox_create`, `sandbox_execute`, `sandbox_upload` (cloud execution)
+- **Templates**: `template_list`, `template_deploy` (pre-built project templates)
+- **Neural AI**: `neural_train`, `neural_patterns`, `seraphina_chat` (AI assistant)
+- **GitHub**: `github_repo_analyze`, `github_pr_manage` (repository management)
+- **Real-time**: `execution_stream_subscribe`, `realtime_subscribe` (live monitoring)
+- **Storage**: `storage_upload`, `storage_list` (cloud file management)
+
+**Authentication Required:**
+- Register: `mcp__flow-nexus__user_register` or `npx flow-nexus@latest register`
+- Login: `mcp__flow-nexus__user_login` or `npx flow-nexus@latest login`
+- Access 70+ specialized MCP tools for advanced orchestration
+
+## 🚀 Agent Execution Flow with Claude Code
+
+### The Correct Pattern:
+
+1. **Optional**: Use MCP tools to set up coordination topology
+2. **REQUIRED**: Use Claude Code's Task tool to spawn agents that do actual work
+3. **REQUIRED**: Each agent runs hooks for coordination
+4. **REQUIRED**: Batch all operations in single messages
+
+### Example Full-Stack Development:
+
+```javascript
+// Single message with all agent spawning via Claude Code's Task tool
+[Parallel Agent Execution]:
+  Task("Backend Developer", "Build REST API with Express. Use hooks for coordination.", "backend-dev")
+  Task("Frontend Developer", "Create React UI. Coordinate with backend via memory.", "coder")
+  Task("Database Architect", "Design PostgreSQL schema. Store schema in memory.", "code-analyzer")
+  Task("Test Engineer", "Write Jest tests. Check memory for API contracts.", "tester")
+  Task("DevOps Engineer", "Setup Docker and CI/CD. Document in memory.", "cicd-engineer")
+  Task("Security Auditor", "Review authentication. Report findings via hooks.", "reviewer")
+  
+  // All todos batched together
+  TodoWrite { todos: [...8-10 todos...] }
+  
+  // All file operations together
+  Write "backend/server.js"
+  Write "frontend/App.jsx"
+  Write "database/schema.sql"
+```
+
 ## 📋 Agent Coordination Protocol
 
-### Every Agent MUST:
+### Every Agent Spawned via Task Tool MUST:
 
 **1️⃣ BEFORE Work:**
 ```bash
@@ -272,34 +235,43 @@ npx claude-flow@alpha hooks session-end --export-metrics true
 
 ## 🎯 Concurrent Execution Examples
 
-### ✅ CORRECT (Single Message):
+### ✅ CORRECT WORKFLOW: MCP Coordinates, Claude Code Executes
+
 ```javascript
-[BatchTool]:
-  // Initialize swarm
+// Step 1: MCP tools set up coordination (optional, for complex tasks)
+[Single Message - Coordination Setup]:
   mcp__claude-flow__swarm_init { topology: "mesh", maxAgents: 6 }
   mcp__claude-flow__agent_spawn { type: "researcher" }
   mcp__claude-flow__agent_spawn { type: "coder" }
   mcp__claude-flow__agent_spawn { type: "tester" }
+
+// Step 2: Claude Code Task tool spawns ACTUAL agents that do the work
+[Single Message - Parallel Agent Execution]:
+  // Claude Code's Task tool spawns real agents concurrently
+  Task("Research agent", "Analyze API requirements and best practices. Check memory for prior decisions.", "researcher")
+  Task("Coder agent", "Implement REST endpoints with authentication. Coordinate via hooks.", "coder")
+  Task("Database agent", "Design and implement database schema. Store decisions in memory.", "code-analyzer")
+  Task("Tester agent", "Create comprehensive test suite with 90% coverage.", "tester")
+  Task("Reviewer agent", "Review code quality and security. Document findings.", "reviewer")
   
-  // Spawn agents with Task tool
-  Task("Research agent: Analyze requirements...")
-  Task("Coder agent: Implement features...")
-  Task("Tester agent: Create test suite...")
-  
-  // Batch todos
+  // Batch ALL todos in ONE call
   TodoWrite { todos: [
-    {id: "1", content: "Research", status: "in_progress", priority: "high"},
-    {id: "2", content: "Design", status: "pending", priority: "high"},
-    {id: "3", content: "Implement", status: "pending", priority: "high"},
-    {id: "4", content: "Test", status: "pending", priority: "medium"},
-    {id: "5", content: "Document", status: "pending", priority: "low"}
+    {id: "1", content: "Research API patterns", status: "in_progress", priority: "high"},
+    {id: "2", content: "Design database schema", status: "in_progress", priority: "high"},
+    {id: "3", content: "Implement authentication", status: "pending", priority: "high"},
+    {id: "4", content: "Build REST endpoints", status: "pending", priority: "high"},
+    {id: "5", content: "Write unit tests", status: "pending", priority: "medium"},
+    {id: "6", content: "Integration tests", status: "pending", priority: "medium"},
+    {id: "7", content: "API documentation", status: "pending", priority: "low"},
+    {id: "8", content: "Performance optimization", status: "pending", priority: "low"}
   ]}
   
-  // File operations
-  Bash "mkdir -p app/{src,tests,docs}"
-  Write "app/src/index.js"
-  Write "app/tests/index.test.js"
-  Write "app/docs/README.md"
+  // Parallel file operations
+  Bash "mkdir -p app/{src,tests,docs,config}"
+  Write "app/package.json"
+  Write "app/src/server.js"
+  Write "app/tests/server.test.js"
+  Write "app/docs/API.md"
 ```
 
 ### ❌ WRONG (Multiple Messages):
@@ -362,203 +334,19 @@ Message 4: Write "file.js"
 6. Enable hooks automation
 7. Use GitHub tools first
 
-## LLM Integration
-
-### Multi-Provider Support
-The platform includes a comprehensive LLM abstraction layer supporting multiple providers with automatic fallback capabilities. All AI agents can leverage LLM capabilities while maintaining backward compatibility.
-
-### Default Configuration
-The platform uses **Anthropic's Claude Sonnet 4** as the default LLM provider for all AI agents. This provides:
-- Excellent balance of performance and cost
-- 1 million token context window (as of August 2025)
-- Strong reasoning capabilities with hybrid modes
-- Vision support for multimodal testing
-- API model: `claude-sonnet-4-20250514`
-
-To use the default configuration:
-```bash
-export SENTINEL_APP_ANTHROPIC_API_KEY=your-anthropic-api-key
-```
-
-### Supported Providers
-
-#### Commercial Providers
-- **OpenAI**: GPT-4 Turbo, GPT-4, GPT-3.5 Turbo
-- **Anthropic**: Claude Opus 4.1/4, Claude Sonnet 4, Claude Haiku 3.5
-- **Google**: Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini 2.0 Flash
-- **Mistral**: Mistral Large, Mistral Small 3, Codestral
-
-#### Open Source Models (via Ollama)
-- **DeepSeek**: DeepSeek-R1 (671B/70B/32B variants)
-- **Meta Llama**: Llama 3.3 70B, Llama 3.1 (405B/70B/8B)
-- **Alibaba Qwen**: Qwen 2.5 (72B/32B/7B), Qwen 2.5 Coder
-- **Others**: Mistral 7B, Phi-3 14B, Gemma 2 27B, Command R 35B
-
-### LLM Configuration & Management
-```bash
-# Interactive LLM configuration
-cd sentinel_backend/scripts
-./switch_llm.sh                 # Interactive wizard
-./switch_llm.sh claude          # Quick preset for Claude
-./switch_llm.sh openai          # Quick preset for OpenAI
-./switch_llm.sh local           # Quick preset for local Ollama
-
-# Docker-specific configuration
-./switch_llm_docker.sh gpt4     # Switch Docker to GPT-4
-./switch_llm_docker.sh gemini   # Switch Docker to Gemini 2.5
-
-# Validate LLM configuration
-python scripts/validate_llm_config.py
-```
-
-## Architecture Overview
-
-### Microservices Architecture
-The platform follows a microservices pattern with specialized services:
-
-- **API Gateway** (8000): Single entry point, RBAC integration, request routing
-- **Auth Service** (8005): JWT authentication, user management, RBAC
-- **Spec Service** (8001): OpenAPI specification parsing and management
-- **Orchestration Service** (8002): AI agent coordination and task delegation
-- **Execution Service** (8003): Test execution engine and scheduling
-- **Data Service** (8004): Analytics, persistence, historical data
-- **Sentinel Rust Core** (8088): High-performance agent execution via ruv-swarm
-
-### AI Agent System (Sentinel-Specific)
-The platform uses specialized ephemeral AI agents for different testing domains:
-
-#### Functional Testing Agents
-- **Functional-Positive-Agent**: Valid test case generation with schema-based data
-- **Functional-Negative-Agent**: Boundary value analysis and creative negative testing
-- **Functional-Stateful-Agent**: Multi-step workflows using Semantic Operation Dependency Graphs
-
-#### Security Testing Agents
-- **Security-Auth-Agent**: BOLA, function-level authorization, auth bypass testing
-- **Security-Injection-Agent**: SQL/NoSQL/Command/Prompt injection vulnerability testing
-
-#### Other Agents
-- **Performance-Planner-Agent**: k6/JMeter script generation for load testing
-- **Data-Mocking-Agent**: Schema-aware realistic test data generation
-
-### Message Broker Architecture
-- **RabbitMQ** integration for asynchronous task processing
-- **Publisher**: Orchestration Service publishes agent tasks
-- **Consumer**: Sentinel Rust Core consumes and processes tasks
-- **Durability**: Messages persist across service restarts
-
-## Configuration Management
-
-### Key Environment Variables
-```bash
-# Database
-SENTINEL_DB_URL=postgresql+asyncpg://user:pass@host/db
-SENTINEL_DB_POOL_SIZE=20
-
-# Service URLs
-SENTINEL_SERVICE_AUTH_SERVICE_URL=http://auth:8005
-SENTINEL_SERVICE_SERVICE_TIMEOUT=60
-
-# Security
-SENTINEL_SECURITY_JWT_SECRET_KEY=your-secret-key
-SENTINEL_SECURITY_JWT_EXPIRATION_HOURS=24
-
-# LLM Configuration (Multi-Vendor Support)
-SENTINEL_APP_LLM_PROVIDER=anthropic  # Options: anthropic, openai, google, mistral, ollama, vllm, none
-SENTINEL_APP_LLM_MODEL=claude-sonnet-4  # Default model for the provider
-SENTINEL_APP_ANTHROPIC_API_KEY=sk-ant-...  # Anthropic API key
-SENTINEL_APP_OPENAI_API_KEY=sk-...  # OpenAI API key
-SENTINEL_APP_LLM_TEMPERATURE=0.5
-SENTINEL_APP_LLM_MAX_TOKENS=2000
-
-# Observability
-SENTINEL_NETWORK_JAEGER_AGENT_HOST=localhost
-SENTINEL_NETWORK_JAEGER_AGENT_PORT=6831
-SENTINEL_BROKER_URL=amqp://guest:guest@message_broker:5672/
-```
-
-## Testing Patterns & Current Status
-
-### Test Execution Guidelines
-**IMPORTANT**: Always run tests in Docker to ensure consistent environment:
-```bash
-cd sentinel_backend
-./run_tests.sh -d              # Run all tests in Docker
-./run_tests.sh -d -t unit      # Run only unit tests in Docker
-./run_tests.sh -d -t integration # Run only integration tests in Docker
-
-# Rebuild test Docker image after dependency changes
-docker-compose -f docker-compose.test.yml build test_runner
-```
-
-**Current Test Status** (as of August 16, 2025):
-- **408 total tests** (184 AI agent tests + 224 other tests)
-- **97.8% pass rate** (399 passing, 9 failing)
-- **100% AI agent coverage** with dedicated test runner
-- All critical unit tests passing
-- Test infrastructure includes full mocking, fixtures, and async support
-
-## RBAC System
-
-### Default Admin Credentials
-- Email: `admin@sentinel.com`
-- Password: `admin123`
-
-### Role Hierarchy
-- **Admin**: Full access including user management
-- **Manager**: Most permissions except user management  
-- **Tester**: Testing operations (create/edit test cases, run tests)
-- **Viewer**: Read-only access
-
-## Git & Version Control Guidelines
-
-### Commit Message Rules
-**IMPORTANT**: Always use clear, concise commit messages following this format:
-
-```
-<type>: <subject>
-
-[optional body]
-[optional footer]
-```
-
-Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
-
-### Staging and Committing
-```bash
-# Always use git add -A to stage all changes
-git add -A  # Stages all changes (new, modified, and deleted files)
-git commit -m "type: Clear description of changes"
-```
-
-### Docker Service Updates
-**CRITICAL**: When making code changes to services:
-```bash
-# ALWAYS rebuild the service, not just restart
-docker-compose build <service_name>
-docker-compose up -d <service_name>
-
-# Wrong approach (won't pick up code changes):
-docker-compose restart <service_name>  # DON'T DO THIS
-```
-
-## Common Issues & Solutions
-
-### Frontend Issues
-- **specifications.map is not a function**: Handle wrapped API responses
-- **Layout excessive white space**: Use flexbox layout with proper positioning
-- **Quick Test returns 500**: Ensure all agents have `execute` method implemented
-
-### Backend Issues
-- **Foreign key constraint errors**: Remove cross-service database dependencies
-- **Docker services not reflecting code changes**: Always rebuild, not restart
-- **No API key error**: Set SENTINEL_APP_ANTHROPIC_API_KEY environment variable
-
 ## Support
 
-- **Sentinel Documentation**: See `/docs` folder and memory-bank files
-- **Claude-Flow Documentation**: https://github.com/ruvnet/claude-flow
-- **Claude-Flow Issues**: https://github.com/ruvnet/claude-flow/issues
+- Documentation: https://github.com/ruvnet/claude-flow
+- Issues: https://github.com/ruvnet/claude-flow/issues
+- Flow-Nexus Platform: https://flow-nexus.ruv.io (registration required for cloud features)
 
 ---
 
 Remember: **Claude Flow coordinates, Claude Code creates!**
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+Never save working files, text/mds and tests to the root folder.

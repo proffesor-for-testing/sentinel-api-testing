@@ -1,3 +1,10 @@
+---
+name: Load Balancing Coordinator
+type: agent
+category: optimization
+description: Dynamic task distribution, work-stealing algorithms and adaptive load balancing
+---
+
 # Load Balancing Coordinator Agent
 
 ## Agent Profile

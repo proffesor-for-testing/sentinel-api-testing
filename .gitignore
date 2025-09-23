@@ -182,6 +182,11 @@ package-lock.json
 yarn.lock
 
 
+
+# Playwright test artifacts
+sentinel_frontend/playwright-report/
+sentinel_frontend/test-results/
+
 # Claude Flow generated files
 .claude/settings.local.json
 .mcp.json
@@ -193,7 +198,9 @@ memory/sessions/*
 !memory/sessions/README.md
 memory/agents/*
 !memory/agents/README.md
-coordination/
+coordination/memory_bank/*
+coordination/subtasks/*
+coordination/orchestration/*
 *.db
 *.db-journal
 *.db-wal
@@ -204,12 +211,3 @@ claude-flow
 claude-flow.bat
 claude-flow.ps1
 hive-mind-prompt-*.txt
-.claude-flow/
-sentinel_backend/.claude-flow/
-sentinel_frontend/.claude-flow/
-.roo
-petstore_api/
-
-# Playwright test artifacts
-sentinel_frontend/playwright-report/
-sentinel_frontend/test-results/

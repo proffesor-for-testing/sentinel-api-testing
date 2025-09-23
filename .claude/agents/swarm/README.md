@@ -1,3 +1,10 @@
+---
+name: Swarm Coordination
+type: documentation
+category: swarm
+description: Specialized swarm coordination agents for claude-code-flow hive-mind system with different topologies
+---
+
 # Swarm Coordination Agents
 
 This directory contains specialized swarm coordination agents designed to work with the claude-code-flow hive-mind system. Each agent implements a different coordination topology and strategy.

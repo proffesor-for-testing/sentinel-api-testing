@@ -1,3 +1,10 @@
+---
+name: Performance Optimization
+type: documentation
+category: optimization
+description: Comprehensive suite of performance optimization agents for swarm efficiency and scalability
+---
+
 # Performance Optimization Agents
 
 This directory contains a comprehensive suite of performance optimization agents designed to maximize swarm efficiency, scalability, and reliability.
