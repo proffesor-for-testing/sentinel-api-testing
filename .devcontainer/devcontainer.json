@@ -1,0 +1,28 @@
+{
+  "name": "Basic Development DevPod",
+  "image": "mcr.microsoft.com/devcontainers/base:debian12",
+  "runArgs": [
+    "--privileged"
+  ],
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/devcontainers/features/python:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rooveterinaryinc.roo-cline",
+        "vsls-contrib.gistfs",
+        "github.copilot",
+        "github.copilot-chat",
+        "anthropic.claude-code",
+        "codeflow-studio.claude-code-extension",
+        "suzuki0430.ccusage-vscode"
+      ]
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/install-tools.sh",
+  "shutdownAction": "none"
+}
