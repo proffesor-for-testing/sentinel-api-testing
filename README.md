@@ -163,13 +163,6 @@ The platform now includes an advanced consciousness verification system in the R
 - **Knowledge Graph Integration**: Semantic understanding of API relationships and dependencies
 - **Sublinear Solvers**: O(log n) performance for large-scale test optimization
 
-### MCP Integration (Model Context Protocol)
-Advanced orchestration through MCP tools:
-
-- **Claude Flow**: Swarm orchestration and agent coordination
-- **RUV Swarm**: Distributed agent management with WASM acceleration
-- **Flow Nexus**: Cloud-based sandboxes and neural network training
-- **Sublinear Solver**: Mathematical optimization for test generation
 
 ### Key Capabilities:
 - **Predictive Testing**: Solve test scenarios before data arrives using temporal advantages
