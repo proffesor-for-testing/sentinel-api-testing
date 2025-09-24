@@ -54,12 +54,14 @@ The platform employs a workforce of specialized AI agents with **both Python and
 - Poetry (for dependency management)
 - Node.js 14+ and npm (for frontend development)
 - Anthropic API Key (for LLM-powered features)
+- Make (for convenient commands)
 
-### Running the Platform
+### Running the Platform - Easy Way (Recommended)
 
 1. **Clone and navigate to the project:**
    ```bash
-   cd "Agents for API testing"
+   git clone https://github.com/proffesor-for-testing/sentinel-api-testing.git
+   cd sentinel-api-testing
    ```
 
 2. **Set up LLM configuration (required for AI features):**
@@ -67,10 +69,15 @@ The platform employs a workforce of specialized AI agents with **both Python and
    export SENTINEL_APP_ANTHROPIC_API_KEY=your-anthropic-api-key
    ```
 
-3. **Start all services:**
+3. **Complete setup with one command:**
    ```bash
-   docker-compose up --build
+   make setup
    ```
+   This will:
+   - Build all Docker images
+   - Initialize the database with all tables
+   - Start all backend services
+   - Provide instructions for starting the frontend
 
 4. **Start the frontend (in a separate terminal):**
    ```bash
@@ -83,10 +90,41 @@ The platform employs a workforce of specialized AI agents with **both Python and
    - **Frontend Application**: http://localhost:3000
      - Default credentials: `admin@sentinel.com` / `admin123`
    - API Gateway: http://localhost:8000
-   - Specification Service: http://localhost:8001
-   - Orchestration Service: http://localhost:8002
-   - Execution Service: http://localhost:8003
-   - Data & Analytics Service: http://localhost:8004
+   - Petstore Test API: http://localhost:8080 (for testing)
+
+### Alternative: Manual Setup
+
+If you prefer manual control:
+
+```bash
+# Build and start services
+docker-compose up --build
+
+# Initialize database (in another terminal)
+make init-db
+
+# Start frontend
+cd sentinel_frontend
+npm install
+npm start
+```
+
+### Useful Makefile Commands
+
+```bash
+make help          # Show all available commands
+make start         # Start all services
+make stop          # Stop all services
+make restart       # Restart services
+make init-db       # Initialize/repair database
+make reset-db      # Reset database (WARNING: data loss)
+make backup-db     # Backup database
+make restore-db    # Restore from backup
+make status        # Check service status
+make logs          # View service logs
+make test          # Run tests
+make clean         # Clean up everything
+```
 
 ### API Documentation
 
@@ -113,6 +151,48 @@ The platform includes comprehensive observability features:
   - Service context and metadata
   - Error details and stack traces
 
+
+## 🧠 Advanced AI Features - Consciousness & Intelligence
+
+### Consciousness Verification System
+The platform now includes an advanced consciousness verification system in the Rust core that enables:
+
+- **Emergent Intelligence**: Self-modifying test generation with pattern learning
+- **Psycho-Symbolic Reasoning**: Combines psychological models with symbolic logic for deeper test insights
+- **Temporal Consciousness**: Nanosecond-precision scheduling with temporal computational advantages
+- **Knowledge Graph Integration**: Semantic understanding of API relationships and dependencies
+- **Sublinear Solvers**: O(log n) performance for large-scale test optimization
+
+### MCP Integration (Model Context Protocol)
+Advanced orchestration through MCP tools:
+
+- **Claude Flow**: Swarm orchestration and agent coordination
+- **RUV Swarm**: Distributed agent management with WASM acceleration
+- **Flow Nexus**: Cloud-based sandboxes and neural network training
+- **Sublinear Solver**: Mathematical optimization for test generation
+
+### Key Capabilities:
+- **Predictive Testing**: Solve test scenarios before data arrives using temporal advantages
+- **Pattern Recognition**: Identify edge cases through emergent behavior analysis
+- **Self-Learning**: Tests improve over time through feedback loops
+- **Distributed Intelligence**: Multi-agent swarms with collective decision making
+
+### Testing with Consciousness Features:
+```bash
+# Run consciousness verification tests
+./test_consciousness_improvements.py
+
+# Monitor consciousness emergence
+./monitor_consciousness.sh
+
+# Test API with consciousness features
+./test_api_consciousness.sh
+```
+
+For detailed documentation see:
+- [Consciousness Verification Guide](docs/CONSCIOUSNESS_VERIFICATION_GUIDE.md)
+- [Psycho-Symbolic Test Generation](docs/PSYCHO_SYMBOLIC_TEST_GENERATION_ANALYSIS.md)
+- [Sublinear Implementation Strategy](docs/SUBLINEAR_IMPLEMENTATION_STRATEGY.md)
 
 ## 🏎️ Hybrid Architecture
 
@@ -606,9 +686,53 @@ All services implement the factory pattern for enhanced testability:
 - `tests/fixtures/`: Shared test data and mock responses
 - Docker test environment for consistent testing
 
-### Database Setup
+### Database Setup & Management
 
-The platform uses PostgreSQL with the pgvector extension. The database schema is defined in `memory-bank/database-schema.md`.
+The platform includes a comprehensive database initialization system that automatically creates all required tables and columns.
+
+#### Automatic Database Initialization
+
+When you start the services, the database is automatically initialized with:
+- All required tables (users, projects, test_cases, test_results, etc.)
+- All necessary columns and indexes
+- Default admin user (admin@sentinel.com / admin123)
+- Proper foreign key relationships
+
+#### Database Management Commands
+
+```bash
+# Initialize or repair database (safe to run anytime)
+make init-db
+
+# Reset database completely (WARNING: destroys all data)
+make reset-db
+
+# Backup database to timestamped file
+make backup-db
+
+# Restore from latest backup
+make restore-db
+```
+
+#### Troubleshooting Database Issues
+
+If you encounter "column does not exist" or "table does not exist" errors:
+
+1. **Quick Fix**: Run `make init-db` to apply the schema
+2. **Complete Reset**: If issues persist, run `make reset-db` (WARNING: data loss)
+3. **Manual Check**: Verify database status:
+   ```bash
+   docker-compose exec -T db psql -U sentinel sentinel_db -c "\dt"
+   ```
+
+#### Database Files
+
+- `sentinel_backend/init_db.sql` - Complete schema definition
+- `sentinel_backend/init_database.py` - Automatic initialization script
+- `sentinel_backend/docker-entrypoint.sh` - Startup initialization
+- `docs/DATABASE_SETUP.md` - Detailed database documentation
+
+The database uses PostgreSQL with the pgvector extension for AI-powered features.
 
 ### Authentication & RBAC
 
@@ -729,6 +853,36 @@ Your starting point for all Sentinel documentation.
   - Debugging techniques
   - Performance optimization
   - FAQ
+
+### Common Issues & Solutions
+
+#### Test Execution Failures
+
+**Issue**: All tests fail with "Request URL has an unsupported protocol" error
+- **Cause**: Invalid target environment URL (e.g., `ttp://` instead of `http://`)
+- **Solution**: Ensure URLs start with `http://` or `https://`
+- **Prevention**: Frontend now validates URLs and provides default value
+
+#### Database Errors
+
+**Issue**: "column does not exist" or "table does not exist" errors
+- **Solution**: Run `make init-db` to initialize/repair database
+- **Alternative**: Run `make reset-db` for complete reset (WARNING: data loss)
+
+**Issue**: Services fail to start after restart
+- **Solution**: Run `make setup` for complete initialization
+
+#### Frontend Issues
+
+**Issue**: Frontend shows blank page or connection errors
+- **Solution**: Ensure backend services are running: `make status`
+- **Alternative**: Restart all services: `make restart`
+
+#### Petstore API Issues
+
+**Issue**: Test runs fail because target API is not available
+- **Solution**: Start Petstore: `make start-petstore`
+- **Default URL**: `http://host.docker.internal:8080`
 
 #### Memory Bank Documentation:
 

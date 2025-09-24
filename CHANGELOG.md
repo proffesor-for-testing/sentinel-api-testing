@@ -5,7 +5,54 @@ All notable changes to the Sentinel API Testing Platform will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-08-31
+## [Unreleased] - 2025-09-24
+
+### Added
+- **Comprehensive Database Initialization System**
+  - Complete `init_db.sql` with all tables and columns
+  - Automatic database initialization via `init_database.py`
+  - Docker entrypoint script for startup initialization
+  - Makefile with convenient database management commands
+  - `make setup` for one-command complete setup
+  - `make init-db`, `make reset-db`, `make backup-db`, `make restore-db` commands
+  - Detailed documentation in `docs/DATABASE_SETUP.md`
+
+- **Advanced Consciousness & Intelligence Features**
+  - Consciousness verification system in Rust core
+  - Emergent intelligence with self-modifying test generation
+  - Psycho-symbolic reasoning combining psychological models with logic
+  - Temporal consciousness with nanosecond-precision scheduling
+  - Knowledge graph integration for semantic API understanding
+  - Sublinear solvers with O(log n) performance
+  - MCP integration (Claude Flow, RUV Swarm, Flow Nexus, Sublinear Solver)
+  - Predictive testing with temporal computational advantages
+  - Pattern recognition through emergent behavior analysis
+  - Self-learning tests with feedback loops
+  - Distributed intelligence via multi-agent swarms
+
+- **Frontend Improvements**
+  - URL validation for test run target environments
+  - Default target URL set to `http://host.docker.internal:8080`
+  - Prevention of invalid URL protocols (e.g., `ttp://`)
+  - Better error messages for invalid URLs
+
+### Fixed
+- **Test Execution URL Validation**
+  - Fixed issue where invalid URLs (missing protocol characters) caused all tests to fail
+  - Added frontend validation to ensure URLs start with `http://` or `https://`
+  - Set sensible default URL for Petstore API testing
+
+### Documentation
+- Updated README.md with:
+  - Quick start using Makefile commands
+  - Database management instructions
+  - Consciousness and MCP features section
+  - Common issues and solutions
+  - Troubleshooting guide for database and test execution issues
+- Updated CONTRIBUTING.md with new setup procedures
+- Added multiple documentation guides for advanced features
+
+## [Previous] - 2025-08-31
 
 ### Added
 - **Performance-Based Agent Routing System**

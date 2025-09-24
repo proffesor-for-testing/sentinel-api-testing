@@ -98,10 +98,12 @@ Please follow these steps to have your contribution considered by the maintainer
 - Node.js 16+
 - Docker and Docker Compose
 - Rust 1.70+ (for the Rust core)
-- PostgreSQL 14+
-- RabbitMQ 3.11+
+- Make (for convenient commands)
+- Anthropic API Key (for AI features)
 
 ### Setting Up Your Development Environment
+
+#### Quick Setup (Recommended)
 
 1. **Clone the repository:**
    ```bash
@@ -109,37 +111,56 @@ Please follow these steps to have your contribution considered by the maintainer
    cd sentinel-api-testing
    ```
 
-2. **Set up the Python backend:**
+2. **Set up environment:**
    ```bash
-   cd sentinel_backend
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -e ".[dev]"
+   export SENTINEL_APP_ANTHROPIC_API_KEY=your-anthropic-api-key
    ```
 
-3. **Set up the React frontend:**
+3. **Complete setup:**
+   ```bash
+   make setup  # Builds images, initializes database, starts services
+   ```
+
+4. **Start the frontend:**
    ```bash
    cd sentinel_frontend
    npm install
+   npm start
    ```
 
-4. **Set up the Rust core:**
+#### Manual Setup (Alternative)
+
+1. **Set up the Python backend:**
+   ```bash
+   cd sentinel_backend
+   poetry install  # or: pip install -e ".[dev]"
+   ```
+
+2. **Set up the Rust core:**
    ```bash
    cd sentinel_backend/sentinel_rust_core
    cargo build
    ```
 
-5. **Start the development environment:**
+3. **Start services and initialize database:**
    ```bash
-   # From the project root
    docker-compose up -d
+   make init-db  # Initializes all tables and columns
    ```
 
-6. **Run database migrations:**
-   ```bash
-   cd sentinel_backend
-   alembic upgrade head
-   ```
+### Useful Development Commands
+
+```bash
+make help          # Show all available commands
+make start         # Start all services
+make stop          # Stop all services
+make restart       # Restart services
+make logs          # View service logs
+make test          # Run tests
+make init-db       # Initialize/repair database
+make reset-db      # Reset database (WARNING: data loss)
+make status        # Check service status
+```
 
 ### Running Tests
 
