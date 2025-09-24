@@ -186,7 +186,16 @@ async def create_specification(spec_data: SpecificationCreate):
         
         # Extract version from parsed spec
         version = extract_version(parsed_spec)
-        
+
+        # Extract title and description from parsed spec
+        title = None
+        description = None
+        if parsed_spec and isinstance(parsed_spec, dict):
+            info = parsed_spec.get("info", {})
+            if info:
+                title = info.get("title")
+                description = info.get("description")
+
         # Try to use database, fall back to in-memory storage
         try:
             db = AsyncSessionLocal()
@@ -194,6 +203,8 @@ async def create_specification(spec_data: SpecificationCreate):
             db_spec = ApiSpecification(
                 raw_spec=spec_data.raw_spec,
                 parsed_spec=parsed_spec,
+                title=title,
+                description=description,
                 source_url=spec_data.source_url,
                 source_filename=spec_data.source_filename,
                 version=version

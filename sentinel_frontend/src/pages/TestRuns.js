@@ -27,7 +27,7 @@ const TestRuns = () => {
   const [testSuites, setTestSuites] = useState([]);
   const [createForm, setCreateForm] = useState({
     suite_id: '',
-    target_environment: ''
+    target_environment: 'http://host.docker.internal:8080'
   });
   const [createLoading, setCreateLoading] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ show: false, runId: null, runName: '' });
@@ -80,6 +80,12 @@ const TestRuns = () => {
       return;
     }
 
+    // Validate URL format
+    if (!createForm.target_environment.match(/^https?:\/\//)) {
+      showNotification('error', 'Target environment URL must start with http:// or https://');
+      return;
+    }
+
     try {
       setCreateLoading(true);
       await apiService.runTests({
@@ -88,7 +94,7 @@ const TestRuns = () => {
       });
       
       // Reset form and close modal
-      setCreateForm({ suite_id: '', target_environment: '' });
+      setCreateForm({ suite_id: '', target_environment: 'http://host.docker.internal:8080' });
       setShowCreateModal(false);
       
       // Reload test runs

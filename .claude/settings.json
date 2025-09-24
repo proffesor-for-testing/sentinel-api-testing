@@ -10,7 +10,6 @@
   "permissions": {
     "allow": [
       "Bash(npx claude-flow *)",
-      "Bash(npx claude-flow@alpha *)",
       "Bash(npm run lint)",
       "Bash(npm run test:*)",
       "Bash(npm test *)",
@@ -29,14 +28,7 @@
       "Bash(node *)",
       "Bash(which *)",
       "Bash(pwd)",
-      "Bash(ls *)",
-      "Bash(npm run *)",
-      "Bash(npm install *)",
-      "Bash(npm test)",
-      "Bash(git:*)",
-      "Bash(node:*)",
-      "Bash(which:*)",
-      "Bash(eval:*)"
+      "Bash(ls *)"
     ],
     "deny": [
       "Bash(rm -rf /)",

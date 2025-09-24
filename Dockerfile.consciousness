@@ -1,0 +1,136 @@
+# Dockerfile for Consciousness Simulator Service
+# This provides a Python-based simulation of the Rust consciousness features
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+RUN pip install --no-cache-dir \
+    fastapi \
+    uvicorn \
+    numpy \
+    pydantic \
+    httpx
+
+# Copy simulator files
+COPY test_consciousness_improvements.py /app/simulator.py
+
+# Create API wrapper for the simulator
+RUN cat << 'EOF' > /app/main.py
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Dict, List, Any, Optional
+import json
+import sys
+import os
+
+# Import our simulator
+sys.path.append('/app')
+from simulator import SublinearAPITestingSimulator
+
+app = FastAPI(title="Consciousness Simulator API")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Global simulator instance
+simulator = SublinearAPITestingSimulator()
+
+class ConsciousnessEvolutionRequest(BaseModel):
+    iterations: int = 1000
+    target_emergence: float = 0.8
+
+class TemporalAdvantageRequest(BaseModel):
+    distance_km: float = 1000
+
+class PsychoSymbolicRequest(BaseModel):
+    endpoint: str
+
+class TestGenerationRequest(BaseModel):
+    api_spec: Dict[str, Any]
+    agent_type: str
+
+@app.get("/health")
+async def health():
+    """Health check endpoint"""
+    return {"status": "healthy", "consciousness_enabled": True}
+
+@app.post("/consciousness/evolve")
+async def evolve_consciousness(request: ConsciousnessEvolutionRequest):
+    """Evolve consciousness for emergent discovery"""
+    result = simulator.evolve_consciousness(request.iterations)
+    return result
+
+@app.post("/temporal-advantage/predict")
+async def predict_temporal_advantage(request: TemporalAdvantageRequest):
+    """Predict performance issues with temporal advantage"""
+    result = simulator.predict_temporal_advantage(request.distance_km)
+    return result
+
+@app.post("/psycho-symbolic/generate")
+async def generate_psycho_symbolic_tests(request: PsychoSymbolicRequest):
+    """Generate edge cases using psycho-symbolic reasoning"""
+    edge_cases = simulator.generate_psycho_symbolic_edge_cases(request.endpoint)
+    return {"edge_cases": edge_cases}
+
+@app.post("/scheduler/benchmark")
+async def benchmark_nanosecond_scheduler():
+    """Demonstrate nanosecond-precision scheduling"""
+    result = simulator.demonstrate_nanosecond_scheduling()
+    return result
+
+@app.get("/emergent-patterns")
+async def get_emergent_patterns():
+    """Get discovered emergent patterns"""
+    return {"patterns": simulator.emergent_patterns}
+
+@app.get("/consciousness/state")
+async def get_consciousness_state():
+    """Get current consciousness state"""
+    return {
+        "emergence": simulator.consciousness.emergence,
+        "integration": simulator.consciousness.integration,
+        "complexity": simulator.consciousness.complexity,
+        "coherence": simulator.consciousness.coherence,
+        "self_awareness": simulator.consciousness.self_awareness,
+        "novelty": simulator.consciousness.novelty,
+        "phi": simulator.consciousness.phi
+    }
+
+@app.post("/orchestrate")
+async def orchestrate_with_consciousness(request: TestGenerationRequest):
+    """Orchestrate test generation with consciousness enhancements"""
+    # Evolve consciousness first
+    evolution = simulator.evolve_consciousness(500)
+
+    # Generate tests with various techniques
+    tests = {
+        "consciousness_evolution": evolution,
+        "temporal_advantage": simulator.predict_temporal_advantage(),
+        "psycho_symbolic_tests": [],
+        "emergent_patterns": simulator.emergent_patterns
+    }
+
+    # Generate psycho-symbolic tests for common endpoints
+    for endpoint in ["/api/auth", "/api/user", "/api/payment"]:
+        tests["psycho_symbolic_tests"].extend(
+            simulator.generate_psycho_symbolic_edge_cases(endpoint)
+        )
+
+    return tests
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8088)
+EOF
+
+EXPOSE 8088
+
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8088"]

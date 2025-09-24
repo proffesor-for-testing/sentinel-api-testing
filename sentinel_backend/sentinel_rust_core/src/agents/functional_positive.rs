@@ -218,7 +218,7 @@ impl FunctionalPositiveAgent {
                     let resolved_prop_schema = resolve_schema_ref(prop_schema, api_spec);
                     obj.insert(
                         prop_name.clone(),
-                        generate_realistic_property_value(prop_name, &resolved_prop_schema),
+                        generate_realistic_property_value_with_spec(prop_name, &resolved_prop_schema, Some(api_spec)),
                     );
                 }
             }

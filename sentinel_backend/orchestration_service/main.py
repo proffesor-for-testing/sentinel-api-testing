@@ -353,9 +353,16 @@ async def generate_tests(fastapi_request: Request, request: TestGenerationReques
             # Map Python agent names to Rust agent names if needed
             rust_agent_type = "data-mocking" if agent_type == "Data-Mocking-Agent" else agent_type
             
+            # TEMPORARY: Force Rust usage for testing
+            FORCE_RUST_FOR_TESTING = False  # Set to False to use normal performance-based selection
+
             # Get performance-based execution order
-            execution_order = perf_tracker.get_fallback_order(agent_type)
-            logger.info(f"Performance-based execution order for {agent_type}: {execution_order}")
+            if FORCE_RUST_FOR_TESTING and rust_available and (agent_type in RUST_AVAILABLE_AGENTS):
+                execution_order = ['rust', 'python']  # Force Rust first
+                logger.info(f"FORCING Rust execution for testing {agent_type}")
+            else:
+                execution_order = perf_tracker.get_fallback_order(agent_type)
+                logger.info(f"Performance-based execution order for {agent_type}: {execution_order}")
             
             result = None
             used_language = None
@@ -528,21 +535,29 @@ async def execute_test_generation_task(
             
             # Determine whether to use Rust or Python agent
             use_rust = rust_available and (agent_type in RUST_AVAILABLE_AGENTS or rust_agent_type in RUST_AVAILABLE_AGENTS)
-            
+
+            # Initialize execution tracking variables
+            used_language = None
+            execution_order = []
+
             if use_rust:
                 logger.info(f"Using Rust agent for {agent_type}")
                 # Use mapped name for Rust agent if needed
                 if rust_agent_type != agent_type:
                     agent_task.agent_type = rust_agent_type
                 result = await execute_rust_agent(fastapi_request, rust_agent_type, agent_task, api_spec)
+                used_language = "rust"
+                execution_order = ["rust"]
             else:
                 if agent_type not in python_agents:
                     logger.warning(f"Unknown agent type: {agent_type}")
                     continue
-                
+
                 logger.info(f"Using Python agent for {agent_type}")
                 agent = python_agents[agent_type]
                 result = await agent.execute(agent_task, api_spec)
+                used_language = "python"
+                execution_order = ["python"]
             
             # Deduplicate and store test cases in the Data Service
             unique_test_cases = []

@@ -32,7 +32,14 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend development server
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://localhost:8000",
+        "*"  # Allow all origins in development
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -447,18 +454,41 @@ async def get_task_status(fastapi_request: Request, task_id: str):
 
 
 @app.get("/api/v1/test-cases")
-async def list_test_cases(request: Request, spec_id: Optional[int] = None):
+async def list_test_cases(request: Request, spec_id: Optional[int] = None, agent_type: Optional[str] = None):
     """List test cases, optionally filtered by specification ID."""
     headers = get_correlation_id_headers(request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
             url = f"{service_settings.data_service_url}/api/v1/test-cases"
+            params = {}
             if spec_id:
-                url += f"?spec_id={spec_id}"
-            
-            response = await client.get(url, headers=headers)
+                params["spec_id"] = spec_id
+            if agent_type:
+                params["agent_type"] = agent_type
+
+            response = await client.get(url, params=params, headers=headers)
             response.raise_for_status()
-            return response.json()
+            test_cases = response.json()
+
+            # Transform test cases to include root-level fields for compatibility
+            for test_case in test_cases:
+                if "test_definition" in test_case:
+                    test_def = test_case["test_definition"]
+                    # Add root-level fields from test_definition
+                    test_case["endpoint"] = test_def.get("path")
+                    test_case["method"] = test_def.get("method")
+                    test_case["request_body"] = test_def.get("body")
+
+                    # Handle expected_status - could be in expected_status_codes array
+                    if "expected_status_codes" in test_def and test_def["expected_status_codes"]:
+                        test_case["expected_status"] = test_def["expected_status_codes"][0]
+                    else:
+                        test_case["expected_status"] = None
+
+                    # Add expected_response if available
+                    test_case["expected_response"] = test_def.get("expected_response")
+
+            return test_cases
         except httpx.HTTPStatusError as e:
             raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
         except httpx.RequestError:
@@ -471,7 +501,27 @@ async def get_test_cases_for_spec(request: Request, spec_id: int) -> List[Dict[s
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         response = await client.get(f"{service_settings.data_service_url}/api/v1/test-cases?spec_id={spec_id}", headers=headers)
         response.raise_for_status()
-        return response.json()
+        test_cases = response.json()
+
+        # Transform test cases to include root-level fields for compatibility
+        for test_case in test_cases:
+            if "test_definition" in test_case:
+                test_def = test_case["test_definition"]
+                # Add root-level fields from test_definition
+                test_case["endpoint"] = test_def.get("path")
+                test_case["method"] = test_def.get("method")
+                test_case["request_body"] = test_def.get("body")
+
+                # Handle expected_status - could be in expected_status_codes array
+                if "expected_status_codes" in test_def and test_def["expected_status_codes"]:
+                    test_case["expected_status"] = test_def["expected_status_codes"][0]
+                else:
+                    test_case["expected_status"] = None
+
+                # Add expected_response if available
+                test_case["expected_response"] = test_def.get("expected_response")
+
+        return test_cases
 
 @app.put("/api/v1/test-cases/{case_id}")
 async def update_test_case(request: Request, case_id: int):

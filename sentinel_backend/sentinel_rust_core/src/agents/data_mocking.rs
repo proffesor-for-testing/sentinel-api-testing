@@ -401,7 +401,7 @@ impl DataMockingAgent {
                     // This would generate entities based on the schema
                     // For now, we'll create a placeholder
                     let mut entity = serde_json::Map::new();
-                    entity.insert("id".to_string(), Value::String(generate_realistic_id()));
+                    entity.insert("id".to_string(), generate_realistic_id(false));
                     entity.insert("name".to_string(), Value::String(format!("Test {}", schema_name)));
                     entities.push(Value::Object(entity));
                 }
@@ -583,7 +583,7 @@ impl DataMockingAgent {
     }
     
     /// Generate test cases with mock data
-    fn generate_data_test_cases(&self, api_spec: &Value, mock_data: &Value, config: &DataGenConfig) -> Vec<TestCase> {
+    fn generate_data_test_cases(&self, api_spec: &Value, _mock_data: &Value, config: &DataGenConfig) -> Vec<TestCase> {
         let mut test_cases = Vec::new();
         
         // Extract endpoints from the specification
@@ -597,7 +597,7 @@ impl DataMockingAgent {
                 
                 // Generate mock request body based on endpoint schema
                 let mock_body = if let Some(request_body) = &endpoint.request_body {
-                    self.generate_mock_body(request_body, api_spec, &config.strategy)
+                    self.generate_mock_body(request_body, &config.strategy)
                 } else {
                     None
                 };
@@ -663,7 +663,7 @@ impl DataMockingAgent {
     }
     
     /// Generate mock request body
-    fn generate_mock_body(&self, request_body: &Value, api_spec: &Value, strategy: &str) -> Option<Value> {
+    fn generate_mock_body(&self, request_body: &Value, strategy: &str) -> Option<Value> {
         if let Some(content) = request_body.get("content") {
             if let Some(json_content) = content.get("application/json") {
                 if let Some(schema) = json_content.get("schema") {
