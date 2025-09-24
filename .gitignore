@@ -188,6 +188,7 @@ sentinel_frontend/playwright-report/
 sentinel_frontend/test-results/
 
 # Claude Flow generated files
+.claude-flow/
 .claude/settings.local.json
 .mcp.json
 claude-flow.config.json
