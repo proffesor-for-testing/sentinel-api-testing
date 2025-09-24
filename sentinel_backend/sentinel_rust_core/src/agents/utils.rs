@@ -6,34 +6,41 @@ use rand::prelude::*;
 use serde_json::Value;
 use std::collections::HashMap;
 
-/// Generate a realistic ID value
-pub fn generate_realistic_id() -> String {
+/// Generate a realistic ID value (type-aware)
+pub fn generate_realistic_id(is_integer: bool) -> Value {
     let mut rng = thread_rng();
-    let formats: Vec<Box<dyn Fn(&mut ThreadRng) -> String>> = vec![
-        Box::new(|rng| rng.gen_range(1..=10000).to_string()),
-        Box::new(|rng| {
-            let chars: String = (0..8)
-                .map(|_| {
-                    let chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-                    chars.chars().nth(rng.gen_range(0..chars.len())).unwrap()
-                })
-                .collect();
-            chars
-        }),
-        Box::new(|rng| format!("usr_{}", rng.gen_range(1000..=9999))),
-        Box::new(|rng| {
-            let chars: String = (0..12)
-                .map(|_| {
-                    let chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-                    chars.chars().nth(rng.gen_range(0..chars.len())).unwrap()
-                })
-                .collect();
-            chars
-        }),
-    ];
-    
-    let format_fn = formats.choose(&mut rng).unwrap();
-    format_fn(&mut rng)
+
+    if is_integer {
+        // For integer IDs, always return a valid integer
+        Value::Number(serde_json::Number::from(rng.gen_range(1..=10000)))
+    } else {
+        // For string IDs, generate realistic string formats
+        let formats: Vec<Box<dyn Fn(&mut ThreadRng) -> String>> = vec![
+            Box::new(|rng| rng.gen_range(1..=10000).to_string()),
+            Box::new(|rng| {
+                let chars: String = (0..8)
+                    .map(|_| {
+                        let chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+                        chars.chars().nth(rng.gen_range(0..chars.len())).unwrap()
+                    })
+                    .collect();
+                chars
+            }),
+            Box::new(|rng| format!("usr_{}", rng.gen_range(1000..=9999))),
+            Box::new(|rng| {
+                let chars: String = (0..12)
+                    .map(|_| {
+                        let chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+                        chars.chars().nth(rng.gen_range(0..chars.len())).unwrap()
+                    })
+                    .collect();
+                chars
+            }),
+        ];
+
+        let format_fn = formats.choose(&mut rng).unwrap();
+        Value::String(format_fn(&mut rng))
+    }
 }
 
 /// Generate a realistic parameter value based on parameter name and schema
@@ -49,14 +56,8 @@ pub fn generate_parameter_value(param_name: &str, schema: &Value) -> Value {
     // Generate realistic values based on common parameter names
     if param_name_lower.contains("id") {
         // Check if the schema type is integer
-        if param_type == "integer" || param_type == "number" {
-            // Return a numeric ID for integer/number types
-            let mut rng = thread_rng();
-            return Value::Number(serde_json::Number::from(rng.gen_range(1..=100)));
-        } else {
-            // For string IDs, still generate a realistic string ID
-            return Value::String(generate_realistic_id());
-        }
+        let is_integer = param_type == "integer" || param_type == "number";
+        return generate_realistic_id(is_integer);
     } else if param_name_lower.contains("email") {
         return Value::String("test@example.com".to_string());
     } else if param_name_lower.contains("name") {
@@ -83,6 +84,7 @@ pub fn generate_schema_example(schema: &Value) -> Value {
     
     match schema_type {
         "string" => {
+            // First priority: Check for enum values
             if let Some(enum_values) = schema.get("enum").and_then(|e| e.as_array()) {
                 if !enum_values.is_empty() {
                     // Pick a random enum value for more variety in positive tests
@@ -91,15 +93,59 @@ pub fn generate_schema_example(schema: &Value) -> Value {
                     return enum_values[index].clone();
                 }
             }
-            Value::String("example_string".to_string())
+
+            // Second priority: Check for format hints
+            if let Some(format) = schema.get("format").and_then(|f| f.as_str()) {
+                return match format {
+                    "email" => Value::String("test@example.com".to_string()),
+                    "uri" | "url" => Value::String("https://example.com".to_string()),
+                    "date" => Value::String("2024-01-01".to_string()),
+                    "date-time" => Value::String(chrono::Utc::now().to_rfc3339()),
+                    "uuid" => Value::String("550e8400-e29b-41d4-a716-446655440000".to_string()),
+                    _ => Value::String("Test User".to_string())
+                };
+            }
+
+            // Third priority: Check for min/max length constraints
+            let min_length = schema.get("minLength").and_then(|m| m.as_u64()).unwrap_or(1) as usize;
+            let max_length = schema.get("maxLength").and_then(|m| m.as_u64()).unwrap_or(50) as usize;
+
+            // Generate a string that respects length constraints
+            let base_string = "Test User";
+            if base_string.len() < min_length {
+                // Pad string to meet minimum length
+                let padding = "x".repeat(min_length - base_string.len());
+                Value::String(format!("{}{}", base_string, padding))
+            } else if base_string.len() > max_length {
+                // Truncate to max length
+                Value::String(base_string[..max_length].to_string())
+            } else {
+                Value::String(base_string.to_string())
+            }
         }
         "integer" => {
+            let mut rng = thread_rng();
             let min = schema.get("minimum").and_then(|m| m.as_i64()).unwrap_or(1);
-            Value::Number(serde_json::Number::from(min))
+            let max = schema.get("maximum").and_then(|m| m.as_i64()).unwrap_or(1000);
+            // Generate a random value within the constraints
+            let value = if min < max {
+                rng.gen_range(min..=max)
+            } else {
+                min
+            };
+            Value::Number(serde_json::Number::from(value))
         }
         "number" => {
+            let mut rng = thread_rng();
             let min = schema.get("minimum").and_then(|m| m.as_f64()).unwrap_or(1.0);
-            Value::Number(serde_json::Number::from_f64(min).unwrap_or(serde_json::Number::from(1)))
+            let max = schema.get("maximum").and_then(|m| m.as_f64()).unwrap_or(1000.0);
+            // Generate a random value within the constraints
+            let value = if min < max {
+                rng.gen_range(min..=max)
+            } else {
+                min
+            };
+            Value::Number(serde_json::Number::from_f64(value).unwrap_or(serde_json::Number::from(1)))
         }
         "boolean" => Value::Bool(true),
         "array" => {
@@ -136,13 +182,18 @@ pub fn generate_schema_example(schema: &Value) -> Value {
 
 /// Generate realistic property value based on property name
 pub fn generate_realistic_property_value(prop_name: &str, schema: &Value) -> Value {
+    generate_realistic_property_value_with_spec(prop_name, schema, None)
+}
+
+/// Generate realistic property value with API spec for reference resolution
+pub fn generate_realistic_property_value_with_spec(prop_name: &str, schema: &Value, api_spec: Option<&Value>) -> Value {
     let prop_name_lower = prop_name.to_lowercase();
-    
+
     // Use existing example if available
     if let Some(example) = schema.get("example") {
         return example.clone();
     }
-    
+
     // Check if this is a reference to an enum (e.g., for category)
     // The schema might have an anyOf with a $ref to an enum
     if let Some(any_of) = schema.get("anyOf").and_then(|a| a.as_array()) {
@@ -151,19 +202,59 @@ pub fn generate_realistic_property_value(prop_name: &str, schema: &Value) -> Val
             if item.get("type").and_then(|t| t.as_str()) == Some("null") {
                 continue;
             }
-            // If there's an enum directly, use it
-            if let Some(enum_values) = item.get("enum").and_then(|e| e.as_array()) {
+
+            // If there's a $ref, resolve it first
+            let resolved_item = if let Some(api_spec) = api_spec {
+                if item.get("$ref").is_some() {
+                    resolve_schema_ref(item, api_spec)
+                } else {
+                    item.clone()
+                }
+            } else {
+                item.clone()
+            };
+
+            // If there's an enum in the resolved item, use it
+            if let Some(enum_values) = resolved_item.get("enum").and_then(|e| e.as_array()) {
                 if !enum_values.is_empty() {
                     let mut rng = thread_rng();
                     let index = rng.gen_range(0..enum_values.len());
                     return enum_values[index].clone();
                 }
             }
+
+            // If we have a resolved type that's not null, recursively generate for it
+            if resolved_item.get("type").is_some() {
+                return generate_realistic_property_value_with_spec(prop_name, &resolved_item, api_spec);
+            }
         }
     }
     
     let mut rng = thread_rng();
     
+    // First check for enum values in the schema itself
+    if let Some(enum_values) = schema.get("enum").and_then(|e| e.as_array()) {
+        if !enum_values.is_empty() {
+            let index = rng.gen_range(0..enum_values.len());
+            return enum_values[index].clone();
+        }
+    }
+
+    // Handle specific properties with known enum values (common in APIs)
+    if prop_name_lower == "status" {
+        // Common status values in APIs
+        let status_values = vec!["available", "pending", "sold", "active", "inactive"];
+        return Value::String(status_values.choose(&mut rng).unwrap().to_string());
+    } else if prop_name_lower == "category" {
+        // Common category values (adapted for Petstore)
+        let category_values = vec!["dog", "cat", "bird", "fish", "other"];
+        return Value::String(category_values.choose(&mut rng).unwrap().to_string());
+    } else if prop_name_lower.contains("type") && !prop_name_lower.contains("content") {
+        // Common type values
+        let type_values = vec!["standard", "premium", "basic", "advanced"];
+        return Value::String(type_values.choose(&mut rng).unwrap().to_string());
+    }
+
     // Generate realistic values based on property names
     if prop_name_lower.contains("email") {
         let user_num = rng.gen_range(1..=999);
@@ -176,7 +267,7 @@ pub fn generate_realistic_property_value(prop_name: &str, schema: &Value) -> Val
             let names = vec!["Smith", "Johnson", "Williams", "Brown", "Jones"];
             return Value::String(names.choose(&mut rng).unwrap().to_string());
         } else {
-            return Value::String("Test User".to_string());
+            return Value::String("Test Pet".to_string());  // Changed to "Test Pet" for pet APIs
         }
     } else if prop_name_lower.contains("phone") {
         let area = rng.gen_range(100..=999);

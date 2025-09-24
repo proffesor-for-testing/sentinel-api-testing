@@ -6,6 +6,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Type alias for API specification
+pub type ApiSpec = serde_json::Value;
+
 /// Represents a task that can be executed by an agent
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentTask {

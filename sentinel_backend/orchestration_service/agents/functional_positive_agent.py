@@ -376,7 +376,7 @@ class FunctionalPositiveAgent(BaseAgent):
         # Resolve schema references
         resolved_schema = self._resolve_schema_ref(schema, api_spec)
         
-        return self._generate_realistic_object(resolved_schema)
+        return self._generate_realistic_object(resolved_schema, api_spec)
     
     def _resolve_schema_ref(self, schema: Dict[str, Any], api_spec: Dict[str, Any]) -> Dict[str, Any]:
         """Resolve $ref references in schemas."""
@@ -391,30 +391,48 @@ class FunctionalPositiveAgent(BaseAgent):
                 return resolved
         return schema
     
-    def _generate_realistic_object(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_realistic_object(self, schema: Dict[str, Any], api_spec: Dict[str, Any] = None) -> Dict[str, Any]:
         """Generate a realistic object based on schema with enhanced data generation."""
         if schema.get("type") != "object":
             return self._get_schema_example(schema)
-        
+
         properties = schema.get("properties", {})
         required = schema.get("required", [])
-        
+
+        # Debug log to check if api_spec is being passed
+        self.logger.info(f"_generate_realistic_object called with api_spec: {api_spec is not None}")
+
         obj = {}
-        
+
         for prop_name, prop_schema in properties.items():
             # Always include required properties, sometimes include optional ones
             if prop_name in required or random.random() < 0.8:
-                obj[prop_name] = self._generate_realistic_property_value(prop_name, prop_schema)
+                obj[prop_name] = self._generate_realistic_property_value(prop_name, prop_schema, api_spec)
         
         return obj
     
-    def _generate_realistic_property_value(self, prop_name: str, schema: Dict[str, Any]) -> Any:
+    def _generate_realistic_property_value(self, prop_name: str, schema: Dict[str, Any], api_spec: Dict[str, Any] = None) -> Any:
         """Generate realistic values based on property names and schemas."""
         prop_name_lower = prop_name.lower()
-        
+
         # Use existing example if available
         if "example" in schema:
             return schema["example"]
+
+        # Handle anyOf with $ref
+        if "anyOf" in schema:
+            for option in schema["anyOf"]:
+                if option.get("type") != "null":
+                    # If we have api_spec, resolve references
+                    if api_spec and "$ref" in option:
+                        resolved = self._resolve_schema_ref(option, api_spec)
+                        # Log for debugging
+                        if prop_name_lower in ["status", "category"]:
+                            self.logger.info(f"Resolved {prop_name} schema: {resolved}")
+                        return self._generate_realistic_property_value(prop_name, resolved, api_spec)
+                    else:
+                        # No api_spec or no $ref, process the option directly
+                        return self._generate_realistic_property_value(prop_name, option, api_spec)
         
         # Generate realistic values based on property names
         if "email" in prop_name_lower:

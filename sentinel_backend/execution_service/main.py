@@ -252,7 +252,15 @@ async def execute_single_test_case(
         assertions = test_definition.get("assertions", [])
         
         # Build full URL
-        url = f"{target_environment.rstrip('/')}{endpoint}"
+        # Replace localhost with host.docker.internal when running in Docker
+        if "localhost" in target_environment or "127.0.0.1" in target_environment:
+            # We're in a Docker container trying to reach the host
+            target_env = target_environment.replace("localhost", "host.docker.internal")
+            target_env = target_env.replace("127.0.0.1", "host.docker.internal")
+        else:
+            target_env = target_environment
+
+        url = f"{target_env.rstrip('/')}{endpoint}"
         
         # Record start time for latency measurement
         start_time = asyncio.get_event_loop().time()

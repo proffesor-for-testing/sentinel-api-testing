@@ -71,7 +71,7 @@ class ServiceSettings(BaseSettings):
         description="Execution service URL"
     )
     rust_core_service_url: str = Field(
-        default="http://sentinel-rust-core:8088",
+        default="http://sentinel_rust_core:8088",
         description="Rust core service URL"
     )
     
@@ -81,7 +81,7 @@ class ServiceSettings(BaseSettings):
     health_check_interval: int = Field(default=30, description="Health check interval in seconds")
     
     class Config:
-        env_prefix = "SENTINEL_SERVICE_"
+        env_prefix = ""  # No prefix, use direct environment variable names
         case_sensitive = False
 
 

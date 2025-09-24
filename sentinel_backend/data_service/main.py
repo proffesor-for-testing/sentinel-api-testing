@@ -119,7 +119,7 @@ async def create_test_case(
     except Exception as e:
         await db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error creating test case: {str(e)}"
         )
 
@@ -152,7 +152,7 @@ async def list_test_cases(
     
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error retrieving test cases: {str(e)}"
         )
 
@@ -177,7 +177,7 @@ async def get_test_case(case_id: int, db: AsyncSession = Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error retrieving test case: {str(e)}"
         )
 
@@ -218,7 +218,7 @@ async def update_test_case(
     except Exception as e:
         await db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error updating test case: {str(e)}"
         )
 
@@ -377,7 +377,7 @@ async def bulk_delete_test_cases(
         await db.rollback()
         logger.error(f"Error in bulk delete: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error in bulk delete: {str(e)}"
         )
 
@@ -409,7 +409,7 @@ async def delete_test_case(case_id: int, db: AsyncSession = Depends(get_db)):
     except Exception as e:
         await db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error deleting test case: {str(e)}"
         )
 
@@ -476,7 +476,7 @@ async def bulk_update_test_cases(
     except Exception as e:
         await db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error in bulk update: {str(e)}"
         )
 
@@ -502,7 +502,7 @@ async def create_test_suite(
     except Exception as e:
         await db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error creating test suite: {str(e)}"
         )
 
@@ -528,7 +528,7 @@ async def list_test_suites(db: AsyncSession = Depends(get_db)):
     
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error retrieving test suites: {str(e)}"
         )
 
@@ -568,7 +568,7 @@ async def get_test_suite(suite_id: int, db: AsyncSession = Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error retrieving test suite: {str(e)}"
         )
 
@@ -604,7 +604,7 @@ async def update_test_suite(
     except Exception as e:
         await db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error updating test suite: {str(e)}"
         )
 
@@ -670,7 +670,7 @@ async def delete_test_suite(
         await db.rollback()
         logger.error(f"Error deleting test suite {suite_id}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error deleting test suite: {str(e)}"
         )
 
@@ -742,7 +742,7 @@ async def add_test_case_to_suite(
     except Exception as e:
         await db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error adding test case to suite: {str(e)}"
         )
 
@@ -783,7 +783,7 @@ async def remove_test_case_from_suite(
     except Exception as e:
         await db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error removing test case from suite: {str(e)}"
         )
 
@@ -854,7 +854,7 @@ async def get_failure_rate_trends(
     
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error retrieving failure rate trends: {str(e)}"
         )
 
@@ -922,7 +922,7 @@ async def get_latency_trends(
     
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error retrieving latency trends: {str(e)}"
         )
 
@@ -979,7 +979,7 @@ async def get_health_summary(db: AsyncSession = Depends(get_db)):
     
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error generating health summary: {str(e)}"
         )
 
@@ -1084,7 +1084,7 @@ async def detect_anomalies(
     
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error detecting anomalies: {str(e)}"
         )
 
@@ -1190,7 +1190,7 @@ async def get_quality_predictions(
     
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error generating predictions: {str(e)}"
         )
 
@@ -1315,7 +1315,7 @@ async def get_quality_insights(
     
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error generating quality insights: {str(e)}"
         )
 
@@ -1498,7 +1498,7 @@ async def list_test_runs(
     except Exception as e:
         logger.error(f"Error retrieving test runs: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error retrieving test runs: {str(e)}"
         )
 
@@ -1526,7 +1526,7 @@ async def get_test_run(run_id: int, db: AsyncSession = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error retrieving test run: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error retrieving test run: {str(e)}"
         )
 
@@ -1569,7 +1569,7 @@ async def create_test_run(
         await db.rollback()
         logger.error(f"Error creating test run: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error creating test run: {str(e)}"
         )
 
@@ -1610,7 +1610,7 @@ async def update_test_run_status(
         await db.rollback()
         logger.error(f"Error updating test run status: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error updating test run status: {str(e)}"
         )
 
@@ -1654,7 +1654,7 @@ async def patch_test_run(
         await db.rollback()
         logger.error(f"Error patching test run: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error patching test run: {str(e)}"
         )
 
@@ -1697,7 +1697,7 @@ async def create_test_result(
         await db.rollback()
         logger.error(f"Error creating test result: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error creating test result: {str(e)}"
         )
 
@@ -1736,7 +1736,7 @@ async def get_test_run_results(
     except Exception as e:
         logger.error(f"Error retrieving test run results: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error retrieving test run results: {str(e)}"
         )
 
@@ -1780,7 +1780,7 @@ async def delete_test_run(run_id: int, db: AsyncSession = Depends(get_db)):
         await db.rollback()
         logger.error(f"Error deleting test run: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error deleting test run: {str(e)}"
         )
 
@@ -1852,7 +1852,7 @@ async def bulk_delete_test_runs(
         await db.rollback()
         logger.error(f"Error in bulk delete test runs: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Error deleting test runs: {str(e)}"
         )
 

@@ -128,19 +128,46 @@ class BaseAgent(ABC):
     def _get_schema_example(self, schema: Dict[str, Any]) -> Any:
         """
         Generate an example value based on a JSON schema.
-        
+
         This is a basic implementation that can be enhanced with more sophisticated
         data generation techniques.
         """
         if "example" in schema:
             return schema["example"]
-        
+
+        # Handle anyOf/oneOf - take the first non-null option
+        if "anyOf" in schema:
+            for option in schema["anyOf"]:
+                if option.get("type") != "null":
+                    # If it's a $ref, we'll return the option as-is for now
+                    # The caller should resolve refs if needed
+                    return self._get_schema_example(option)
+
+        if "oneOf" in schema:
+            for option in schema["oneOf"]:
+                if option.get("type") != "null":
+                    return self._get_schema_example(option)
+
+        # Check for enum values first (they can override the type)
+        if "enum" in schema and schema["enum"]:
+            import random
+            return random.choice(schema["enum"])
+
         schema_type = schema.get("type", "string")
-        
+
         if schema_type == "string":
-            if "enum" in schema:
-                return schema["enum"][0]
-            return "example_string"
+            # Generate more realistic string values based on format or property name
+            format_hint = schema.get("format", "")
+            if format_hint == "email":
+                return "test@example.com"
+            elif format_hint == "uri" or format_hint == "url":
+                return "https://example.com"
+            elif format_hint == "date":
+                return "2024-01-01"
+            elif format_hint == "date-time":
+                return "2024-01-01T00:00:00Z"
+            # Default realistic values for common properties
+            return "Test Value"
         elif schema_type == "integer":
             return schema.get("minimum", 1)
         elif schema_type == "number":

@@ -1,0 +1,156 @@
+# Simplified Docker Compose for testing consciousness improvements
+# This runs a minimal setup focusing on the enhanced capabilities
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database (Required)
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: sentinel_db_consciousness
+    environment:
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel123
+      POSTGRES_DB: sentinel_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - sentinel_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway with Consciousness Endpoints
+  api_gateway:
+    build:
+      context: .
+      dockerfile: sentinel_backend/api_gateway/Dockerfile.prod
+    container_name: sentinel_api_gateway_consciousness
+    environment:
+      DATABASE_URL: postgresql://sentinel:sentinel123@db:5432/sentinel_db
+      AUTH_SERVICE_URL: http://auth_service:8005
+      SPEC_SERVICE_URL: http://spec_service:8001
+      ORCHESTRATION_SERVICE_URL: http://orchestration_service:8002
+      DATA_SERVICE_URL: http://data_service:8004
+      EXECUTION_SERVICE_URL: http://execution_service:8003
+      RUST_CORE_URL: http://consciousness_simulator:8088
+      JWT_SECRET_KEY: your-secret-key-here
+      ENABLE_CONSCIOUSNESS: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      consciousness_simulator:
+        condition: service_started
+
+  # Consciousness Simulator Service
+  # This Python service simulates the Rust consciousness features
+  consciousness_simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile.consciousness
+    container_name: sentinel_consciousness_simulator
+    environment:
+      ENABLE_CONSCIOUSNESS: "true"
+      ENABLE_TEMPORAL_ADVANTAGE: "true"
+      ENABLE_PSYCHO_SYMBOLIC: "true"
+      ENABLE_NANOSECOND_SCHEDULER: "true"
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./test_consciousness_improvements.py:/app/simulator.py
+      - ./src:/app/src
+    command: python -m http.server 8088
+
+  # Minimal required services
+  auth_service:
+    build:
+      context: .
+      dockerfile: sentinel_backend/auth_service/Dockerfile.prod
+    container_name: sentinel_auth_consciousness
+    environment:
+      DATABASE_URL: postgresql://sentinel:sentinel123@db:5432/sentinel_db
+      SENTINEL_DB_URL: postgresql+asyncpg://sentinel:sentinel123@db:5432/sentinel_db
+      JWT_SECRET_KEY: your-secret-key-here
+    ports:
+      - "8005:8005"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  spec_service:
+    build:
+      context: .
+      dockerfile: sentinel_backend/spec_service/Dockerfile.prod
+    container_name: sentinel_spec_consciousness
+    environment:
+      DATABASE_URL: postgresql://sentinel:sentinel123@db:5432/sentinel_db
+      SENTINEL_DB_URL: postgresql+asyncpg://sentinel:sentinel123@db:5432/sentinel_db
+    ports:
+      - "8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  orchestration_service:
+    build:
+      context: .
+      dockerfile: sentinel_backend/orchestration_service/Dockerfile.prod
+    container_name: sentinel_orchestration_consciousness
+    environment:
+      DATABASE_URL: postgresql://sentinel:sentinel123@db:5432/sentinel_db
+      SENTINEL_DB_URL: postgresql+asyncpg://sentinel:sentinel123@db:5432/sentinel_db
+      EXECUTION_SERVICE_URL: http://execution_service:8003
+      DATA_SERVICE_URL: http://data_service:8004
+      RUST_CORE_URL: http://consciousness_simulator:8088
+      MESSAGE_BROKER_URL: amqp://guest:guest@message_broker:5672/
+      ENABLE_CONSCIOUSNESS: "true"
+    ports:
+      - "8002:8002"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  execution_service:
+    build:
+      context: .
+      dockerfile: sentinel_backend/execution_service/Dockerfile.prod
+    container_name: sentinel_execution_consciousness
+    environment:
+      DATABASE_URL: postgresql://sentinel:sentinel123@db:5432/sentinel_db
+      SENTINEL_DB_URL: postgresql+asyncpg://sentinel:sentinel123@db:5432/sentinel_db
+    ports:
+      - "8003:8003"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  data_service:
+    build:
+      context: .
+      dockerfile: sentinel_backend/data_service/Dockerfile.prod
+    container_name: sentinel_data_consciousness
+    environment:
+      DATABASE_URL: postgresql://sentinel:sentinel123@db:5432/sentinel_db
+      SENTINEL_DB_URL: postgresql+asyncpg://sentinel:sentinel123@db:5432/sentinel_db
+    ports:
+      - "8004:8004"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  message_broker:
+    image: rabbitmq:3-management
+    container_name: sentinel_message_broker_consciousness
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+volumes:
+  sentinel_postgres_data:

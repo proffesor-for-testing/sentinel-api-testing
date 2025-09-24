@@ -124,19 +124,28 @@ const TestCases = () => {
   const getTestCaseData = (testCase) => {
     const agentType = testCase.agent_type || '';
     const testDef = testCase.test_definition || {};
-    
-    // Handle Performance-Planner-Agent which might have different data structure
-    let endpoint = testDef.endpoint || testDef.url || '';
-    let method = testDef.method || testDef.http_method || '';
-    let expectedStatus = testDef.expected_status || testDef.status_code || 0;
-    
+
+    // Check root level fields first (added by API Gateway transformation)
+    let endpoint = testCase.endpoint || testDef.endpoint || testDef.path || testDef.url || '';
+    let method = testCase.method || testDef.method || testDef.http_method || '';
+    let expectedStatus = testCase.expected_status || testDef.expected_status || testDef.status_code || 0;
+
+    // If root level fields don't have the data, try to extract from test_definition
+    if (!endpoint && testDef.path) {
+      endpoint = testDef.path;
+    }
+
+    if (!expectedStatus && testDef.expected_status_codes && testDef.expected_status_codes.length > 0) {
+      expectedStatus = testDef.expected_status_codes[0];
+    }
+
     // For Performance agents, try to extract from metadata or other fields
     if (agentType === 'Performance-Planner-Agent' && (!method || !endpoint)) {
       const metadata = testCase.metadata || {};
       method = method || metadata.method || metadata.http_method || '';
       endpoint = endpoint || metadata.endpoint || metadata.url || metadata.path || '';
       expectedStatus = expectedStatus || metadata.expected_status || metadata.status_code || 0;
-      
+
       // Try to parse from description if still missing
       const desc = testCase.description || '';
       if (!method && desc.includes('GET')) method = 'GET';
@@ -144,34 +153,16 @@ const TestCases = () => {
       if (!method && desc.includes('PUT')) method = 'PUT';
       if (!method && desc.includes('DELETE')) method = 'DELETE';
     }
-    
+
     return { method, endpoint, expectedStatus };
   };
 
   const getTestTypeInsight = (testCase) => {
     const description = testCase.description?.toLowerCase() || '';
     const agentType = testCase.agent_type || '';
-    const testDef = testCase.test_definition || {};
-    
-    // Handle Performance-Planner-Agent which might have different data structure
-    let endpoint = testDef.endpoint || testDef.url || '';
-    let method = testDef.method || testDef.http_method || '';
-    let expectedStatus = testDef.expected_status || testDef.status_code || 0;
-    
-    // For Performance agents, try to extract from metadata or other fields
-    if (agentType === 'Performance-Planner-Agent' && (!method || !endpoint)) {
-      const metadata = testCase.metadata || {};
-      method = method || metadata.method || metadata.http_method || '';
-      endpoint = endpoint || metadata.endpoint || metadata.url || metadata.path || '';
-      expectedStatus = expectedStatus || metadata.expected_status || metadata.status_code || 0;
-      
-      // Try to parse from description if still missing
-      const desc = testCase.description || '';
-      if (!method && desc.includes('GET')) method = 'GET';
-      if (!method && desc.includes('POST')) method = 'POST';
-      if (!method && desc.includes('PUT')) method = 'PUT';
-      if (!method && desc.includes('DELETE')) method = 'DELETE';
-    }
+
+    // Use the getTestCaseData helper to get consistent field extraction
+    const { method, endpoint, expectedStatus } = getTestCaseData(testCase);
     
     // First check description for specific patterns
     if (description.includes('boundary') || description.includes('bva')) {

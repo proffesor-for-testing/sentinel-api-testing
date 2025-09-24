@@ -9,6 +9,8 @@ class ApiSpecification(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, nullable=True)  # Optional foreign key for future use
+    title = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)
     raw_spec = Column(Text, nullable=False)
     parsed_spec = Column(JSONB, nullable=False)
     internal_graph = Column(JSONB, nullable=True)
