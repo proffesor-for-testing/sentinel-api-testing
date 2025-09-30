@@ -172,7 +172,5 @@ services:
 
 volumes:
   sentinel_postgres_data:
-    external: true
-    name: sentinel_backend_sentinel_postgres_data
   prometheus_data:
   rabbitmq_data:
