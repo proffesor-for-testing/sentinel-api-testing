@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getApiUrl, getApiTimeout } from '../config/settings';
 
 const api = axios.create({
-  baseURL: getApiUrl(),
+  baseURL: '', // Use relative URLs with proxy
   timeout: getApiTimeout(),
   headers: {
     'Content-Type': 'application/json',

@@ -16,6 +16,7 @@ pub mod data_mocking;
 pub mod security_auth;
 pub mod security_injection;
 pub mod performance_planner;
+pub mod edge_cases;
 pub mod utils;
 
 /// Base trait that all agents must implement
@@ -72,7 +73,11 @@ impl AgentOrchestrator {
             "Performance-Planner-Agent".to_string(),
             Box::new(performance_planner::PerformancePlannerAgent::new()),
         );
-        
+        agents.insert(
+            "Edge-Cases-Agent".to_string(),
+            Box::new(edge_cases::EdgeCasesAgent::new()),
+        );
+
         Self { agents }
     }
     

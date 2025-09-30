@@ -142,7 +142,12 @@ class FunctionalPositiveAgent(BaseAgent):
         
         # Build test case components
         headers = self._generate_headers(operation)
-        query_params = self._generate_query_parameters(endpoint["parameters"])
+        # For basic test, use simplified query params (first test case only)
+        query_param_cases = self._generate_query_parameters(endpoint["parameters"])
+        query_params = query_param_cases[0] if query_param_cases else {}
+        # Remove the description key if it exists
+        query_params = {k: v for k, v in query_params.items() if k != "_description"}
+
         path_params = self._generate_path_parameters(endpoint["parameters"])
         
         # Replace path parameters in the URL
@@ -215,35 +220,42 @@ class FunctionalPositiveAgent(BaseAgent):
         }
     
     async def _generate_parameter_variation_tests(
-        self, 
-        endpoint: Dict[str, Any], 
+        self,
+        endpoint: Dict[str, Any],
         api_spec: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        """
-        Generate test cases with different parameter combinations.
-        
-        This is particularly useful for GET endpoints with optional parameters.
-        """
+        """Generate systematic parameter combination tests."""
         test_cases = []
         parameters = endpoint["parameters"]
-        
-        # Find optional query parameters
-        optional_params = [
-            p for p in parameters 
-            if p.get("in") == "query" and not p.get("required", False)
-        ]
-        
-        if len(optional_params) > 1:
-            # Test with only required parameters (minimal case)
-            minimal_test = await self._generate_minimal_parameter_test(endpoint, api_spec)
-            if minimal_test:
-                test_cases.append(minimal_test)
-            
-            # Test with all parameters (maximal case)
-            maximal_test = await self._generate_maximal_parameter_test(endpoint, api_spec)
-            if maximal_test:
-                test_cases.append(maximal_test)
-        
+
+        # Get all query parameters
+        query_params = [p for p in parameters if p.get("in") == "query"]
+        optional_params = [p for p in query_params if not p.get("required", False)]
+
+        # Test each parameter individually with multiple values
+        for param in query_params:
+            param_test_values = self._generate_parameter_test_values(param["name"], param.get("schema", {}))
+
+            for value in param_test_values:
+                test = await self._create_parameter_test(endpoint, api_spec, {param["name"]: value})
+                test["description"] = f"Test with {param['name']}={value}"
+                test_cases.append(test)
+
+        # Test parameter combinations
+        if len(optional_params) >= 2:
+            # Test pairs of parameters
+            for i, param1 in enumerate(optional_params):
+                for param2 in optional_params[i+1:]:
+                    test = await self._create_parameter_combination_test(
+                        endpoint, api_spec, [param1, param2]
+                    )
+                    test_cases.append(test)
+
+        # Test with all parameters
+        if optional_params:
+            all_params_test = await self._create_all_parameters_test(endpoint, api_spec, optional_params)
+            test_cases.append(all_params_test)
+
         return test_cases
     
     async def _generate_body_variation_tests(
@@ -283,17 +295,65 @@ class FunctionalPositiveAgent(BaseAgent):
         
         return headers
     
-    def _generate_query_parameters(self, parameters: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Generate query parameters from the parameter definitions."""
-        query_params = {}
-        
+    def _generate_query_parameters(self, parameters: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Generate comprehensive query parameter test cases."""
+        test_cases = []
+
         for param in parameters:
             if param.get("in") == "query":
-                # Always include required parameters, sometimes include optional ones
-                if param.get("required", False) or random.random() < 0.7:
-                    query_params[param["name"]] = self._generate_parameter_value(param)
-        
-        return query_params
+                param_name = param["name"]
+                schema = param.get("schema", {})
+
+                # Generate multiple test values for comprehensive coverage
+                test_values = self._generate_parameter_test_values(param_name, schema)
+
+                for value in test_values:
+                    test_cases.append({
+                        param_name: value,
+                        "_description": f"Test {param_name} with value: {value}"
+                    })
+
+        return test_cases
+
+    def _generate_parameter_test_values(self, param_name: str, schema: Dict[str, Any]) -> List[Any]:
+        """Generate multiple test values based on parameter constraints."""
+        values = []
+        param_type = schema.get("type", "string")
+
+        if "limit" in param_name.lower() or param_type == "integer":
+            minimum = schema.get("minimum", 1)
+            maximum = schema.get("maximum", 100)
+
+            # Test boundary values and typical cases
+            test_values = [
+                minimum,                    # Min boundary
+                minimum + 1,               # Just above min
+                (minimum + maximum) // 2,  # Middle value
+                maximum - 1,               # Just below max
+                maximum,                   # Max boundary
+                5, 10, 20, 50             # Common values
+            ]
+
+            # Remove duplicates and ensure within bounds
+            values = list(set(v for v in test_values if minimum <= v <= maximum))
+
+        elif param_type == "string":
+            if "enum" in schema:
+                values = schema["enum"]  # Test all enum values
+            else:
+                # Test various string patterns based on format
+                format_type = schema.get("format", "")
+                if format_type == "date":
+                    values = ["2024-01-01", "2024-12-31", datetime.now().strftime("%Y-%m-%d")]
+                elif format_type == "date-time":
+                    values = [datetime.now().isoformat(), (datetime.now() - timedelta(days=7)).isoformat()]
+                else:
+                    values = ["test", "Test Value", "test-value-123"]
+
+        elif param_type == "boolean":
+            values = [True, False]
+
+        return values if values else [self._get_schema_example(schema)]
     
     def _generate_path_parameters(self, parameters: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Generate path parameters from the parameter definitions."""
@@ -510,32 +570,158 @@ class FunctionalPositiveAgent(BaseAgent):
         
         return assertions
     
-    async def _generate_minimal_parameter_test(
-        self, 
-        endpoint: Dict[str, Any], 
-        api_spec: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
-        """Generate a test with only required parameters."""
-        # Implementation similar to basic test but only with required parameters
-        # This is a simplified version for the MVP
-        return None
-    
-    async def _generate_maximal_parameter_test(
-        self, 
-        endpoint: Dict[str, Any], 
-        api_spec: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
-        """Generate a test with all available parameters."""
-        # Implementation similar to basic test but with all parameters
-        # This is a simplified version for the MVP
-        return None
-    
+    async def _create_parameter_test(
+        self,
+        endpoint: Dict[str, Any],
+        api_spec: Dict[str, Any],
+        test_params: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Create a test case with specific parameter values."""
+        path = endpoint["path"]
+        method = endpoint["method"]
+        operation = endpoint["operation"]
+
+        # Build test case components
+        headers = self._generate_headers(operation)
+        path_params = self._generate_path_parameters(endpoint["parameters"])
+
+        # Replace path parameters in the URL
+        actual_path = self._substitute_path_parameters(path, path_params)
+
+        # Determine expected status code
+        expected_status = self._get_expected_success_status(operation["responses"], method)
+
+        # Generate assertions based on response schema
+        assertions = self._generate_response_assertions(operation["responses"], expected_status)
+
+        return self._create_test_case(
+            endpoint=actual_path,
+            method=method,
+            description=f"Parameter test: {method} {path}",
+            headers=headers,
+            query_params=test_params,
+            body=None,
+            expected_status=expected_status,
+            assertions=assertions
+        )
+
+    async def _create_parameter_combination_test(
+        self,
+        endpoint: Dict[str, Any],
+        api_spec: Dict[str, Any],
+        params: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Create a test case with parameter combinations."""
+        test_params = {}
+        param_names = []
+
+        for param in params:
+            param_name = param["name"]
+            param_names.append(param_name)
+            test_values = self._generate_parameter_test_values(param_name, param.get("schema", {}))
+            test_params[param_name] = test_values[0] if test_values else self._generate_parameter_value(param)
+
+        test = await self._create_parameter_test(endpoint, api_spec, test_params)
+        test["description"] = f"Parameter combination test: {', '.join(param_names)}"
+        return test
+
+    async def _create_all_parameters_test(
+        self,
+        endpoint: Dict[str, Any],
+        api_spec: Dict[str, Any],
+        params: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Create a test case with all parameters."""
+        test_params = {}
+
+        for param in params:
+            param_name = param["name"]
+            test_values = self._generate_parameter_test_values(param_name, param.get("schema", {}))
+            test_params[param_name] = test_values[0] if test_values else self._generate_parameter_value(param)
+
+        test = await self._create_parameter_test(endpoint, api_spec, test_params)
+        test["description"] = "All parameters test"
+        return test
+
     async def _generate_minimal_body_test(
-        self, 
-        endpoint: Dict[str, Any], 
+        self,
+        endpoint: Dict[str, Any],
         api_spec: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         """Generate a test with minimal request body (only required fields)."""
-        # Implementation for minimal body test
-        # This is a simplified version for the MVP
-        return None
+        if not endpoint["requestBody"]:
+            return None
+
+        path = endpoint["path"]
+        method = endpoint["method"]
+        operation = endpoint["operation"]
+
+        # Build test case components
+        headers = self._generate_headers(operation)
+        query_params = {}
+        path_params = self._generate_path_parameters(endpoint["parameters"])
+
+        # Replace path parameters in the URL
+        actual_path = self._substitute_path_parameters(path, path_params)
+
+        # Generate minimal request body (only required fields)
+        body = self._generate_minimal_request_body(endpoint["requestBody"], api_spec)
+
+        # Determine expected status code
+        expected_status = self._get_expected_success_status(operation["responses"], method)
+
+        # Generate assertions based on response schema
+        assertions = self._generate_response_assertions(operation["responses"], expected_status)
+
+        return self._create_test_case(
+            endpoint=actual_path,
+            method=method,
+            description=f"Minimal body test: {method} {path}",
+            headers=headers,
+            query_params=query_params,
+            body=body,
+            expected_status=expected_status,
+            assertions=assertions
+        )
+
+    def _generate_minimal_request_body(
+        self,
+        request_body: Dict[str, Any],
+        api_spec: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """Generate a minimal request body with only required fields."""
+        content = request_body.get("content", {})
+
+        # Look for JSON content type
+        json_content = content.get("application/json", {})
+        if not json_content:
+            # Try the first available content type
+            if content:
+                json_content = list(content.values())[0]
+
+        schema = json_content.get("schema", {})
+        if not schema:
+            return None
+
+        # Resolve schema references
+        resolved_schema = self._resolve_schema_ref(schema, api_spec)
+
+        return self._generate_minimal_object(resolved_schema, api_spec)
+
+    def _generate_minimal_object(self, schema: Dict[str, Any], api_spec: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Generate a minimal object with only required fields."""
+        if schema.get("type") != "object":
+            return self._get_schema_example(schema)
+
+        properties = schema.get("properties", {})
+        required = schema.get("required", [])
+
+        obj = {}
+
+        # Only include required properties
+        for prop_name in required:
+            if prop_name in properties:
+                prop_schema = properties[prop_name]
+                obj[prop_name] = self._generate_realistic_property_value(prop_name, prop_schema, api_spec)
+
+        return obj
