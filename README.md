@@ -97,13 +97,13 @@ The platform employs a workforce of specialized AI agents with **both Python and
 If you prefer manual control:
 
 ```bash
-# Build and start services
+# Build and start services (from project root)
 docker-compose up --build
 
-# Initialize database (in another terminal)
+# Initialize database (in another terminal, from project root)
 make init-db
 
-# Start frontend
+# Start frontend (from project root)
 cd sentinel_frontend
 npm install
 npm start
