@@ -5,9 +5,10 @@
 //! tests, spike tests, and system-wide performance scenarios.
 
 use async_trait::async_trait;
-// use rand::prelude::*;
+use rand::prelude::*;
 use serde_json::{Value, Map, Number};
 use std::collections::HashMap;
+use chrono::{DateTime, Utc, Duration};
 
 use crate::agents::{Agent, BaseAgent};
 use crate::agents::utils::*;
@@ -141,6 +142,143 @@ struct WorkflowSuccessCriteria {
     error_rate: String,
 }
 
+#[derive(Debug, Clone)]
+struct AdvancedLoadPattern {
+    pattern_name: String,
+    pattern_type: LoadPatternType,
+    stages: Vec<LoadStage>,
+    user_behavior: UserBehaviorModel,
+    geographic_distribution: Vec<GeographicLocation>,
+    device_profiles: Vec<DeviceProfile>,
+    think_time_distribution: ThinkTimeDistribution,
+}
+
+#[derive(Debug, Clone)]
+enum LoadPatternType {
+    GradualRampUp,
+    SteppedLoad,
+    SpikeAndRecover,
+    SoakTest,
+    VolumeTest,
+    CapacityPlanning,
+    RealUserSimulation,
+    BusinessHourSimulation,
+}
+
+#[derive(Debug, Clone)]
+struct LoadStage {
+    duration: String,
+    target_users: u32,
+    ramp_rate: String,
+    hold_duration: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+struct UserBehaviorModel {
+    session_duration: String,
+    pages_per_session: u32,
+    bounce_rate: f64,
+    conversion_rate: f64,
+    return_user_percentage: f64,
+}
+
+#[derive(Debug, Clone)]
+struct GeographicLocation {
+    region: String,
+    percentage: f64,
+    latency_overhead: u32, // ms
+}
+
+#[derive(Debug, Clone)]
+struct DeviceProfile {
+    device_type: String,
+    percentage: f64,
+    performance_multiplier: f64,
+}
+
+#[derive(Debug, Clone)]
+struct ThinkTimeDistribution {
+    min_think_time: u32, // seconds
+    max_think_time: u32,
+    distribution_type: String, // normal, exponential, uniform
+    mean: f64,
+    std_deviation: f64,
+}
+
+#[derive(Debug, Clone)]
+struct ComprehensiveMetrics {
+    response_time_metrics: ResponseTimeMetrics,
+    throughput_metrics: ThroughputMetrics,
+    error_metrics: ErrorMetrics,
+    resource_metrics: ResourceMetrics,
+    business_metrics: BusinessMetrics,
+    custom_slos: Vec<ServiceLevelObjective>,
+}
+
+#[derive(Debug, Clone)]
+struct ResponseTimeMetrics {
+    percentiles: Vec<Percentile>,
+    mean_response_time: String,
+    min_response_time: String,
+    max_response_time: String,
+    response_time_distribution: String,
+}
+
+#[derive(Debug, Clone)]
+struct Percentile {
+    percentile: f64,
+    threshold: String,
+}
+
+#[derive(Debug, Clone)]
+struct ThroughputMetrics {
+    requests_per_second: String,
+    transactions_per_minute: String,
+    data_transfer_rate: String,
+    concurrent_users: String,
+}
+
+#[derive(Debug, Clone)]
+struct ErrorMetrics {
+    error_rate: String,
+    error_types: Vec<ErrorType>,
+    timeout_rate: String,
+    retry_rate: String,
+}
+
+#[derive(Debug, Clone)]
+struct ErrorType {
+    status_code: u16,
+    percentage: f64,
+    acceptable_threshold: f64,
+}
+
+#[derive(Debug, Clone)]
+struct ResourceMetrics {
+    cpu_utilization: String,
+    memory_utilization: String,
+    network_bandwidth: String,
+    disk_io: String,
+    connection_pool_usage: String,
+}
+
+#[derive(Debug, Clone)]
+struct BusinessMetrics {
+    conversion_rate: String,
+    revenue_per_hour: String,
+    user_satisfaction_score: String,
+    abandonment_rate: String,
+}
+
+#[derive(Debug, Clone)]
+struct ServiceLevelObjective {
+    name: String,
+    metric: String,
+    threshold: String,
+    measurement_window: String,
+    priority: String,
+}
+
 impl PerformancePlannerAgent {
     pub fn new() -> Self {
         Self {
@@ -181,7 +319,19 @@ impl PerformancePlannerAgent {
         
         // Generate system-wide performance tests
         test_cases.extend(self.generate_system_wide_tests(&api_analysis));
-        
+
+        // Generate advanced load pattern tests
+        test_cases.extend(self.generate_advanced_load_pattern_tests(&endpoints, &api_analysis).await);
+
+        // Generate volume and capacity tests
+        test_cases.extend(self.generate_volume_capacity_tests(&endpoints, &api_analysis).await);
+
+        // Generate endurance/soak tests
+        test_cases.extend(self.generate_endurance_tests(&endpoints, &api_analysis).await);
+
+        // Generate real user simulation tests
+        test_cases.extend(self.generate_real_user_simulation_tests(&endpoints, &api_analysis).await);
+
         test_cases
     }
     
@@ -1041,6 +1191,647 @@ export default function () {{
 "#);
         
         script.trim().to_string()
+    }
+
+    /// Generate advanced load pattern tests
+    async fn generate_advanced_load_pattern_tests(&self, endpoints: &[EndpointInfo], api_analysis: &ApiAnalysis) -> Vec<TestCase> {
+        let mut test_cases = Vec::new();
+        let patterns = self.generate_advanced_load_patterns(api_analysis);
+
+        for pattern in patterns {
+            for endpoint in endpoints {
+                let mut headers = HashMap::new();
+                headers.insert("Content-Type".to_string(), "application/json".to_string());
+                headers.insert("X-Load-Pattern".to_string(), pattern.pattern_name.clone());
+
+                // Create comprehensive metrics configuration
+                let metrics = self.create_comprehensive_metrics_config(&pattern, endpoint);
+
+                // Generate pattern-specific test script
+                let k6_script = self.generate_advanced_k6_script(&pattern, endpoint);
+
+                let test_case = self.base.create_test_case(
+                    endpoint.path.clone(),
+                    endpoint.method.clone(),
+                    format!("Advanced Load Pattern: {} - {} {}", pattern.pattern_name, endpoint.method, endpoint.path),
+                    Some(headers),
+                    None,
+                    None,
+                    200,
+                    Some(self.create_advanced_assertions(&metrics)),
+                );
+
+                test_cases.push(test_case);
+            }
+        }
+
+        test_cases
+    }
+
+    /// Generate volume and capacity planning tests
+    async fn generate_volume_capacity_tests(&self, endpoints: &[EndpointInfo], _api_analysis: &ApiAnalysis) -> Vec<TestCase> {
+        let mut test_cases = Vec::new();
+
+        // Volume test configurations
+        let volume_configs = vec![
+            ("High Volume", 1000, "30m"),
+            ("Peak Volume", 5000, "15m"),
+            ("Max Capacity", 10000, "10m"),
+        ];
+
+        for (config_name, users, duration) in volume_configs {
+            for endpoint in endpoints {
+                let mut headers = HashMap::new();
+                headers.insert("Content-Type".to_string(), "application/json".to_string());
+                headers.insert("X-Test-Type".to_string(), "volume".to_string());
+
+                let test_case = self.base.create_test_case(
+                    endpoint.path.clone(),
+                    endpoint.method.clone(),
+                    format!("Volume Test: {} - {} users for {} - {} {}", config_name, users, duration, endpoint.method, endpoint.path),
+                    Some(headers),
+                    None,
+                    None,
+                    200,
+                    Some(vec![
+                        Assertion {
+                            field: "response_time_p99".to_string(),
+                            operator: "lt".to_string(),
+                            expected: Value::String("5000ms".to_string()),
+                        },
+                        Assertion {
+                            field: "throughput".to_string(),
+                            operator: "gt".to_string(),
+                            expected: Value::Number(Number::from(users / 10)),
+                        },
+                    ]),
+                );
+
+                test_cases.push(test_case);
+            }
+        }
+
+        test_cases
+    }
+
+    /// Generate endurance/soak tests
+    async fn generate_endurance_tests(&self, endpoints: &[EndpointInfo], _api_analysis: &ApiAnalysis) -> Vec<TestCase> {
+        let mut test_cases = Vec::new();
+
+        // Endurance test configurations
+        let endurance_configs = vec![
+            ("Short Endurance", 50, "2h"),
+            ("Long Endurance", 100, "8h"),
+            ("Weekend Soak", 200, "72h"),
+        ];
+
+        for (config_name, users, duration) in endurance_configs {
+            for endpoint in endpoints {
+                let mut headers = HashMap::new();
+                headers.insert("Content-Type".to_string(), "application/json".to_string());
+                headers.insert("X-Test-Type".to_string(), "endurance".to_string());
+
+                let test_case = self.base.create_test_case(
+                    endpoint.path.clone(),
+                    endpoint.method.clone(),
+                    format!("Endurance Test: {} - {} users for {} - {} {}", config_name, users, duration, endpoint.method, endpoint.path),
+                    Some(headers),
+                    None,
+                    None,
+                    200,
+                    Some(vec![
+                        Assertion {
+                            field: "memory_leak_detection".to_string(),
+                            operator: "eq".to_string(),
+                            expected: Value::Bool(false),
+                        },
+                        Assertion {
+                            field: "performance_degradation".to_string(),
+                            operator: "lt".to_string(),
+                            expected: Value::String("10%".to_string()),
+                        },
+                    ]),
+                );
+
+                test_cases.push(test_case);
+            }
+        }
+
+        test_cases
+    }
+
+    /// Generate real user simulation tests
+    async fn generate_real_user_simulation_tests(&self, endpoints: &[EndpointInfo], api_analysis: &ApiAnalysis) -> Vec<TestCase> {
+        let mut test_cases = Vec::new();
+        let user_journeys = self.create_realistic_user_journeys(endpoints, api_analysis);
+
+        for journey in user_journeys {
+            let mut headers = HashMap::new();
+            headers.insert("Content-Type".to_string(), "application/json".to_string());
+            headers.insert("X-Test-Type".to_string(), "real-user-simulation".to_string());
+            headers.insert("X-User-Journey".to_string(), journey.name.clone());
+
+            let test_case = self.base.create_test_case(
+                "/user-journey".to_string(),
+                "GET".to_string(),
+                format!("Real User Simulation: {}", journey.name),
+                Some(headers),
+                None,
+                None,
+                200,
+                Some(vec![
+                    Assertion {
+                        field: "user_experience_score".to_string(),
+                        operator: "gt".to_string(),
+                        expected: Value::Number(Number::from(85)), // 85% satisfaction
+                    },
+                    Assertion {
+                        field: "journey_completion_rate".to_string(),
+                        operator: "gt".to_string(),
+                        expected: Value::String("95%".to_string()),
+                    },
+                ]),
+            );
+
+            test_cases.push(test_case);
+        }
+
+        test_cases
+    }
+
+    /// Generate advanced load patterns
+    fn generate_advanced_load_patterns(&self, api_analysis: &ApiAnalysis) -> Vec<AdvancedLoadPattern> {
+        let mut patterns = Vec::new();
+
+        // Gradual Ramp-Up Pattern
+        patterns.push(AdvancedLoadPattern {
+            pattern_name: "Gradual Ramp-Up".to_string(),
+            pattern_type: LoadPatternType::GradualRampUp,
+            stages: vec![
+                LoadStage { duration: "2m".to_string(), target_users: 10, ramp_rate: "5 users/min".to_string(), hold_duration: None },
+                LoadStage { duration: "5m".to_string(), target_users: 50, ramp_rate: "8 users/min".to_string(), hold_duration: Some("2m".to_string()) },
+                LoadStage { duration: "10m".to_string(), target_users: 100, ramp_rate: "5 users/min".to_string(), hold_duration: Some("5m".to_string()) },
+                LoadStage { duration: "3m".to_string(), target_users: 0, ramp_rate: "33 users/min down".to_string(), hold_duration: None },
+            ],
+            user_behavior: UserBehaviorModel {
+                session_duration: "15m".to_string(),
+                pages_per_session: 8,
+                bounce_rate: 0.35,
+                conversion_rate: 0.12,
+                return_user_percentage: 0.65,
+            },
+            geographic_distribution: vec![
+                GeographicLocation { region: "US-East".to_string(), percentage: 40.0, latency_overhead: 20 },
+                GeographicLocation { region: "US-West".to_string(), percentage: 30.0, latency_overhead: 50 },
+                GeographicLocation { region: "Europe".to_string(), percentage: 20.0, latency_overhead: 100 },
+                GeographicLocation { region: "Asia".to_string(), percentage: 10.0, latency_overhead: 200 },
+            ],
+            device_profiles: vec![
+                DeviceProfile { device_type: "Desktop".to_string(), percentage: 60.0, performance_multiplier: 1.0 },
+                DeviceProfile { device_type: "Mobile".to_string(), percentage: 35.0, performance_multiplier: 0.7 },
+                DeviceProfile { device_type: "Tablet".to_string(), percentage: 5.0, performance_multiplier: 0.85 },
+            ],
+            think_time_distribution: ThinkTimeDistribution {
+                min_think_time: 1,
+                max_think_time: 30,
+                distribution_type: "normal".to_string(),
+                mean: 5.0,
+                std_deviation: 2.0,
+            },
+        });
+
+        // Stepped Load Pattern
+        patterns.push(AdvancedLoadPattern {
+            pattern_name: "Stepped Load".to_string(),
+            pattern_type: LoadPatternType::SteppedLoad,
+            stages: vec![
+                LoadStage { duration: "5m".to_string(), target_users: 25, ramp_rate: "instant".to_string(), hold_duration: Some("3m".to_string()) },
+                LoadStage { duration: "5m".to_string(), target_users: 50, ramp_rate: "instant".to_string(), hold_duration: Some("3m".to_string()) },
+                LoadStage { duration: "5m".to_string(), target_users: 100, ramp_rate: "instant".to_string(), hold_duration: Some("3m".to_string()) },
+                LoadStage { duration: "5m".to_string(), target_users: 200, ramp_rate: "instant".to_string(), hold_duration: Some("3m".to_string()) },
+            ],
+            user_behavior: UserBehaviorModel {
+                session_duration: "10m".to_string(),
+                pages_per_session: 5,
+                bounce_rate: 0.25,
+                conversion_rate: 0.15,
+                return_user_percentage: 0.70,
+            },
+            geographic_distribution: vec![
+                GeographicLocation { region: "Local".to_string(), percentage: 100.0, latency_overhead: 10 },
+            ],
+            device_profiles: vec![
+                DeviceProfile { device_type: "Desktop".to_string(), percentage: 100.0, performance_multiplier: 1.0 },
+            ],
+            think_time_distribution: ThinkTimeDistribution {
+                min_think_time: 2,
+                max_think_time: 10,
+                distribution_type: "uniform".to_string(),
+                mean: 5.0,
+                std_deviation: 1.5,
+            },
+        });
+
+        // Business Hours Simulation
+        if api_analysis.authentication_required {
+            patterns.push(AdvancedLoadPattern {
+                pattern_name: "Business Hours Simulation".to_string(),
+                pattern_type: LoadPatternType::BusinessHourSimulation,
+                stages: vec![
+                    LoadStage { duration: "1h".to_string(), target_users: 20, ramp_rate: "gradual".to_string(), hold_duration: None }, // 9 AM
+                    LoadStage { duration: "2h".to_string(), target_users: 80, ramp_rate: "gradual".to_string(), hold_duration: Some("30m".to_string()) }, // 10-12 PM
+                    LoadStage { duration: "1h".to_string(), target_users: 40, ramp_rate: "gradual".to_string(), hold_duration: None }, // Lunch
+                    LoadStage { duration: "3h".to_string(), target_users: 100, ramp_rate: "gradual".to_string(), hold_duration: Some("1h".to_string()) }, // 1-4 PM
+                    LoadStage { duration: "1h".to_string(), target_users: 60, ramp_rate: "gradual".to_string(), hold_duration: None }, // 4-5 PM
+                    LoadStage { duration: "1h".to_string(), target_users: 10, ramp_rate: "gradual".to_string(), hold_duration: None }, // After hours
+                ],
+                user_behavior: UserBehaviorModel {
+                    session_duration: "45m".to_string(),
+                    pages_per_session: 12,
+                    bounce_rate: 0.20,
+                    conversion_rate: 0.25,
+                    return_user_percentage: 0.85,
+                },
+                geographic_distribution: vec![
+                    GeographicLocation { region: "Corporate-Network".to_string(), percentage: 80.0, latency_overhead: 5 },
+                    GeographicLocation { region: "Remote-Workers".to_string(), percentage: 20.0, latency_overhead: 30 },
+                ],
+                device_profiles: vec![
+                    DeviceProfile { device_type: "Desktop".to_string(), percentage: 80.0, performance_multiplier: 1.0 },
+                    DeviceProfile { device_type: "Laptop".to_string(), percentage: 15.0, performance_multiplier: 0.9 },
+                    DeviceProfile { device_type: "Mobile".to_string(), percentage: 5.0, performance_multiplier: 0.6 },
+                ],
+                think_time_distribution: ThinkTimeDistribution {
+                    min_think_time: 5,
+                    max_think_time: 120,
+                    distribution_type: "exponential".to_string(),
+                    mean: 30.0,
+                    std_deviation: 15.0,
+                },
+            });
+        }
+
+        patterns
+    }
+
+    /// Create comprehensive metrics configuration
+    fn create_comprehensive_metrics_config(&self, pattern: &AdvancedLoadPattern, endpoint: &EndpointInfo) -> ComprehensiveMetrics {
+        ComprehensiveMetrics {
+            response_time_metrics: ResponseTimeMetrics {
+                percentiles: vec![
+                    Percentile { percentile: 50.0, threshold: "200ms".to_string() },
+                    Percentile { percentile: 75.0, threshold: "500ms".to_string() },
+                    Percentile { percentile: 90.0, threshold: "1000ms".to_string() },
+                    Percentile { percentile: 95.0, threshold: "2000ms".to_string() },
+                    Percentile { percentile: 99.0, threshold: "5000ms".to_string() },
+                    Percentile { percentile: 99.9, threshold: "10000ms".to_string() },
+                ],
+                mean_response_time: "<300ms".to_string(),
+                min_response_time: ">50ms".to_string(),
+                max_response_time: "<15000ms".to_string(),
+                response_time_distribution: "normal".to_string(),
+            },
+            throughput_metrics: ThroughputMetrics {
+                requests_per_second: ">100 RPS".to_string(),
+                transactions_per_minute: ">6000 TPM".to_string(),
+                data_transfer_rate: "<10 MB/s".to_string(),
+                concurrent_users: format!("{} users", pattern.stages.iter().map(|s| s.target_users).max().unwrap_or(100)),
+            },
+            error_metrics: ErrorMetrics {
+                error_rate: "<1%".to_string(),
+                error_types: vec![
+                    ErrorType { status_code: 400, percentage: 0.1, acceptable_threshold: 0.5 },
+                    ErrorType { status_code: 401, percentage: 0.05, acceptable_threshold: 0.1 },
+                    ErrorType { status_code: 403, percentage: 0.02, acceptable_threshold: 0.1 },
+                    ErrorType { status_code: 404, percentage: 0.1, acceptable_threshold: 0.2 },
+                    ErrorType { status_code: 429, percentage: 0.2, acceptable_threshold: 1.0 },
+                    ErrorType { status_code: 500, percentage: 0.05, acceptable_threshold: 0.1 },
+                    ErrorType { status_code: 502, percentage: 0.02, acceptable_threshold: 0.05 },
+                    ErrorType { status_code: 503, percentage: 0.03, acceptable_threshold: 0.1 },
+                ],
+                timeout_rate: "<0.5%".to_string(),
+                retry_rate: "<2%".to_string(),
+            },
+            resource_metrics: ResourceMetrics {
+                cpu_utilization: "<80%".to_string(),
+                memory_utilization: "<85%".to_string(),
+                network_bandwidth: "<70%".to_string(),
+                disk_io: "<60%".to_string(),
+                connection_pool_usage: "<90%".to_string(),
+            },
+            business_metrics: BusinessMetrics {
+                conversion_rate: format!(">{}%", pattern.user_behavior.conversion_rate * 100.0),
+                revenue_per_hour: ">$1000".to_string(),
+                user_satisfaction_score: ">4.5/5".to_string(),
+                abandonment_rate: format!("<{}%", pattern.user_behavior.bounce_rate * 100.0),
+            },
+            custom_slos: vec![
+                ServiceLevelObjective {
+                    name: "Page Load Time".to_string(),
+                    metric: "response_time_p95".to_string(),
+                    threshold: "<2s".to_string(),
+                    measurement_window: "5m".to_string(),
+                    priority: "high".to_string(),
+                },
+                ServiceLevelObjective {
+                    name: "API Availability".to_string(),
+                    metric: "success_rate".to_string(),
+                    threshold: ">99.5%".to_string(),
+                    measurement_window: "1h".to_string(),
+                    priority: "critical".to_string(),
+                },
+            ],
+        }
+    }
+
+    /// Create advanced assertions from metrics
+    fn create_advanced_assertions(&self, metrics: &ComprehensiveMetrics) -> Vec<Assertion> {
+        let mut assertions = Vec::new();
+
+        // Response time assertions
+        for percentile in &metrics.response_time_metrics.percentiles {
+            assertions.push(Assertion {
+                field: format!("response_time_p{}", percentile.percentile),
+                operator: "lt".to_string(),
+                expected: Value::String(percentile.threshold.clone()),
+            });
+        }
+
+        // Throughput assertions
+        assertions.push(Assertion {
+            field: "throughput_rps".to_string(),
+            operator: "gt".to_string(),
+            expected: Value::String(metrics.throughput_metrics.requests_per_second.clone()),
+        });
+
+        // Error rate assertions
+        assertions.push(Assertion {
+            field: "error_rate".to_string(),
+            operator: "lt".to_string(),
+            expected: Value::String(metrics.error_metrics.error_rate.clone()),
+        });
+
+        // Business metric assertions
+        assertions.push(Assertion {
+            field: "user_satisfaction".to_string(),
+            operator: "gt".to_string(),
+            expected: Value::String(metrics.business_metrics.user_satisfaction_score.clone()),
+        });
+
+        // SLO assertions
+        for slo in &metrics.custom_slos {
+            assertions.push(Assertion {
+                field: slo.metric.clone(),
+                operator: if slo.threshold.starts_with('>') { "gt" } else { "lt" }.to_string(),
+                expected: Value::String(slo.threshold.clone()),
+            });
+        }
+
+        assertions
+    }
+
+    /// Generate advanced k6 script with comprehensive monitoring
+    fn generate_advanced_k6_script(&self, pattern: &AdvancedLoadPattern, endpoint: &EndpointInfo) -> String {
+        let mut script = format!(r#"
+import http from 'k6/http';
+import {{ check, sleep, group }} from 'k6';
+import {{ Rate, Trend, Counter }} from 'k6/metrics';
+import {{ randomIntBetween, randomItem }} from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
+
+// Custom metrics
+let errorRate = new Rate('errors');
+let responseTimeTrend = new Trend('response_time');
+let userSatisfactionScore = new Trend('user_satisfaction');
+let businessTransactions = new Counter('business_transactions');
+
+export let options = {{
+    scenarios: {{
+        '{}': {{
+            executor: 'ramping-vus',
+            stages: [
+"#, pattern.pattern_name.replace(" ", "_").to_lowercase());
+
+        // Add stages
+        for stage in &pattern.stages {
+            script.push_str(&format!(
+                "                {{ duration: '{}', target: {} }},\n",
+                stage.duration, stage.target_users
+            ));
+        }
+
+        script.push_str(&format!(r#"
+            ],
+            gracefulRampDown: '30s',
+        }},
+    }},
+    thresholds: {{
+        'http_req_duration': ['p(95)<2000', 'p(99)<5000'],
+        'http_req_failed': ['rate<0.01'],
+        'errors': ['rate<0.01'],
+        'user_satisfaction': ['avg>4.0'],
+        'response_time': ['p(95)<1500'],
+    }},
+    ext: {{
+        loadimpact: {{
+            distribution: {{
+"#));
+
+        // Add geographic distribution
+        for location in &pattern.geographic_distribution {
+            script.push_str(&format!(
+                "                '{}': {},\n",
+                location.region.to_lowercase().replace("-", "_"),
+                location.percentage / 100.0
+            ));
+        }
+
+        script.push_str(&format!(r#"
+            }},
+        }},
+    }},
+}};
+
+let deviceProfiles = {};
+let thinkTimeConfig = {};
+
+export function setup() {{
+    console.log('Starting {} load test');
+    console.log('Expected user behavior: {} pages per session, {} conversion rate');
+    return {{
+        baseUrl: __ENV.BASE_URL || 'http://localhost:3000',
+        testStartTime: new Date().toISOString(),
+    }};
+}}
+
+export default function (data) {{
+    // Simulate device performance
+    let deviceProfile = randomItem(deviceProfiles);
+    let performanceMultiplier = deviceProfile.performance_multiplier;
+
+    group('User Session Simulation', function() {{
+        group('Authentication', function() {{
+            if (Math.random() < {}) {{
+                // Returning user
+                let response = http.get(data.baseUrl + '/login');
+                check(response, {{
+                    'login successful': (r) => r.status === 200,
+                }});
+            }}
+        }});
+
+        group('Main Interaction', function() {{
+            for (let i = 0; i < {}; i++) {{
+                let startTime = new Date();
+
+                let response = http.{}(data.baseUrl + '{}');
+
+                let endTime = new Date();
+                let responseTime = endTime - startTime;
+
+                // Apply device performance multiplier
+                let adjustedResponseTime = responseTime * performanceMultiplier;
+                responseTimeTrend.add(adjustedResponseTime);
+
+                let success = check(response, {{
+                    'status is 2xx': (r) => r.status >= 200 && r.status < 300,
+                    'response time acceptable': (r) => adjustedResponseTime < 2000,
+                }});
+
+                if (!success) {{
+                    errorRate.add(1);
+                }} else {{
+                    errorRate.add(0);
+                    businessTransactions.add(1);
+
+                    // Calculate user satisfaction based on response time
+                    let satisfaction = 5.0;
+                    if (adjustedResponseTime > 1000) satisfaction -= 1.0;
+                    if (adjustedResponseTime > 3000) satisfaction -= 1.5;
+                    if (adjustedResponseTime > 5000) satisfaction -= 2.0;
+                    userSatisfactionScore.add(Math.max(1.0, satisfaction));
+                }}
+
+                // Simulate conversion
+                if (Math.random() < {}) {{
+                    businessTransactions.add(10); // Higher weight for conversions
+                }}
+
+                // Dynamic think time based on distribution
+                let thinkTime = calculateThinkTime(thinkTimeConfig);
+                sleep(thinkTime / 1000); // Convert to seconds
+            }}
+        }});
+
+        // Simulate bounce rate
+        if (Math.random() < {}) {{
+            // User bounces - exit early
+            return;
+        }}
+    }});
+}}
+
+function calculateThinkTime(config) {{
+    // Simple normal distribution approximation
+    let u1 = Math.random();
+    let u2 = Math.random();
+    let z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    let result = config.mean + (z0 * config.std_deviation);
+    return Math.max(config.min_think_time * 1000, Math.min(config.max_think_time * 1000, result * 1000));
+}}
+
+export function teardown(data) {{
+    console.log('Load test completed');
+    console.log('Test duration: ' + (new Date() - new Date(data.testStartTime)) + 'ms');
+}}
+"#,
+            format!("[{}]", pattern.device_profiles.iter().map(|d| format!("{{device_type: '{}', performance_multiplier: {}}}", d.device_type, d.performance_multiplier)).collect::<Vec<_>>().join(", ")),
+            format!("{{min_think_time: {}, max_think_time: {}, mean: {}, std_deviation: {}}}",
+                pattern.think_time_distribution.min_think_time,
+                pattern.think_time_distribution.max_think_time,
+                pattern.think_time_distribution.mean,
+                pattern.think_time_distribution.std_deviation),
+            pattern.pattern_name,
+            pattern.user_behavior.pages_per_session,
+            pattern.user_behavior.conversion_rate,
+            pattern.user_behavior.return_user_percentage,
+            pattern.user_behavior.pages_per_session,
+            endpoint.method.to_lowercase(),
+            endpoint.path,
+            pattern.user_behavior.conversion_rate,
+            pattern.user_behavior.bounce_rate
+        ));
+
+        script
+    }
+
+    /// Create realistic user journeys
+    fn create_realistic_user_journeys(&self, endpoints: &[EndpointInfo], api_analysis: &ApiAnalysis) -> Vec<PerformanceWorkflow> {
+        let mut journeys = Vec::new();
+
+        // E-commerce user journey
+        if endpoints.iter().any(|e| e.path.contains("product") || e.path.contains("cart")) {
+            journeys.push(PerformanceWorkflow {
+                name: "E-commerce Purchase Journey".to_string(),
+                category: "ecommerce".to_string(),
+                concurrent_workflows: 25,
+                duration: "30m".to_string(),
+                steps: vec![
+                    WorkflowStep { action: "browse_products".to_string(), weight: 0.8 },
+                    WorkflowStep { action: "view_product_details".to_string(), weight: 0.6 },
+                    WorkflowStep { action: "add_to_cart".to_string(), weight: 0.3 },
+                    WorkflowStep { action: "checkout".to_string(), weight: 0.15 },
+                    WorkflowStep { action: "payment".to_string(), weight: 0.12 },
+                ],
+                success_criteria: WorkflowSuccessCriteria {
+                    workflow_completion_rate: "92%".to_string(),
+                    average_workflow_time: "8m".to_string(),
+                    error_rate: "1.5%".to_string(),
+                },
+            });
+        }
+
+        // API exploration journey
+        journeys.push(PerformanceWorkflow {
+            name: "API Explorer Journey".to_string(),
+            category: "api_usage".to_string(),
+            concurrent_workflows: 15,
+            duration: "20m".to_string(),
+            steps: vec![
+                WorkflowStep { action: "authenticate".to_string(), weight: 0.9 },
+                WorkflowStep { action: "list_resources".to_string(), weight: 0.8 },
+                WorkflowStep { action: "read_resource".to_string(), weight: 0.7 },
+                WorkflowStep { action: "create_resource".to_string(), weight: 0.3 },
+                WorkflowStep { action: "update_resource".to_string(), weight: 0.2 },
+            ],
+            success_criteria: WorkflowSuccessCriteria {
+                workflow_completion_rate: "95%".to_string(),
+                average_workflow_time: "5m".to_string(),
+                error_rate: "1%".to_string(),
+            },
+        });
+
+        // Heavy data processing journey
+        if !api_analysis.data_intensive_operations.is_empty() {
+            journeys.push(PerformanceWorkflow {
+                name: "Data Processing Journey".to_string(),
+                category: "data_intensive".to_string(),
+                concurrent_workflows: 5,
+                duration: "45m".to_string(),
+                steps: vec![
+                    WorkflowStep { action: "upload_data".to_string(), weight: 0.8 },
+                    WorkflowStep { action: "process_data".to_string(), weight: 0.9 },
+                    WorkflowStep { action: "generate_report".to_string(), weight: 0.7 },
+                    WorkflowStep { action: "download_results".to_string(), weight: 0.6 },
+                ],
+                success_criteria: WorkflowSuccessCriteria {
+                    workflow_completion_rate: "88%".to_string(),
+                    average_workflow_time: "25m".to_string(),
+                    error_rate: "3%".to_string(),
+                },
+            });
+        }
+
+        journeys
     }
     
     /// Generate JMeter test configuration

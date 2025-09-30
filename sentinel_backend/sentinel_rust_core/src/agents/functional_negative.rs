@@ -434,6 +434,18 @@ impl FunctionalNegativeAgent {
         let semantic_tests = self.generate_semantic_violation_tests(endpoint, api_spec);
         test_cases.extend(semantic_tests);
 
+        // Generate format-specific violation tests
+        let format_tests = self.generate_format_violation_tests(endpoint, api_spec);
+        test_cases.extend(format_tests);
+
+        // Generate nested object corruption tests
+        let nested_corruption_tests = self.generate_nested_object_corruption_tests(endpoint, api_spec);
+        test_cases.extend(nested_corruption_tests);
+
+        // Generate constraint violation tests
+        let constraint_tests = self.generate_constraint_violation_tests(endpoint, api_spec);
+        test_cases.extend(constraint_tests);
+
         test_cases
     }
 
@@ -486,6 +498,133 @@ impl FunctionalNegativeAgent {
             "object" => Some(Value::String("not_an_object".to_string())), // String instead of object
             _ => None,
         }
+    }
+
+    /// Generate format-specific invalid values for string parameters
+    fn generate_format_specific_invalid_values(&self, format: &str) -> Vec<String> {
+        match format {
+            "email" => vec![
+                "invalid-email".to_string(),
+                "@domain.com".to_string(),
+                "user@".to_string(),
+                "user..name@domain.com".to_string(),
+                "user@domain".to_string(),
+                "user name@domain.com".to_string(),
+                "user@domain..com".to_string(),
+            ],
+            "uri" | "url" => vec![
+                "not-a-url".to_string(),
+                "http://".to_string(),
+                "ftp//invalid".to_string(),
+                "http://[invalid]".to_string(),
+                "http:// invalid.com".to_string(),
+            ],
+            "date" => vec![
+                "not-a-date".to_string(),
+                "2023-13-01".to_string(), // Invalid month
+                "2023-02-30".to_string(), // Invalid day
+                "2023/02/01".to_string(), // Wrong format
+                "32-01-2023".to_string(), // Invalid format
+            ],
+            "date-time" => vec![
+                "not-a-datetime".to_string(),
+                "2023-02-30T10:00:00Z".to_string(), // Invalid date
+                "2023-02-01T25:00:00Z".to_string(), // Invalid hour
+                "2023-02-01T10:70:00Z".to_string(), // Invalid minute
+                "2023-02-01 10:00:00".to_string(), // Missing T separator
+            ],
+            "uuid" => vec![
+                "not-a-uuid".to_string(),
+                "123e4567-e89b-12d3-a456".to_string(), // Too short
+                "123e4567-e89b-12d3-a456-42661417400000000".to_string(), // Too long
+                "123e4567-g89b-12d3-a456-426614174000".to_string(), // Invalid character
+                "123e4567e89b12d3a456426614174000".to_string(), // Missing dashes
+            ],
+            "ipv4" => vec![
+                "not-an-ip".to_string(),
+                "256.1.1.1".to_string(), // Out of range
+                "192.168.1".to_string(), // Incomplete
+                "192.168.1.1.1".to_string(), // Too many octets
+                "192.168.-1.1".to_string(), // Negative
+            ],
+            "ipv6" => vec![
+                "not-an-ipv6".to_string(),
+                "2001:0db8:85a3::8a2e:0370:7334:extra".to_string(), // Too many groups
+                "2001:0db8:85a3:0000:0000:8a2e:0370:733g".to_string(), // Invalid character
+                "192.168.1.1".to_string(), // IPv4 instead of IPv6
+            ],
+            "hostname" => vec![
+                "invalid..hostname".to_string(),
+                "-invalid.hostname".to_string(),
+                "invalid.hostname-".to_string(),
+                "a".repeat(64) + ".com", // Label too long
+                "invalid_hostname".to_string(), // Underscore not allowed
+            ],
+            _ => vec!["invalid_format_value".to_string()],
+        }
+    }
+
+    /// Generate schema constraint violation tests
+    fn generate_schema_constraint_violations(&self, schema: &Value) -> Vec<Value> {
+        let mut violations = Vec::new();
+        let schema_type = schema.get("type").and_then(|t| t.as_str()).unwrap_or("string");
+
+        match schema_type {
+            "string" => {
+                // Test format violations
+                if let Some(format) = schema.get("format").and_then(|f| f.as_str()) {
+                    let invalid_values = self.generate_format_specific_invalid_values(format);
+                    violations.extend(invalid_values.into_iter().map(Value::String));
+                }
+
+                // Test pattern violations
+                if schema.get("pattern").is_some() {
+                    violations.extend(vec![
+                        Value::String("PATTERN_VIOLATION_123!@#".to_string()),
+                        Value::String("<script>alert('xss')</script>".to_string()),
+                        Value::String("'; DROP TABLE users; --".to_string()),
+                        Value::String("\\x00\\x01\\x02".to_string()), // Control characters
+                    ]);
+                }
+
+                // Test encoding violations
+                violations.extend(vec![
+                    Value::String("\\u{FFFF}".to_string()), // Invalid Unicode
+                    Value::String("\\x80\\x81\\x82".to_string()), // Invalid UTF-8 sequence
+                ]);
+            }
+            "integer" | "number" => {
+                violations.extend(vec![
+                    Value::String("NaN".to_string()),
+                    Value::String("Infinity".to_string()),
+                    Value::String("-Infinity".to_string()),
+                    Value::String("1.7976931348623157e+309".to_string()), // Beyond max float
+                ]);
+
+                // Multiple of violations
+                if let Some(multiple_of) = schema.get("multipleOf").and_then(|m| m.as_f64()) {
+                    violations.push(Value::Number(Number::from_f64(multiple_of + 0.1).unwrap()));
+                }
+            }
+            "array" => {
+                // Test non-unique items when uniqueItems is true
+                if schema.get("uniqueItems").and_then(|u| u.as_bool()).unwrap_or(false) {
+                    violations.push(Value::Array(vec![
+                        Value::String("duplicate".to_string()),
+                        Value::String("duplicate".to_string()),
+                    ]));
+                }
+
+                // Test circular references
+                let mut circular_array = Vec::new();
+                circular_array.push(Value::String("item1".to_string()));
+                // Note: JSON doesn't support true circular references, but we can simulate problematic structures
+                violations.push(Value::Array(circular_array));
+            }
+            _ => {}
+        }
+
+        violations
     }
 
     /// Generate wrong type tests for request body properties
@@ -1002,6 +1141,299 @@ impl FunctionalNegativeAgent {
         }
         
         path
+    }
+
+    /// Generate comprehensive nested object corruption tests
+    fn generate_nested_object_corruption_tests(&self, endpoint: &EndpointInfo, api_spec: &Value) -> Vec<TestCase> {
+        let mut test_cases = Vec::new();
+
+        if !["POST", "PUT", "PATCH"].contains(&endpoint.method.as_str()) {
+            return test_cases;
+        }
+
+        let base_body = match self.generate_base_valid_body(endpoint, api_spec) {
+            Some(body) => body,
+            None => return test_cases,
+        };
+
+        // Test 1: Deep nesting beyond reasonable limits
+        let mut deep_nested = Value::Object(serde_json::Map::new());
+        let mut current = &mut deep_nested;
+        for i in 0..100 {
+            if let Value::Object(ref mut map) = current {
+                let new_object = Value::Object(serde_json::Map::new());
+                map.insert(format!("level_{}", i), new_object);
+                current = map.get_mut(&format!("level_{}", i)).unwrap();
+            }
+        }
+
+        test_cases.push(self.base.create_test_case(
+            self.build_endpoint_path(endpoint),
+            endpoint.method.clone(),
+            "Test with extremely deep nested object (100 levels)".to_string(),
+            Some(self.get_default_headers()),
+            None,
+            Some(deep_nested),
+            400,
+            None,
+        ));
+
+        // Test 2: Large number of properties
+        let mut large_object = serde_json::Map::new();
+        for i in 0..1000 {
+            large_object.insert(format!("prop_{}", i), Value::String(format!("value_{}", i)));
+        }
+
+        test_cases.push(self.base.create_test_case(
+            self.build_endpoint_path(endpoint),
+            endpoint.method.clone(),
+            "Test with object containing 1000 properties".to_string(),
+            Some(self.get_default_headers()),
+            None,
+            Some(Value::Object(large_object)),
+            400,
+            None,
+        ));
+
+        // Test 3: Mixed type corruption in nested objects
+        if let Value::Object(mut map) = base_body.clone() {
+            for (key, _) in map.clone() {
+                if let Some(value) = map.get_mut(&key) {
+                    *value = self.corrupt_nested_value(value);
+                    break; // Corrupt only one property for this test
+                }
+            }
+
+            test_cases.push(self.base.create_test_case(
+                self.build_endpoint_path(endpoint),
+                endpoint.method.clone(),
+                "Test with corrupted nested object structure".to_string(),
+                Some(self.get_default_headers()),
+                None,
+                Some(Value::Object(map)),
+                400,
+                None,
+            ));
+        }
+
+        // Test 4: Null value injection in required nested fields
+        if let Value::Object(mut map) = base_body.clone() {
+            self.inject_null_values(&mut map, 2); // Inject nulls 2 levels deep
+
+            test_cases.push(self.base.create_test_case(
+                self.build_endpoint_path(endpoint),
+                endpoint.method.clone(),
+                "Test with null values in nested required fields".to_string(),
+                Some(self.get_default_headers()),
+                None,
+                Some(Value::Object(map)),
+                400,
+                None,
+            ));
+        }
+
+        test_cases
+    }
+
+    /// Corrupt a nested value by changing its structure
+    fn corrupt_nested_value(&self, value: &Value) -> Value {
+        match value {
+            Value::Object(_) => Value::Array(vec![Value::String("corrupted_object".to_string())]),
+            Value::Array(_) => {
+                let mut obj = serde_json::Map::new();
+                obj.insert("corrupted".to_string(), Value::String("array_to_object".to_string()));
+                Value::Object(obj)
+            }
+            Value::String(_) => Value::Number(Number::from(42)),
+            Value::Number(_) => Value::Bool(true),
+            Value::Bool(_) => Value::Null,
+            Value::Null => Value::String("null_to_string".to_string()),
+        }
+    }
+
+    /// Inject null values into nested object properties
+    fn inject_null_values(&self, obj: &mut serde_json::Map<String, Value>, max_depth: u32) {
+        if max_depth == 0 {
+            return;
+        }
+
+        for (key, value) in obj.iter_mut() {
+            match value {
+                Value::Object(ref mut nested_map) => {
+                    // Randomly null out some nested properties
+                    if key.contains("required") || key.contains("name") || key.contains("id") {
+                        *value = Value::Null;
+                    } else {
+                        self.inject_null_values(nested_map, max_depth - 1);
+                    }
+                }
+                _ => {
+                    if key.contains("required") || key.contains("email") {
+                        *value = Value::Null;
+                    }
+                }
+            }
+        }
+    }
+
+    /// Generate format violation tests for parameters and body fields
+    fn generate_format_violation_tests(&self, endpoint: &EndpointInfo, api_spec: &Value) -> Vec<TestCase> {
+        let mut test_cases = Vec::new();
+
+        // Test format violations in parameters
+        for param in &endpoint.parameters {
+            if let Some(schema) = param.get("schema") {
+                if let Some(format) = schema.get("format").and_then(|f| f.as_str()) {
+                    let param_name = param.get("name").and_then(|n| n.as_str()).unwrap_or("param");
+                    let invalid_values = self.generate_format_specific_invalid_values(format);
+
+                    for invalid_value in invalid_values {
+                        let description = format!("Test {} with invalid {} format", param_name, format);
+                        if let Some(test_case) = self.create_parameter_test_case(
+                            endpoint, param, Value::String(invalid_value), &description, 400
+                        ) {
+                            test_cases.push(test_case);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Test format violations in request body
+        if ["POST", "PUT", "PATCH"].contains(&endpoint.method.as_str()) {
+            if let Some(request_body) = &endpoint.request_body {
+                if let Some(content) = request_body.get("content") {
+                    if let Some(json_content) = content.get("application/json") {
+                        if let Some(schema) = json_content.get("schema") {
+                            let resolved_schema = resolve_schema_ref(schema, api_spec);
+                            test_cases.extend(self.generate_body_format_violation_tests(&resolved_schema, endpoint, api_spec));
+                        }
+                    }
+                }
+            }
+        }
+
+        test_cases
+    }
+
+    /// Generate format violation tests for request body properties
+    fn generate_body_format_violation_tests(&self, schema: &Value, endpoint: &EndpointInfo, api_spec: &Value) -> Vec<TestCase> {
+        let mut test_cases = Vec::new();
+
+        if schema.get("type").and_then(|t| t.as_str()) != Some("object") {
+            return test_cases;
+        }
+
+        if let Some(properties) = schema.get("properties").and_then(|p| p.as_object()) {
+            for (prop_name, prop_schema) in properties {
+                if let Some(format) = prop_schema.get("format").and_then(|f| f.as_str()) {
+                    let invalid_values = self.generate_format_specific_invalid_values(format);
+
+                    for invalid_value in invalid_values {
+                        let base_body = match self.generate_base_valid_body(endpoint, api_spec) {
+                            Some(body) => body,
+                            None => continue,
+                        };
+
+                        if let Value::Object(mut map) = base_body {
+                            map.insert(prop_name.clone(), Value::String(invalid_value.clone()));
+
+                            let test_case = self.base.create_test_case(
+                                self.build_endpoint_path(endpoint),
+                                endpoint.method.clone(),
+                                format!("Test {} with invalid {} format in body", prop_name, format),
+                                Some(self.get_default_headers()),
+                                None,
+                                Some(Value::Object(map)),
+                                400,
+                                None,
+                            );
+                            test_cases.push(test_case);
+                        }
+                    }
+                }
+            }
+        }
+
+        test_cases
+    }
+
+    /// Generate constraint violation tests
+    fn generate_constraint_violation_tests(&self, endpoint: &EndpointInfo, api_spec: &Value) -> Vec<TestCase> {
+        let mut test_cases = Vec::new();
+
+        // Test constraint violations in parameters
+        for param in &endpoint.parameters {
+            if let Some(schema) = param.get("schema") {
+                let violations = self.generate_schema_constraint_violations(schema);
+                let param_name = param.get("name").and_then(|n| n.as_str()).unwrap_or("param");
+
+                for (i, violation) in violations.iter().enumerate() {
+                    let description = format!("Test {} with constraint violation #{}", param_name, i + 1);
+                    if let Some(test_case) = self.create_parameter_test_case(
+                        endpoint, param, violation.clone(), &description, 400
+                    ) {
+                        test_cases.push(test_case);
+                    }
+                }
+            }
+        }
+
+        // Test constraint violations in request body
+        if ["POST", "PUT", "PATCH"].contains(&endpoint.method.as_str()) {
+            if let Some(request_body) = &endpoint.request_body {
+                if let Some(content) = request_body.get("content") {
+                    if let Some(json_content) = content.get("application/json") {
+                        if let Some(schema) = json_content.get("schema") {
+                            let resolved_schema = resolve_schema_ref(schema, api_spec);
+                            test_cases.extend(self.generate_body_constraint_violation_tests(&resolved_schema, endpoint, api_spec));
+                        }
+                    }
+                }
+            }
+        }
+
+        test_cases
+    }
+
+    /// Generate constraint violation tests for request body properties
+    fn generate_body_constraint_violation_tests(&self, schema: &Value, endpoint: &EndpointInfo, api_spec: &Value) -> Vec<TestCase> {
+        let mut test_cases = Vec::new();
+
+        if schema.get("type").and_then(|t| t.as_str()) != Some("object") {
+            return test_cases;
+        }
+
+        if let Some(properties) = schema.get("properties").and_then(|p| p.as_object()) {
+            for (prop_name, prop_schema) in properties {
+                let violations = self.generate_schema_constraint_violations(prop_schema);
+
+                for (i, violation) in violations.iter().enumerate() {
+                    let base_body = match self.generate_base_valid_body(endpoint, api_spec) {
+                        Some(body) => body,
+                        None => continue,
+                    };
+
+                    if let Value::Object(mut map) = base_body {
+                        map.insert(prop_name.clone(), violation.clone());
+
+                        let test_case = self.base.create_test_case(
+                            self.build_endpoint_path(endpoint),
+                            endpoint.method.clone(),
+                            format!("Test {} with constraint violation #{} in body", prop_name, i + 1),
+                            Some(self.get_default_headers()),
+                            None,
+                            Some(Value::Object(map)),
+                            400,
+                            None,
+                        );
+                        test_cases.push(test_case);
+                    }
+                }
+            }
+        }
+
+        test_cases
     }
 
     /// Get default headers for requests
