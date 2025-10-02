@@ -91,13 +91,13 @@ impl EdgeCasesAgent {
                     400, // Expect failure for malformed unicode
                     Some(vec![
                         Assertion {
-                            field: "status".to_string(),
-                            operator: "in".to_string(),
+                            assertion_type: "status_code_in".to_string(),
                             expected: Value::Array(vec![
                                 Value::Number(serde_json::Number::from(400)),
                                 Value::Number(serde_json::Number::from(422)),
                                 Value::Number(serde_json::Number::from(500)),
                             ]),
+                            path: None,
                         }
                     ]),
                 );
@@ -169,14 +169,12 @@ impl EdgeCasesAgent {
                     400,
                     Some(vec![
                         Assertion {
-                            field: "status".to_string(),
-                            operator: "in".to_string(),
+                            assertion_type: "status_code_in".to_string(),
                             expected: Value::Array(vec![
                                 Value::Number(serde_json::Number::from(400)),
                                 Value::Number(serde_json::Number::from(422)),
                                 Value::Number(serde_json::Number::from(413)),
-                            ]),
-                        }
+                            ]), path: None }
                     ]),
                 );
                 test_cases.push(test_case);
@@ -201,10 +199,9 @@ impl EdgeCasesAgent {
             200,
             Some(vec![
                 Assertion {
-                    field: "response_time".to_string(),
-                    operator: "lt".to_string(),
+                    assertion_type: "response_time_lt".to_string(),
                     expected: Value::Number(serde_json::Number::from(5000)), // Less than 5 seconds
-                }
+                    path: None }
             ]),
         );
         test_cases.push(test_case);
@@ -221,13 +218,11 @@ impl EdgeCasesAgent {
                 200,
                 Some(vec![
                     Assertion {
-                        field: "status".to_string(),
-                        operator: "in".to_string(),
+                        assertion_type: "status_code_in".to_string(),
                         expected: Value::Array(vec![
                             Value::Number(serde_json::Number::from(200)),
                             Value::Number(serde_json::Number::from(429)), // Rate limited
-                        ]),
-                    }
+                        ]), path: None }
                 ]),
             );
             test_cases.push(test_case);
@@ -370,13 +365,11 @@ impl EdgeCasesAgent {
                                 400,
                                 Some(vec![
                                     Assertion {
-                                        field: "status".to_string(),
-                                        operator: "in".to_string(),
+                                        assertion_type: "status_code_in".to_string(),
                                         expected: Value::Array(vec![
                                             Value::Number(serde_json::Number::from(400)),
                                             Value::Number(serde_json::Number::from(422)),
-                                        ]),
-                                    }
+                                        ]), path: None }
                                 ]),
                             );
                             test_cases.push(test_case);
@@ -411,14 +404,12 @@ impl EdgeCasesAgent {
             413, // Payload too large
             Some(vec![
                 Assertion {
-                    field: "status".to_string(),
-                    operator: "in".to_string(),
+                    assertion_type: "status_code_in".to_string(),
                     expected: Value::Array(vec![
                         Value::Number(serde_json::Number::from(413)),
                         Value::Number(serde_json::Number::from(400)),
                         Value::Number(serde_json::Number::from(500)),
-                    ]),
-                }
+                    ]), path: None }
             ]),
         );
         test_cases.push(test_case);
@@ -435,13 +426,11 @@ impl EdgeCasesAgent {
             400,
             Some(vec![
                 Assertion {
-                    field: "status".to_string(),
-                    operator: "in".to_string(),
+                    assertion_type: "status_code_in".to_string(),
                     expected: Value::Array(vec![
                         Value::Number(serde_json::Number::from(400)),
                         Value::Number(serde_json::Number::from(500)),
-                    ]),
-                }
+                    ]), path: None }
             ]),
         );
         test_cases.push(test_case);
@@ -469,14 +458,12 @@ impl EdgeCasesAgent {
                 200,
                 Some(vec![
                     Assertion {
-                        field: "status".to_string(),
-                        operator: "in".to_string(),
+                        assertion_type: "status_code_in".to_string(),
                         expected: Value::Array(vec![
                             Value::Number(serde_json::Number::from(200)),
                             Value::Number(serde_json::Number::from(409)), // Conflict
                             Value::Number(serde_json::Number::from(429)), // Rate limited
-                        ]),
-                    }
+                        ]), path: None }
                 ]),
             );
             test_cases.push(test_case);
@@ -492,10 +479,10 @@ impl EdgeCasesAgent {
         // HTTP header edge cases
         let edge_headers = vec![
             ("Very Long Header", "X-Long-Header", "x".repeat(8192)),
-            ("Binary Header", "X-Binary", "\x00\x01\x02\x03\x04"),
-            ("Unicode Header", "X-Unicode", "🚀🔥💯"),
-            ("Control Chars", "X-Control", "\r\n\t"),
-            ("Empty Header", "X-Empty", ""),
+            ("Binary Header", "X-Binary", "\x00\x01\x02\x03\x04".to_string()),
+            ("Unicode Header", "X-Unicode", "🚀🔥💯".to_string()),
+            ("Control Chars", "X-Control", "\r\n\t".to_string()),
+            ("Empty Header", "X-Empty", "".to_string()),
         ];
 
         for (test_name, header_name, header_value) in edge_headers {
@@ -512,13 +499,11 @@ impl EdgeCasesAgent {
                 400,
                 Some(vec![
                     Assertion {
-                        field: "status".to_string(),
-                        operator: "in".to_string(),
+                        assertion_type: "status_code_in".to_string(),
                         expected: Value::Array(vec![
                             Value::Number(serde_json::Number::from(200)),
                             Value::Number(serde_json::Number::from(400)),
-                        ]),
-                    }
+                        ]), path: None }
                 ]),
             );
             test_cases.push(test_case);
@@ -562,13 +547,11 @@ impl EdgeCasesAgent {
                     400,
                     Some(vec![
                         Assertion {
-                            field: "status".to_string(),
-                            operator: "in".to_string(),
+                            assertion_type: "status_code_in".to_string(),
                             expected: Value::Array(vec![
                                 Value::Number(serde_json::Number::from(400)),
                                 Value::Number(serde_json::Number::from(415)), // Unsupported media type
-                            ]),
-                        }
+                            ]), path: None }
                     ]),
                 );
                 test_cases.push(test_case);
@@ -705,7 +688,7 @@ impl Agent for EdgeCasesAgent {
         // Update metadata
         metadata.insert("total_endpoints".to_string(), Value::Number(serde_json::Number::from(endpoints.len())));
         metadata.insert("total_edge_case_tests".to_string(), Value::Number(serde_json::Number::from(all_test_cases.len())));
-        metadata.insert("processing_time_ms".to_string(), Value::Number(serde_json::Number::from(processing_time)));
+        metadata.insert("processing_time_ms".to_string(), Value::Number(serde_json::Number::from(processing_time as u64)));
         metadata.insert("test_categories".to_string(), Value::Array(vec![
             Value::String("unicode_encoding".to_string()),
             Value::String("extreme_values".to_string()),

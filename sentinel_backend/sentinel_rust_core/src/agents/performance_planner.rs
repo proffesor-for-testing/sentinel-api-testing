@@ -1255,15 +1255,11 @@ export default function () {{
                     200,
                     Some(vec![
                         Assertion {
-                            field: "response_time_p99".to_string(),
-                            operator: "lt".to_string(),
-                            expected: Value::String("5000ms".to_string()),
-                        },
+                            assertion_type: "response_time_p99_lt".to_string(),
+                            expected: Value::String("5000ms".to_string()), path: None },
                         Assertion {
-                            field: "throughput".to_string(),
-                            operator: "gt".to_string(),
-                            expected: Value::Number(Number::from(users / 10)),
-                        },
+                            assertion_type: "throughput_gt".to_string(),
+                            expected: Value::Number(Number::from(users / 10)), path: None },
                     ]),
                 );
 
@@ -1301,15 +1297,11 @@ export default function () {{
                     200,
                     Some(vec![
                         Assertion {
-                            field: "memory_leak_detection".to_string(),
-                            operator: "eq".to_string(),
-                            expected: Value::Bool(false),
-                        },
+                            assertion_type: "memory_leak_detection_eq".to_string(),
+                            expected: Value::Bool(false), path: None },
                         Assertion {
-                            field: "performance_degradation".to_string(),
-                            operator: "lt".to_string(),
-                            expected: Value::String("10%".to_string()),
-                        },
+                            assertion_type: "performance_degradation_lt".to_string(),
+                            expected: Value::String("10%".to_string()), path: None },
                     ]),
                 );
 
@@ -1341,14 +1333,14 @@ export default function () {{
                 200,
                 Some(vec![
                     Assertion {
-                        field: "user_experience_score".to_string(),
-                        operator: "gt".to_string(),
+                        assertion_type: "user_experience_score_gt".to_string(),
                         expected: Value::Number(Number::from(85)), // 85% satisfaction
+                        path: None,
                     },
                     Assertion {
-                        field: "journey_completion_rate".to_string(),
-                        operator: "gt".to_string(),
+                        assertion_type: "journey_completion_rate_gt".to_string(),
                         expected: Value::String("95%".to_string()),
+                        path: None,
                     },
                 ]),
             );
@@ -1551,39 +1543,39 @@ export default function () {{
         // Response time assertions
         for percentile in &metrics.response_time_metrics.percentiles {
             assertions.push(Assertion {
-                field: format!("response_time_p{}", percentile.percentile),
-                operator: "lt".to_string(),
+                assertion_type: format!("response_time_p{}_lt", percentile.percentile),
                 expected: Value::String(percentile.threshold.clone()),
+                path: None,
             });
         }
 
         // Throughput assertions
         assertions.push(Assertion {
-            field: "throughput_rps".to_string(),
-            operator: "gt".to_string(),
+            assertion_type: "throughput_rps_gt".to_string(),
             expected: Value::String(metrics.throughput_metrics.requests_per_second.clone()),
+            path: None,
         });
 
         // Error rate assertions
         assertions.push(Assertion {
-            field: "error_rate".to_string(),
-            operator: "lt".to_string(),
+            assertion_type: "error_rate_lt".to_string(),
             expected: Value::String(metrics.error_metrics.error_rate.clone()),
+            path: None,
         });
 
         // Business metric assertions
         assertions.push(Assertion {
-            field: "user_satisfaction".to_string(),
-            operator: "gt".to_string(),
+            assertion_type: "user_satisfaction_gt".to_string(),
             expected: Value::String(metrics.business_metrics.user_satisfaction_score.clone()),
+            path: None,
         });
 
         // SLO assertions
         for slo in &metrics.custom_slos {
             assertions.push(Assertion {
-                field: slo.metric.clone(),
-                operator: if slo.threshold.starts_with('>') { "gt" } else { "lt" }.to_string(),
+                assertion_type: if slo.threshold.starts_with('>') { format!("{}_gt", slo.metric) } else { format!("{}_lt", slo.metric) },
                 expected: Value::String(slo.threshold.clone()),
+                path: None,
             });
         }
 
