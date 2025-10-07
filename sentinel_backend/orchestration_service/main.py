@@ -19,7 +19,9 @@ from sentinel_backend.orchestration_service.agents.functional_stateful_agent imp
 from sentinel_backend.orchestration_service.agents.security_auth_agent import SecurityAuthAgent
 from sentinel_backend.orchestration_service.agents.security_injection_agent import SecurityInjectionAgent
 from sentinel_backend.orchestration_service.agents.performance_planner_agent import PerformancePlannerAgent
-from sentinel_backend.orchestration_service.agents.data_mocking_agent import DataMockingAgent
+# Consolidated agents (new architecture)
+from sentinel_backend.orchestration_service.agents.functional_agent import FunctionalAgent
+from sentinel_backend.orchestration_service.agents.security_agent import SecurityAgent
 from sentinel_backend.orchestration_service.broker import publish_task
 from sentinel_backend.orchestration_service.agent_performance_tracker import (
     get_performance_tracker, 
@@ -81,9 +83,7 @@ RUST_AVAILABLE_AGENTS = {
     "Functional-Stateful-Agent",
     "Security-Auth-Agent",
     "Security-Injection-Agent",
-    "Performance-Planner-Agent",
-    "data-mocking",
-    # Note: Data-Mocking-Agent maps to "data-mocking" in Rust
+    "Performance-Planner-Agent"
 }
 
 
@@ -93,6 +93,7 @@ class TestGenerationRequest(BaseModel):
     agent_types: list[str] = ["Functional-Positive-Agent"]
     target_environment: Optional[str] = None
     parameters: Dict[str, Any] = {}
+    enable_llm: bool = False
 
 
 class TestGenerationResponse(BaseModel):
@@ -103,22 +104,8 @@ class TestGenerationResponse(BaseModel):
     agent_results: list[Dict[str, Any]]
 
 
-class DataGenerationRequest(BaseModel):
-    """Request model for mock data generation."""
-    spec_id: int
-    strategy: str = "realistic"  # realistic, edge_cases, invalid, boundary
-    count: int = 10
-    seed: Optional[int] = None
-
-
-class DataGenerationResponse(BaseModel):
-    """Response model for mock data generation."""
-    task_id: str
-    status: str
-    mock_data: Dict[str, Any]
-    global_data: Dict[str, Any]
-    metadata: Dict[str, Any]
-
+# Removed DataGenerationRequest and DataGenerationResponse
+# Data generation is now a utility service used by agents, not a standalone API
 
 class AsyncTestGenerationResponse(BaseModel):
     """Response model for async test generation initiation."""
@@ -322,13 +309,17 @@ async def generate_tests(fastapi_request: Request, request: TestGenerationReques
         
         # Initialize available Python agents
         python_agents = {
+            # Consolidated agents (new architecture - recommended)
+            "Functional-Agent": FunctionalAgent(),
+            "Security-Agent": SecurityAgent(),
+
+            # Legacy agents (backward compatibility - map to old agents for now)
             "Functional-Positive-Agent": FunctionalPositiveAgent(),
             "Functional-Negative-Agent": FunctionalNegativeAgent(),
             "Functional-Stateful-Agent": FunctionalStatefulAgent(),
             "Security-Auth-Agent": SecurityAuthAgent(),
             "Security-Injection-Agent": SecurityInjectionAgent(),
-            "Performance-Planner-Agent": PerformancePlannerAgent(),
-            "Data-Mocking-Agent": DataMockingAgent()
+            "Performance-Planner-Agent": PerformancePlannerAgent()
         }
         
         agent_results = []
@@ -347,11 +338,12 @@ async def generate_tests(fastapi_request: Request, request: TestGenerationReques
                 spec_id=request.spec_id,
                 agent_type=agent_type,
                 parameters=request.parameters,
-                target_environment=request.target_environment
+                target_environment=request.target_environment,
+                enable_llm=request.enable_llm
             )
             
-            # Map Python agent names to Rust agent names if needed
-            rust_agent_type = "data-mocking" if agent_type == "Data-Mocking-Agent" else agent_type
+            # Use agent_type directly (no more special mapping)
+            rust_agent_type = agent_type
             
             # TEMPORARY: Force Rust usage for testing
             FORCE_RUST_FOR_TESTING = False  # Set to False to use normal performance-based selection
@@ -497,13 +489,17 @@ async def execute_test_generation_task(
         
         # Initialize available Python agents
         python_agents = {
+            # Consolidated agents (new architecture - recommended)
+            "Functional-Agent": FunctionalAgent(),
+            "Security-Agent": SecurityAgent(),
+
+            # Legacy agents (backward compatibility - map to old agents for now)
             "Functional-Positive-Agent": FunctionalPositiveAgent(),
             "Functional-Negative-Agent": FunctionalNegativeAgent(),
             "Functional-Stateful-Agent": FunctionalStatefulAgent(),
             "Security-Auth-Agent": SecurityAuthAgent(),
             "Security-Injection-Agent": SecurityInjectionAgent(),
-            "Performance-Planner-Agent": PerformancePlannerAgent(),
-            "Data-Mocking-Agent": DataMockingAgent()
+            "Performance-Planner-Agent": PerformancePlannerAgent()
         }
         
         agent_results = []
@@ -527,11 +523,12 @@ async def execute_test_generation_task(
                 spec_id=request.spec_id,
                 agent_type=agent_type,
                 parameters=request.parameters,
-                target_environment=request.target_environment
+                target_environment=request.target_environment,
+                enable_llm=request.enable_llm
             )
             
-            # Map Python agent names to Rust agent names if needed
-            rust_agent_type = "data-mocking" if agent_type == "Data-Mocking-Agent" else agent_type
+            # Use agent_type directly (no more special mapping)
+            rust_agent_type = agent_type
             
             # Determine whether to use Rust or Python agent
             use_rust = rust_available and (agent_type in RUST_AVAILABLE_AGENTS or rust_agent_type in RUST_AVAILABLE_AGENTS)
@@ -658,121 +655,8 @@ async def get_task_status(task_id: str):
     return TaskStatusResponse(**task_info)
 
 
-@app.post("/generate-data", response_model=DataGenerationResponse)
-async def generate_data(fastapi_request: Request, request: DataGenerationRequest):
-    """
-    Generate mock data using the Data Mocking Agent.
-    
-    This endpoint generates realistic test data based on API specifications
-    for use in testing scenarios. Now supports both Python and Rust implementations.
-    """
-    try:
-        task_id = str(uuid.uuid4())
-        logger.info(f"Starting data generation task {task_id} for spec_id: {request.spec_id}")
-        
-        # Check Rust core availability
-        rust_available = USE_RUST_AGENTS and await check_rust_core_availability()
-        use_rust = rust_available and "data-mocking" in RUST_AVAILABLE_AGENTS
-        
-        # Fetch the API specification from the Spec Service
-        api_spec = await fetch_api_specification(fastapi_request, request.spec_id)
-        if not api_spec:
-            raise HTTPException(status_code=404, detail="API specification not found")
-        
-        if use_rust:
-            logger.info("Using Rust data mocking agent")
-            
-            # Create agent task for Rust execution
-            agent_task = AgentTask(
-                task_id=task_id,
-                spec_id=request.spec_id,
-                agent_type="data-mocking",
-                parameters={
-                    'strategy': request.strategy,
-                    'count': request.count,
-                    'seed': request.seed
-                },
-                target_environment=None
-            )
-            
-            # Execute using Rust core
-            correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
-            headers = {"X-Correlation-ID": correlation_id} if correlation_id else {}
-            try:
-                async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
-                    request_data = {
-                        "task": {
-                            "task_id": agent_task.task_id,
-                            "spec_id": str(agent_task.spec_id),  # Rust expects string
-                            "agent_type": agent_task.agent_type,
-                            "parameters": agent_task.parameters,
-                            "target_environment": agent_task.target_environment
-                        },
-                        "api_spec": api_spec
-                    }
-                    
-                    response = await client.post(
-                        f"{RUST_CORE_URL}/swarm/mock-data",
-                        json=request_data,
-                        headers=headers
-                    )
-                    
-                    if response.status_code == 200:
-                        result_data = response.json()
-                        rust_result = result_data["result"]
-                        
-                        logger.info(f"Data generation task {task_id} completed successfully using Rust")
-                        
-                        return DataGenerationResponse(
-                            task_id=task_id,
-                            status="completed",
-                            mock_data=rust_result.get('metadata', {}).get('mock_data', {}),
-                            global_data=rust_result.get('metadata', {}).get('global_data', {}),
-                            metadata=rust_result.get('metadata', {})
-                        )
-                    else:
-                        logger.warning(f"Rust data generation failed: {response.status_code}, falling back to Python")
-                        use_rust = False
-                        
-            except Exception as e:
-                logger.warning(f"Rust data generation error: {str(e)}, falling back to Python")
-                use_rust = False
-        
-        if not use_rust:
-            logger.info("Using Python data mocking agent")
-            
-            # Initialize data mocking agent
-            data_agent = DataMockingAgent()
-            
-            # Configure data generation
-            config = {
-                'strategy': request.strategy,
-                'count': request.count,
-                'seed': request.seed
-            }
-            
-            # Execute data generation
-            logger.info(f"Executing Python Data-Mocking-Agent with strategy: {request.strategy}")
-            result = await data_agent.execute(api_spec, config)
-            
-            if 'error' in result:
-                raise HTTPException(status_code=500, detail=result['error'])
-            
-            logger.info(f"Data generation task {task_id} completed successfully using Python")
-            
-            return DataGenerationResponse(
-                task_id=task_id,
-                status="completed",
-                mock_data=result.get('mock_data', {}),
-                global_data=result.get('global_data', {}),
-                metadata=result.get('metadata', {})
-            )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error in data generation: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Data generation failed: {str(e)}")
+# Removed legacy /generate-data endpoint
+# Data generation is now a utility service used by agents, not a standalone endpoint
 
 
 async def fetch_api_specification(request: Request, spec_id: int) -> Optional[Dict[str, Any]]:

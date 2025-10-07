@@ -45,20 +45,23 @@ class PerformancePlannerAgent(BaseAgent):
     async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
         """
         Execute the Performance Planner Agent to generate performance test plans.
-        
+
         Args:
             task: The agent task containing execution parameters
             api_spec: The parsed API specification
-            
+
         Returns:
             AgentResult containing generated test cases
         """
         try:
             logger.info(f"Performance Planner Agent executing task {task.task_id}")
-            
-            # Generate test cases
-            test_cases = await self.generate_test_cases(api_spec)
-            
+
+            # Generate test cases (pass task for LLM flag)
+            test_cases = await self.generate_test_cases(api_spec, task)
+
+            # Check if LLM was used
+            use_llm = task.enable_llm and self.llm_enabled  # Both must be true: user wants it AND it's available
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,
@@ -66,7 +69,10 @@ class PerformancePlannerAgent(BaseAgent):
                 test_cases=test_cases,
                 metadata={
                     "total_tests": len(test_cases),
-                    "test_types": ["Load", "Stress", "Spike", "Soak", "Benchmark"]
+                    "test_types": ["Load", "Stress", "Spike", "Soak", "Benchmark"],
+                    "llm_enhanced": use_llm,
+                    "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
+                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
                 },
                 error_message=None
             )
@@ -82,40 +88,52 @@ class PerformancePlannerAgent(BaseAgent):
                 error_message=str(e)
             )
     
-    async def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def generate_test_cases(self, spec_data: Dict[str, Any], task: AgentTask = None) -> List[Dict[str, Any]]:
         """
         Generate performance test cases and configurations.
-        
+
         Args:
             spec_data: Parsed OpenAPI specification
-            
+            task: Optional agent task for LLM flag
+
         Returns:
             List of performance test configurations and scenarios
         """
         test_cases = []
-        
+
         try:
             # Extract paths and operations from spec
             paths = spec_data.get('paths', {})
-            
+
             # Analyze API structure for performance characteristics
             api_analysis = self._analyze_api_performance_characteristics(spec_data)
-            
+
             for path, operations in paths.items():
                 for method, operation_spec in operations.items():
                     if method.upper() in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']:
                         # Generate load testing scenarios
                         test_cases.extend(self._generate_load_test_scenarios(path, method, operation_spec, api_analysis))
-                        
+
                         # Generate stress testing scenarios
                         test_cases.extend(self._generate_stress_test_scenarios(path, method, operation_spec, api_analysis))
-                        
+
                         # Generate spike testing scenarios
                         test_cases.extend(self._generate_spike_test_scenarios(path, method, operation_spec, api_analysis))
-            
+
             # Generate system-wide performance tests
             test_cases.extend(self._generate_system_wide_tests(spec_data, api_analysis))
-            
+
+            # If LLM is enabled (either via config or task parameter), generate sophisticated load patterns
+            use_llm = self.llm_enabled or (task and task.enable_llm)
+            if use_llm and test_cases:
+                logger.info("Generating LLM-enhanced performance test scenarios")
+                # Generate sophisticated load patterns for first few tests
+                for test in test_cases[:3]:
+                    variant = await self.generate_creative_variant(test, "realistic")
+                    if variant:
+                        variant["description"] = f"[LLM Enhanced] {variant.get('description', 'Advanced load pattern')}"
+                        test_cases.append(variant)
+
             logger.info(f"Generated {len(test_cases)} performance test scenarios")
             return test_cases
             

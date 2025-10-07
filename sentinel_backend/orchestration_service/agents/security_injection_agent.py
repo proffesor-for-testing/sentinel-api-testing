@@ -37,20 +37,23 @@ class SecurityInjectionAgent(BaseAgent):
     async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
         """
         Execute the Security Injection Agent to generate injection vulnerability test cases.
-        
+
         Args:
             task: The agent task containing execution parameters
             api_spec: The parsed API specification
-            
+
         Returns:
             AgentResult containing generated test cases
         """
         try:
             logger.info(f"Security Injection Agent executing task {task.task_id}")
-            
-            # Generate test cases
-            test_cases = await self.generate_test_cases(api_spec)
-            
+
+            # Generate test cases (pass task for LLM flag)
+            test_cases = await self.generate_test_cases(api_spec, task)
+
+            # Check if LLM was used
+            use_llm = task.enable_llm and self.llm_enabled  # Both must be true: user wants it AND it's available
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,
@@ -58,7 +61,10 @@ class SecurityInjectionAgent(BaseAgent):
                 test_cases=test_cases,
                 metadata={
                     "total_tests": len(test_cases),
-                    "injection_types": ["Prompt", "SQL", "NoSQL", "Command", "LDAP", "XPath"]
+                    "injection_types": ["Prompt", "SQL", "NoSQL", "Command", "LDAP", "XPath"],
+                    "llm_enhanced": use_llm,
+                    "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
+                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
                 },
                 error_message=None
             )
@@ -74,37 +80,49 @@ class SecurityInjectionAgent(BaseAgent):
                 error_message=str(e)
             )
     
-    async def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def generate_test_cases(self, spec_data: Dict[str, Any], task: AgentTask = None) -> List[Dict[str, Any]]:
         """
         Generate security test cases focused on injection vulnerabilities.
-        
+
         Args:
             spec_data: Parsed OpenAPI specification
-            
+            task: Optional agent task for LLM flag
+
         Returns:
             List of test cases targeting injection vulnerabilities
         """
         test_cases = []
-        
+
         try:
             # Extract paths and operations from spec
             paths = spec_data.get('paths', {})
-            
+
             for path, operations in paths.items():
                 for method, operation_spec in operations.items():
                     if method.upper() in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']:
                         # Generate prompt injection test cases
                         test_cases.extend(self._generate_prompt_injection_tests(path, method, operation_spec))
-                        
+
                         # Generate SQL injection test cases
                         test_cases.extend(self._generate_sql_injection_tests(path, method, operation_spec))
-                        
+
                         # Generate NoSQL injection test cases
                         test_cases.extend(self._generate_nosql_injection_tests(path, method, operation_spec))
-                        
+
                         # Generate command injection test cases
                         test_cases.extend(self._generate_command_injection_tests(path, method, operation_spec))
-            
+
+            # If LLM is enabled (either via config or task parameter), generate sophisticated injection vectors
+            use_llm = self.llm_enabled or (task and task.enable_llm)
+            if use_llm and paths:
+                logger.info("Generating LLM-enhanced security injection test cases")
+                # Generate additional sophisticated injection variants
+                for test in test_cases[:5]:  # Enhance first 5 tests
+                    variant = await self.generate_creative_variant(test, "edge_case")
+                    if variant:
+                        variant["description"] = f"[LLM Enhanced] {variant.get('description', 'Sophisticated injection')}"
+                        test_cases.append(variant)
+
             logger.info(f"Generated {len(test_cases)} security injection test cases")
             return test_cases
             

@@ -13,6 +13,7 @@ import re
 import random
 from .base_agent import BaseAgent, AgentTask, AgentResult
 from sentinel_backend.config.settings import get_application_settings
+from sentinel_backend.orchestration_service.services.data_generation_service import DataGenerationService
 
 # Get configuration
 app_settings = get_application_settings()
@@ -33,30 +34,36 @@ class SecurityAuthAgent(BaseAgent):
         super().__init__("security-auth")
         self.agent_type = "Security-Auth-Agent"
         self.description = "Security agent focused on authentication and authorization vulnerabilities"
-        
+
         # Configuration-driven settings
         self.max_bola_vectors = getattr(app_settings, 'security_max_bola_vectors', 12)
         self.max_auth_scenarios = getattr(app_settings, 'security_max_auth_scenarios', 4)
         self.default_test_timeout = getattr(app_settings, 'security_test_timeout', 30)
         self.enable_aggressive_testing = getattr(app_settings, 'security_enable_aggressive_testing', False)
+
+        # Initialize data generation service
+        self.data_service = DataGenerationService()
     
     async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
         """
         Execute the Security Auth Agent to generate auth vulnerability test cases.
-        
+
         Args:
             task: The agent task containing execution parameters
             api_spec: The parsed API specification
-            
+
         Returns:
             AgentResult containing generated test cases
         """
         try:
             logger.info(f"Security Auth Agent executing task {task.task_id}")
-            
-            # Generate test cases
-            test_cases = await self.generate_test_cases(api_spec)
-            
+
+            # Generate test cases (pass task for LLM flag)
+            test_cases = await self.generate_test_cases(api_spec, task)
+
+            # Check if LLM was used
+            use_llm = task.enable_llm and self.llm_enabled  # Both must be true: user wants it AND it's available
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,
@@ -64,7 +71,10 @@ class SecurityAuthAgent(BaseAgent):
                 test_cases=test_cases,
                 metadata={
                     "total_tests": len(test_cases),
-                    "focus_areas": ["BOLA", "Function-level auth", "Auth bypass"]
+                    "focus_areas": ["BOLA", "Function-level auth", "Auth bypass"],
+                    "llm_enhanced": use_llm,
+                    "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
+                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
                 },
                 error_message=None
             )
@@ -80,36 +90,38 @@ class SecurityAuthAgent(BaseAgent):
                 error_message=str(e)
             )
     
-    async def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def generate_test_cases(self, spec_data: Dict[str, Any], task: AgentTask = None) -> List[Dict[str, Any]]:
         """
         Generate security test cases focused on authentication and authorization.
-        
+
         Args:
             spec_data: Parsed OpenAPI specification
-            
+            task: Optional agent task for LLM flag
+
         Returns:
             List of test cases targeting auth vulnerabilities
         """
         test_cases = []
-        
+
         try:
             # Extract paths and operations from spec
             paths = spec_data.get('paths', {})
-            
+
             for path, operations in paths.items():
                 for method, operation_spec in operations.items():
                     if method.upper() in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']:
                         # Generate BOLA test cases
                         test_cases.extend(self._generate_bola_tests(path, method, operation_spec))
-                        
+
                         # Generate function-level authorization tests
                         test_cases.extend(self._generate_function_auth_tests(path, method, operation_spec))
-                        
+
                         # Generate authentication bypass tests
                         test_cases.extend(self._generate_auth_bypass_tests(path, method, operation_spec))
-            
-            # If LLM is enabled, generate sophisticated auth attack vectors
-            if self.llm_enabled and paths:
+
+            # If LLM is enabled (either via config or task parameter), generate sophisticated auth attack vectors
+            use_llm = self.llm_enabled or (task and task.enable_llm)
+            if use_llm and paths:
                 logger.info("Generating LLM-enhanced security auth test cases")
                 llm_tests = await self._generate_llm_auth_tests(list(paths.items())[:3], spec_data)
                 test_cases.extend(llm_tests)
@@ -395,47 +407,20 @@ class SecurityAuthAgent(BaseAgent):
         return path_params
     
     def _generate_request_body(self, operation_spec: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Generate a basic request body for testing."""
+        """Generate a basic request body for testing using DataGenerationService."""
         request_body = operation_spec.get('requestBody', {})
         if not request_body:
             return None
-        
+
         content = request_body.get('content', {})
         json_content = content.get('application/json', {})
         schema = json_content.get('schema', {})
-        
+
         if not schema:
             return {'test': 'data'}
-        
-        return self._generate_data_from_schema(schema)
-    
-    def _generate_data_from_schema(self, schema: Dict[str, Any]) -> Any:
-        """Generate test data from a JSON schema."""
-        schema_type = schema.get('type', 'object')
-        
-        if schema_type == 'object':
-            properties = schema.get('properties', {})
-            required = schema.get('required', [])
-            
-            data = {}
-            for prop_name, prop_schema in properties.items():
-                if prop_name in required:
-                    data[prop_name] = self._generate_data_from_schema(prop_schema)
-            
-            return data
-        elif schema_type == 'string':
-            return 'test-string'
-        elif schema_type == 'integer':
-            return 123
-        elif schema_type == 'number':
-            return 123.45
-        elif schema_type == 'boolean':
-            return True
-        elif schema_type == 'array':
-            items_schema = schema.get('items', {'type': 'string'})
-            return [self._generate_data_from_schema(items_schema)]
-        else:
-            return 'test-value'
+
+        # Use DataGenerationService to generate realistic data
+        return self.data_service.generate_realistic_data(schema, strategy="realistic")
     
     def _get_bypass_techniques(self) -> List[Dict[str, Any]]:
         """Get authentication bypass techniques based on configuration."""

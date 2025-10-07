@@ -100,3 +100,26 @@ impl Default for DataGenConfig {
         }
     }
 }
+
+/// Error types for agent operations
+#[derive(Debug, Clone)]
+pub enum AgentError {
+    /// LLM-related errors
+    LlmError(String),
+    /// General agent errors
+    ExecutionError(String),
+    /// Configuration errors
+    ConfigError(String),
+}
+
+impl std::fmt::Display for AgentError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AgentError::LlmError(msg) => write!(f, "LLM Error: {}", msg),
+            AgentError::ExecutionError(msg) => write!(f, "Execution Error: {}", msg),
+            AgentError::ConfigError(msg) => write!(f, "Config Error: {}", msg),
+        }
+    }
+}
+
+impl std::error::Error for AgentError {}

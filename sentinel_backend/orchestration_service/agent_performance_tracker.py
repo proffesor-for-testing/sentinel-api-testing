@@ -140,18 +140,20 @@ class AgentPerformanceTracker:
         
         # If we don't have enough data, use default order based on last benchmark
         if len(rust_metrics) < self.min_samples or len(python_metrics) < self.min_samples:
-            # Default order based on comprehensive benchmark results
+            # Default order: Always prefer Rust first for speed
+            # Rust agents use deterministic algorithms (BVA, structural tests)
+            # Python agents can use LLM when enable_llm=True
             default_order = {
-                "Functional-Positive-Agent": ["python", "rust"],
+                "Functional-Positive-Agent": ["rust", "python"],
                 "Functional-Negative-Agent": ["rust", "python"],
-                "Functional-Stateful-Agent": ["python", "rust"],
-                "Security-Auth-Agent": ["python", "rust"],
-                "Security-Injection-Agent": ["python", "rust"],
-                "Performance-Planner-Agent": ["python", "rust"],
+                "Functional-Stateful-Agent": ["rust", "python"],
+                "Security-Auth-Agent": ["rust", "python"],
+                "Security-Injection-Agent": ["rust", "python"],
+                "Performance-Planner-Agent": ["rust", "python"],
                 "Data-Mocking-Agent": ["rust", "python"],
                 "data-mocking": ["rust", "python"]
             }
-            return default_order.get(agent_type, ["python", "rust"])
+            return default_order.get(agent_type, ["rust", "python"])
         
         # Calculate performance
         rust_perf = self._calculate_performance_score(rust_metrics[-self.min_samples:])

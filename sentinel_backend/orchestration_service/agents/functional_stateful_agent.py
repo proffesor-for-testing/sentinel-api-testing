@@ -123,17 +123,18 @@ class FunctionalStatefulAgent(BaseAgent):
                 test_case = self._convert_scenario_to_test_case(scenario)
                 test_cases.append(test_case)
             
-            # Step 5: If LLM is enabled, generate additional complex workflows
-            if self.llm_enabled and workflow_patterns:
+            # Step 5: If LLM is enabled (either via config or task parameter), generate additional complex workflows
+            use_llm = task.enable_llm and self.llm_enabled  # Both must be true: user wants it AND it's available
+            if use_llm and workflow_patterns:
                 self.logger.info("Generating LLM-enhanced stateful workflows")
                 llm_scenarios = await self._generate_llm_workflows(workflow_patterns[:2], api_spec)
                 for scenario in llm_scenarios:
                     test_case = self._convert_scenario_to_test_case(scenario)
-                    test_case['description'] = f"[LLM] {test_case.get('description', 'Complex workflow')}"
+                    test_case['description'] = f"[LLM Enhanced] {test_case.get('description', 'Complex workflow')}"
                     test_cases.append(test_case)
-            
+
             self.logger.info(f"Generated {len(test_cases)} stateful test cases")
-            
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,
@@ -146,7 +147,7 @@ class FunctionalStatefulAgent(BaseAgent):
                     "total_test_cases": len(test_cases),
                     "generation_strategy": "sodg_based_stateful_workflows",
                     "supported_patterns": [p["type"] for p in workflow_patterns],
-                    "llm_enhanced": self.llm_enabled,
+                    "llm_enhanced": use_llm,
                     "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
                     "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
                 }

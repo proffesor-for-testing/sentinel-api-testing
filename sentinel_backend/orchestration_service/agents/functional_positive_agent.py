@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 
 from .base_agent import BaseAgent, AgentTask, AgentResult
 from sentinel_backend.config.settings import get_application_settings
+from sentinel_backend.orchestration_service.services.data_generation_service import DataGenerationService
 
 
 class FunctionalPositiveAgent(BaseAgent):
@@ -27,6 +28,7 @@ class FunctionalPositiveAgent(BaseAgent):
     
     def __init__(self):
         super().__init__("Functional-Positive-Agent")
+        self.data_service = DataGenerationService()
     
     async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
         """
@@ -52,8 +54,9 @@ class FunctionalPositiveAgent(BaseAgent):
                 endpoint_tests = await self._generate_endpoint_tests(endpoint, api_spec)
                 test_cases.extend(endpoint_tests)
             
-            # If LLM is enabled, enhance some test cases with creative variants
-            if self.llm_enabled and test_cases:
+            # If LLM is explicitly requested via task parameter, enhance some test cases with creative variants
+            use_llm = task.enable_llm and self.llm_enabled  # Both must be true: user wants it AND it's available
+            if use_llm and test_cases:
                 self.logger.info("Enhancing test cases with LLM-generated variants")
                 enhanced_count = min(5, len(test_cases) // 3)  # Enhance up to 1/3 of tests, max 5
                 for i in range(enhanced_count):
@@ -74,7 +77,7 @@ class FunctionalPositiveAgent(BaseAgent):
                     "total_endpoints": len(endpoints),
                     "total_test_cases": len(test_cases),
                     "generation_strategy": "schema_based_with_realistic_data",
-                    "llm_enhanced": self.llm_enabled,
+                    "llm_enhanced": use_llm,
                     "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
                     "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
                 }
@@ -199,22 +202,26 @@ class FunctionalPositiveAgent(BaseAgent):
         query_params: Dict[str, Any],
         body: Optional[Dict[str, Any]],
         expected_status: int,
-        assertions: List[Dict[str, Any]]
+        assertions: List[Dict[str, Any]],
+        test_subtype: str = "complete_valid"
     ) -> Dict[str, Any]:
         """Create a standardized test case with configuration-based settings."""
         app_settings = get_application_settings()
         test_timeout = getattr(app_settings, 'test_execution_timeout', 600)
-        
+
         return {
             'test_name': description,
             'test_type': 'functional-positive',
+            'test_subtype': test_subtype,
             'method': method.upper(),
             'path': endpoint,
+            'endpoint': endpoint,  # Alias for compatibility
             'headers': headers,
             'query_params': query_params,
             'body': body,
             'timeout': test_timeout,
             'expected_status_codes': [expected_status],
+            'expected_status': expected_status,  # Alias for compatibility
             'assertions': assertions,
             'tags': ['functional', 'positive', f'{method.lower()}-method']
         }
@@ -415,28 +422,29 @@ class FunctionalPositiveAgent(BaseAgent):
         return actual_path
     
     def _generate_request_body(
-        self, 
-        request_body: Dict[str, Any], 
+        self,
+        request_body: Dict[str, Any],
         api_spec: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         """Generate a request body based on the request body schema."""
         content = request_body.get("content", {})
-        
+
         # Look for JSON content type
         json_content = content.get("application/json", {})
         if not json_content:
             # Try the first available content type
             if content:
                 json_content = list(content.values())[0]
-        
+
         schema = json_content.get("schema", {})
         if not schema:
             return None
-        
+
         # Resolve schema references
         resolved_schema = self._resolve_schema_ref(schema, api_spec)
-        
-        return self._generate_realistic_object(resolved_schema, api_spec)
+
+        # Use DataGenerationService to generate realistic data
+        return self.data_service.generate_realistic_data(resolved_schema, strategy="realistic")
     
     def _resolve_schema_ref(self, schema: Dict[str, Any], api_spec: Dict[str, Any]) -> Dict[str, Any]:
         """Resolve $ref references in schemas."""
@@ -602,7 +610,8 @@ class FunctionalPositiveAgent(BaseAgent):
             query_params=test_params,
             body=None,
             expected_status=expected_status,
-            assertions=assertions
+            assertions=assertions,
+            test_subtype="minimal_valid"
         )
 
     async def _create_parameter_combination_test(
@@ -681,7 +690,8 @@ class FunctionalPositiveAgent(BaseAgent):
             query_params=query_params,
             body=body,
             expected_status=expected_status,
-            assertions=assertions
+            assertions=assertions,
+            test_subtype="minimal_valid"
         )
 
     def _generate_minimal_request_body(

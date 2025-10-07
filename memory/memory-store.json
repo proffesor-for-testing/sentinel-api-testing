@@ -1,0 +1,10 @@
+{
+  "default": [
+    {
+      "key": "swarm/testing/results",
+      "value": "{\n  \"test_date\": \"2025-10-03\",\n  \"tester\": \"QA Testing Agent\",\n  \"overall_status\": \"CONDITIONAL_PASS\",\n  \"summary\": {\n    \"total_tests\": 80,\n    \"passed\": 57,\n    \"failed\": 23,\n    \"pass_rate\": \"71%\"\n  },\n  \"critical_issues\": [\n    \"Data structure mismatch in body parsing (HIGH)\",\n    \"Missing endpoint field in test case conversion (HIGH)\",\n    \"Module import issues in integration tests (HIGH)\",\n    \"Error handling returns success instead of failed (MEDIUM)\",\n    \"LLM timeout in security tests (MEDIUM)\"\n  ],\n  \"report_location\": \"/workspaces/api-testing-agents/docs/CONSOLIDATION_TEST_REPORT.md\"\n}",
+      "namespace": "default",
+      "timestamp": 1759512397345
+    }
+  ]
+}

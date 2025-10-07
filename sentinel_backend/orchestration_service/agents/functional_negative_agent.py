@@ -59,14 +59,15 @@ class FunctionalNegativeAgent(BaseAgent):
                 endpoint_tests = await self._generate_endpoint_negative_tests(endpoint, api_spec)
                 test_cases.extend(endpoint_tests)
             
-            # If LLM is enabled, generate additional creative negative tests
-            if self.llm_enabled and test_cases:
+            # If LLM is enabled (either via config or task parameter), generate additional creative negative tests
+            use_llm = task.enable_llm and self.llm_enabled  # Both must be true: user wants it AND it's available
+            if use_llm and test_cases:
                 self.logger.info("Generating LLM-enhanced negative test cases")
                 llm_tests = await self._generate_llm_negative_tests(endpoints[:3], api_spec)  # Limit to 3 endpoints for cost
                 test_cases.extend(llm_tests)
-            
+
             self.logger.info(f"Generated {len(test_cases)} negative test cases")
-            
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,
@@ -83,7 +84,7 @@ class FunctionalNegativeAgent(BaseAgent):
                         "malformed_requests",
                         "constraint_violations"
                     ],
-                    "llm_enhanced": self.llm_enabled,
+                    "llm_enhanced": use_llm,
                     "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
                     "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
                 }
@@ -449,7 +450,9 @@ class FunctionalNegativeAgent(BaseAgent):
                     method=endpoint["method"],
                     description=f"Test {prop_name} below minimum in request body",
                     body=invalid_body,
-                    expected_status=400
+                    expected_status=400,
+                    test_subtype="constraint_violation",
+                    violation_type="constraint_violation"
                 )
                 test_cases.append(test_case)
             
@@ -462,7 +465,9 @@ class FunctionalNegativeAgent(BaseAgent):
                     method=endpoint["method"],
                     description=f"Test {prop_name} above maximum in request body",
                     body=invalid_body,
-                    expected_status=400
+                    expected_status=400,
+                    test_subtype="constraint_violation",
+                    violation_type="constraint_violation"
                 )
                 test_cases.append(test_case)
         
@@ -477,7 +482,9 @@ class FunctionalNegativeAgent(BaseAgent):
                     method=endpoint["method"],
                     description=f"Test {prop_name} below minimum length in request body",
                     body=invalid_body,
-                    expected_status=400
+                    expected_status=400,
+                    test_subtype="constraint_violation",
+                    violation_type="constraint_violation"
                 )
                 test_cases.append(test_case)
             
@@ -490,7 +497,9 @@ class FunctionalNegativeAgent(BaseAgent):
                     method=endpoint["method"],
                     description=f"Test {prop_name} above maximum length in request body",
                     body=invalid_body,
-                    expected_status=400
+                    expected_status=400,
+                    test_subtype="constraint_violation",
+                    violation_type="constraint_violation"
                 )
                 test_cases.append(test_case)
         
@@ -919,7 +928,9 @@ class FunctionalNegativeAgent(BaseAgent):
             description=f"Test missing required parameter: {missing_param['name']}",
             headers=headers,
             query_params=query_params,
-            expected_status=400
+            expected_status=400,
+            test_subtype="missing_required",
+            violation_type="required_field"
         )
     
     def _generate_missing_body_field_tests(
@@ -951,7 +962,9 @@ class FunctionalNegativeAgent(BaseAgent):
                         method=endpoint["method"],
                         description=f"Test missing required field: {required_field}",
                         body=invalid_body,
-                        expected_status=400
+                        expected_status=400,
+                        test_subtype="missing_required",
+                        violation_type="required_field"
                     )
                     test_cases.append(test_case)
         
@@ -1720,7 +1733,9 @@ class FunctionalNegativeAgent(BaseAgent):
                         method=endpoint["method"],
                         description=f"Test missing required field: {required_field}",
                         body=invalid_body,
-                        expected_status=400
+                        expected_status=400,
+                        test_subtype="missing_required",
+                        violation_type="required_field"
                     )
                     test_cases.append(test_case)
 
@@ -3190,22 +3205,28 @@ class FunctionalNegativeAgent(BaseAgent):
         headers: Optional[Dict[str, str]] = None,
         query_params: Optional[Dict[str, Any]] = None,
         body: Optional[Any] = None,
-        expected_status: int = 400
+        expected_status: int = 400,
+        test_subtype: str = "invalid_type",
+        violation_type: str = "type_violation"
     ) -> Dict[str, Any]:
         """Create a standardized test case with configuration-based settings."""
         app_settings = get_application_settings()
         test_timeout = getattr(app_settings, 'test_execution_timeout', 600)
-        
+
         return {
             'test_name': description,
             'test_type': 'functional-negative',
+            'test_subtype': test_subtype,
+            'violation_type': violation_type,
             'method': method.upper(),
             'path': endpoint,
+            'endpoint': endpoint,  # Alias for compatibility
             'headers': headers or {"Content-Type": "application/json", "Accept": "application/json"},
             'query_params': query_params or {},
             'body': body,
             'timeout': test_timeout,
             'expected_status_codes': [expected_status],
+            'expected_status': expected_status,  # Alias for compatibility
             'tags': ['functional', 'negative', f'{method.lower()}-method']
         }
     

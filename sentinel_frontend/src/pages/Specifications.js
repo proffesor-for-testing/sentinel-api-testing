@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  FileText, 
-  Upload, 
-  Plus, 
-  RefreshCw, 
-  Eye, 
+import {
+  FileText,
+  Upload,
+  Plus,
+  RefreshCw,
+  Eye,
   Play,
   AlertTriangle,
   CheckCircle,
   Calendar,
   Code,
-  Trash2
+  Trash2,
+  Sparkles
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import NotificationModal from '../components/NotificationModal';
@@ -36,6 +37,7 @@ const Specifications = () => {
   const [generating, setGenerating] = useState(false);
   const [generationResult, setGenerationResult] = useState(null);
   const [generationProgress, setGenerationProgress] = useState('');
+  const [enableLLM, setEnableLLM] = useState(false);
   
   // View specification modal state
   const [showViewModal, setShowViewModal] = useState(false);
@@ -110,27 +112,29 @@ const Specifications = () => {
     }
   };
 
-  const runQuickTest = async (specId) => {
+  const runQuickTest = async (specId, useLLM = false) => {
     try {
       // Quick test generates tests with default agents
       const requestData = {
         spec_id: specId,
-        agent_types: ['Functional-Positive-Agent', 'Functional-Negative-Agent']
+        agent_types: ['Functional-Positive-Agent', 'Functional-Negative-Agent'],
+        enable_llm: useLLM
       };
-      
+
       const result = await apiService.generateTests(requestData);
-      
+
       // Show success message with agent breakdown
       const agentBreakdown = result?.agent_results?.filter(agent => agent.test_cases_generated > 0)
         .map(agent => `${agent.agent_type.replace('-Agent', '')}: ${agent.test_cases_generated}`)
         .join(', ') || '';
-      
-      const successMessage = agentBreakdown 
-        ? `Quick test completed! Generated ${result.total_test_cases || 0} test cases (${agentBreakdown})`
-        : `Quick test completed! Generated ${result.total_test_cases || 0} test cases with Positive and Negative agents.`;
-      
+
+      const llmSuffix = useLLM ? ' with LLM enhancement' : '';
+      const successMessage = agentBreakdown
+        ? `Quick test completed${llmSuffix}! Generated ${result.total_test_cases || 0} test cases (${agentBreakdown})`
+        : `Quick test completed${llmSuffix}! Generated ${result.total_test_cases || 0} test cases with Positive and Negative agents.`;
+
       showSuccess(successMessage);
-      
+
       // Reload specifications to show updated test count if available
       await loadSpecifications();
     } catch (err) {
@@ -156,7 +160,7 @@ const Specifications = () => {
     });
   };
 
-  const handleGenerateTests = async () => {
+  const handleGenerateTests = async (useLLM = false) => {
     if (!selectedSpecForGeneration || selectedAgents.length === 0) {
       showWarning('Please select at least one agent type');
       return;
@@ -166,7 +170,8 @@ const Specifications = () => {
       setGenerating(true);
       const requestData = {
         spec_id: selectedSpecForGeneration.id,
-        agent_types: selectedAgents
+        agent_types: selectedAgents,
+        enable_llm: useLLM
       };
       
       // Start async test generation
@@ -217,11 +222,12 @@ const Specifications = () => {
       const agentBreakdown = result?.agent_results?.filter(agent => agent.test_cases_generated > 0)
         .map(agent => `${agent.agent_type}: ${agent.test_cases_generated}`)
         .join(', ') || '';
-      
-      const successMessage = agentBreakdown 
-        ? `Successfully generated ${result?.total_test_cases || 0} test cases! (${agentBreakdown})`
-        : `Successfully generated ${result?.total_test_cases || 0} test cases!`;
-      
+
+      const llmSuffix = useLLM ? ' with LLM enhancement' : '';
+      const successMessage = agentBreakdown
+        ? `Successfully generated ${result?.total_test_cases || 0} test cases${llmSuffix}! (${agentBreakdown})`
+        : `Successfully generated ${result?.total_test_cases || 0} test cases${llmSuffix}!`;
+
       showSuccess(successMessage);
       
       // Close modal after short delay
@@ -359,13 +365,21 @@ const Specifications = () => {
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  <button 
-                    onClick={() => runQuickTest(spec.id)}
+                  <button
+                    onClick={() => runQuickTest(spec.id, false)}
                     className="btn btn-primary btn-sm"
                     title="Run quick test with positive and negative agents"
                   >
                     <Play className="h-4 w-4 mr-1" />
                     Quick Test
+                  </button>
+                  <button
+                    onClick={() => runQuickTest(spec.id, true)}
+                    className="btn btn-primary btn-sm"
+                    title="Run quick test with LLM-enhanced agents"
+                  >
+                    <Sparkles className="h-4 w-4 mr-1" />
+                    Quick Test with Agent+LLM
                   </button>
                 </div>
               </div>
@@ -810,9 +824,26 @@ const Specifications = () => {
               
               <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button
-                  onClick={handleGenerateTests}
+                  onClick={() => handleGenerateTests(true)}
                   disabled={generating || selectedAgents.length === 0}
                   className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {generating ? (
+                    <>
+                      <div className="spinner mr-2"></div>
+                      {generationProgress || 'Generating...'}
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate with Agent+LLM
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleGenerateTests(false)}
+                  disabled={generating || selectedAgents.length === 0}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-500 text-base font-medium text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-400 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {generating ? (
                     <>
