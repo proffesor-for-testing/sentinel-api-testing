@@ -5,6 +5,42 @@
       "value": "{\n  \"test_date\": \"2025-10-03\",\n  \"tester\": \"QA Testing Agent\",\n  \"overall_status\": \"CONDITIONAL_PASS\",\n  \"summary\": {\n    \"total_tests\": 80,\n    \"passed\": 57,\n    \"failed\": 23,\n    \"pass_rate\": \"71%\"\n  },\n  \"critical_issues\": [\n    \"Data structure mismatch in body parsing (HIGH)\",\n    \"Missing endpoint field in test case conversion (HIGH)\",\n    \"Module import issues in integration tests (HIGH)\",\n    \"Error handling returns success instead of failed (MEDIUM)\",\n    \"LLM timeout in security tests (MEDIUM)\"\n  ],\n  \"report_location\": \"/workspaces/api-testing-agents/docs/CONSOLIDATION_TEST_REPORT.md\"\n}",
       "namespace": "default",
       "timestamp": 1759512397345
+    },
+    {
+      "key": "aqe/visual-testing/recommendations",
+      "value": "{\"p0\":[\"Visual regression testing\",\"CI/CD integration\",\"Accessibility validation\"],\"p1\":[\"Flaky test detection\",\"Enhanced visual testing\",\"Edge browser\"],\"quick_wins\":[\"Add screenshots (2h)\",\"Accessibility check (1h)\",\"CI/CD (4h)\"],\"effort\":\"28 days\",\"budget\":\"$0-4188\"}",
+      "namespace": "default",
+      "timestamp": 1759839057970
+    },
+    {
+      "key": "aqe/coverage/summary",
+      "value": "Coverage:12.05%,Risk:HIGH,Uncovered:3095lines,Tests:169backend+1frontend+45e2e",
+      "namespace": "default",
+      "timestamp": 1759839986069
+    },
+    {
+      "key": "aqe/coverage/critical-gaps",
+      "value": "ExecutionService:0%,AuthRBAC:5%,Frontend:2%,RustAgents:5%,SecurityPaths:20%",
+      "namespace": "default",
+      "timestamp": 1759839988015
+    },
+    {
+      "key": "aqe/coverage/quick-wins",
+      "value": "1.TestExecutionService(8h,+12%,ROI:10.5x)|2.FrontendLogin(4h,+5%,ROI:9.2x)|3.RustAgentUnits(6h,+4%,ROI:5.2x)|TotalQuickWins:18h,+21%coverage",
+      "namespace": "default",
+      "timestamp": 1759839989886
+    },
+    {
+      "key": "aqe/coverage/implementation-plan",
+      "value": "Phase1:92h->80%coverage|Phase2:110h->90%coverage|Phase3:50h->95%coverage|TotalTimeline:8weeks,252hours",
+      "namespace": "default",
+      "timestamp": 1759839991738
+    },
+    {
+      "key": "aqe/coverage/analysis-complete",
+      "value": "ReportGenerated:/workspaces/api-testing-agents/docs/qe-coverage-analysis-plan.md|Date:2025-10-07|Agent:qe-coverage-analyzer|Status:COMPLETE",
+      "namespace": "default",
+      "timestamp": 1759839993320
     }
   ]
 }
