@@ -148,6 +148,6 @@
   "enabledMcpjsonServers": ["claude-flow", "ruv-swarm"],
   "statusLine": {
     "type": "command",
-    "command": ".claude/statusline-agentdb.sh"
+    "command": ".claude/statusline-command.sh"
   }
 }
