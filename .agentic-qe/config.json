@@ -1,9 +1,9 @@
 {
   "version": "1.1.0",
-  "initialized": "2025-10-22T13:37:52.981Z",
+  "initialized": "2025-10-27T10:15:23.859Z",
   "phase1": {
     "routing": {
-      "enabled": true,
+      "enabled": false,
       "defaultModel": "claude-sonnet-4.5",
       "costTracking": true,
       "fallback": true,

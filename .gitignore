@@ -189,6 +189,10 @@ sentinel_frontend/playwright-report/
 sentinel_frontend/test-results/
 
 
+
+# Removed Windows wrapper files per user request
+hive-mind-prompt-*.txt
+
 # Claude Flow generated files
 .claude/settings.local.json
 .mcp.json
@@ -215,3 +219,4 @@ coordination/orchestration/*
 claude-flow
 # Removed Windows wrapper files per user request
 hive-mind-prompt-*.txt
+memory/

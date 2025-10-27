@@ -10,6 +10,6 @@ echo "[AQE] Pre-execution coordination: Fleet topology=hierarchical, Max agents=
 
 # Store fleet config in coordination memory (via file-based state)
 mkdir -p .agentic-qe/state/coordination
-echo '{"agents":[],"topology":"hierarchical","maxAgents":10,"testingFocus":["unit","integration"],"environments":["development"],"frameworks":["jest"],"routing":{"enabled":true,"defaultModel":"claude-sonnet-4.5","enableCostTracking":true,"enableFallback":true,"maxRetries":3,"costThreshold":0.5},"streaming":{"enabled":true,"progressInterval":2000,"bufferEvents":false,"timeout":1800000},"project":{"name":"api-testing-agents","path":"/workspaces/api-testing-agents","language":"python"}}' > .agentic-qe/state/coordination/fleet-config.json
+echo '{"agents":[],"topology":"hierarchical","maxAgents":10,"testingFocus":["unit","integration"],"environments":["development"],"frameworks":["jest"],"routing":{"enabled":false,"defaultModel":"claude-sonnet-4.5","enableCostTracking":true,"enableFallback":true,"maxRetries":3,"costThreshold":0.5},"streaming":{"enabled":true,"progressInterval":2000,"bufferEvents":false,"timeout":1800000},"project":{"name":"api-testing-agents","path":"/workspaces/api-testing-agents","language":"typescript"}}' > .agentic-qe/state/coordination/fleet-config.json
 
 echo "[AQE] Pre-execution coordination complete"

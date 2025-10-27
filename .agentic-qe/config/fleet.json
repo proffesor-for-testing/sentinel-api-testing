@@ -13,7 +13,7 @@
     "jest"
   ],
   "routing": {
-    "enabled": true,
+    "enabled": false,
     "defaultModel": "claude-sonnet-4.5",
     "enableCostTracking": true,
     "enableFallback": true,
@@ -29,6 +29,6 @@
   "project": {
     "name": "api-testing-agents",
     "path": "/workspaces/api-testing-agents",
-    "language": "python"
+    "language": "typescript"
   }
 }
