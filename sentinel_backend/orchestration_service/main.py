@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 import os
@@ -24,13 +25,17 @@ from sentinel_backend.orchestration_service.agents.functional_agent import Funct
 from sentinel_backend.orchestration_service.agents.security_agent import SecurityAgent
 from sentinel_backend.orchestration_service.broker import publish_task
 from sentinel_backend.orchestration_service.agent_performance_tracker import (
-    get_performance_tracker, 
+    get_performance_tracker,
     track_agent_execution,
     PerformanceMetric
 )
 
+# Import API routers
+from sentinel_backend.orchestration_service.api.feedback_endpoints import router as feedback_router
+from sentinel_backend.rl_service.api.rl_endpoints import router as rl_router
+
 # Import configuration
-from sentinel_backend.config.settings import get_settings, get_service_settings, get_application_settings
+from sentinel_backend.config.settings import get_settings, get_service_settings, get_application_settings, get_database_settings
 from sentinel_backend.config.logging_config import setup_logging
 
 # Set up structured logging
@@ -40,16 +45,63 @@ setup_logging()
 settings = get_settings()
 service_settings = get_service_settings()
 app_settings = get_application_settings()
+db_settings = get_database_settings()
 
 logger = structlog.get_logger(__name__)
 
 app = FastAPI(title="Sentinel Orchestration Service")
+
+# Add CORS middleware to allow frontend to communicate with backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://frontend:3000",
+        "http://127.0.0.1:3000"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Correlation-ID"],
+)
 
 # Instrument for Prometheus
 Instrumentator().instrument(app).expose(app)
 
 # Set up Jaeger tracing
 setup_tracing(app, "orchestration-service")
+
+# Create async database engine and session
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+
+engine = create_async_engine(
+    db_settings.url,
+    pool_size=db_settings.pool_size,
+    max_overflow=db_settings.max_overflow,
+    pool_timeout=db_settings.pool_timeout,
+    pool_recycle=db_settings.pool_recycle
+)
+AsyncSessionLocal = async_sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
+
+async def get_db() -> AsyncSession:
+    """Dependency for database sessions."""
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
+
+# Register API routers
+# The routers will use get_db via dependency injection
+# We need to override the placeholder dependency with the real one
+from sentinel_backend.orchestration_service.api import feedback_endpoints
+
+# Override the database dependency placeholder with the real implementation
+app.dependency_overrides[feedback_endpoints.get_db_dependency] = get_db
+
+app.include_router(feedback_router)
+app.include_router(rl_router)
 
 @app.middleware("http")
 async def correlation_id_middleware(request: Request, call_next):

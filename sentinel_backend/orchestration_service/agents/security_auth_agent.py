@@ -12,26 +12,29 @@ from urllib.parse import urlparse, parse_qs
 import re
 import random
 from .base_agent import BaseAgent, AgentTask, AgentResult
+from .base_learning_agent import BaseLearningAgent
 from sentinel_backend.config.settings import get_application_settings
 from sentinel_backend.orchestration_service.services.data_generation_service import DataGenerationService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Get configuration
 app_settings = get_application_settings()
 logger = logging.getLogger(__name__)
 
-class SecurityAuthAgent(BaseAgent):
+class SecurityAuthAgent(BaseAgent, BaseLearningAgent):
     """
     Agent specialized in testing authentication and authorization vulnerabilities.
-    
+
     Primary focus areas:
     - Broken Object Level Authorization (BOLA)
     - Broken Function Level Authorization
     - Incorrect role enforcement
     - Authentication bypass attempts
     """
-    
+
     def __init__(self):
-        super().__init__("security-auth")
+        BaseAgent.__init__(self, "security-auth")
+        BaseLearningAgent.__init__(self)
         self.agent_type = "Security-Auth-Agent"
         self.description = "Security agent focused on authentication and authorization vulnerabilities"
 
@@ -43,26 +46,65 @@ class SecurityAuthAgent(BaseAgent):
 
         # Initialize data generation service
         self.data_service = DataGenerationService()
-    
-    async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
+
+    async def execute(self, task: AgentTask, api_spec: Dict[str, Any], db_session: Optional[AsyncSession] = None) -> AgentResult:
         """
         Execute the Security Auth Agent to generate auth vulnerability test cases.
 
         Args:
             task: The agent task containing execution parameters
             api_spec: The parsed API specification
+            db_session: Optional database session for trajectory tracking
 
         Returns:
             AgentResult containing generated test cases
         """
+        # Start trajectory tracking
+        trajectory = None
+        if db_session:
+            try:
+                trajectory = await self.start_trajectory(
+                    task_type="security_auth_testing",
+                    task_description=f"Generate auth security tests for spec {task.spec_id}",
+                    context_data={
+                        "task_id": task.task_id,
+                        "spec_id": task.spec_id,
+                        "agent_type": self.agent_type,
+                        "parameters": task.parameters
+                    },
+                    db_session=db_session,
+                    tenant_id=None
+                )
+            except Exception as e:
+                logger.warning(f"Could not start trajectory tracking: {e}")
+
         try:
             logger.info(f"Security Auth Agent executing task {task.task_id}")
+
+            if trajectory:
+                await self.log_action("Analyzing API for authentication vulnerabilities")
 
             # Generate test cases (pass task for LLM flag)
             test_cases = await self.generate_test_cases(api_spec, task)
 
+            if trajectory:
+                await self.log_action(
+                    f"Generated {len(test_cases)} security auth test cases",
+                    action_metadata={"test_count": len(test_cases)}
+                )
+
             # Check if LLM was used
             use_llm = task.enable_llm and self.llm_enabled  # Both must be true: user wants it AND it's available
+
+            # Complete trajectory tracking
+            if trajectory:
+                await self.complete_trajectory(
+                    final_output={
+                        "test_case_count": len(test_cases),
+                        "llm_enhanced": use_llm
+                    },
+                    test_success_rate=1.0 if test_cases else 0.0
+                )
 
             return AgentResult(
                 task_id=task.task_id,
@@ -74,13 +116,19 @@ class SecurityAuthAgent(BaseAgent):
                     "focus_areas": ["BOLA", "Function-level auth", "Auth bypass"],
                     "llm_enhanced": use_llm,
                     "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
-                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
+                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none',
+                    "trajectory_id": self.get_current_trajectory_id()
                 },
                 error_message=None
             )
-            
+
         except Exception as e:
             logger.error(f"Error in Security Auth Agent: {str(e)}")
+
+            # Abort trajectory on error
+            if trajectory:
+                await self.abort_trajectory(str(e))
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,

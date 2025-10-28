@@ -23,7 +23,7 @@ The Sentinel platform currently has **critical security vulnerabilities** due to
   - **Impact:** Medium - Service abuse
 
 #### Location: `/workspaces/api-testing-agents/sentinel_backend/.env`
-- Same Anthropic API key duplicated
+- Same Anthropic API key duplicated (redacted)
 - **Risk:** Multiple exposure points
 
 ### 2. Database Credentials (CRITICAL)

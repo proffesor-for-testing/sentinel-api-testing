@@ -12,16 +12,18 @@ from typing import Dict, List, Any, Optional, Tuple
 import re
 import math
 from .base_agent import BaseAgent, AgentTask, AgentResult
+from .base_learning_agent import BaseLearningAgent
 from sentinel_backend.config.settings import get_application_settings
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Get configuration
 app_settings = get_application_settings()
 logger = logging.getLogger(__name__)
 
-class PerformancePlannerAgent(BaseAgent):
+class PerformancePlannerAgent(BaseAgent, BaseLearningAgent):
     """
     Agent specialized in generating performance test plans and configurations.
-    
+
     Primary focus areas:
     - Load testing scenario generation
     - Performance benchmarking strategies
@@ -29,9 +31,10 @@ class PerformancePlannerAgent(BaseAgent):
     - Capacity planning recommendations
     - Performance test script generation (k6/JMeter compatible)
     """
-    
+
     def __init__(self):
-        super().__init__("performance-planner")
+        BaseAgent.__init__(self, "performance-planner")
+        BaseLearningAgent.__init__(self)
         self.agent_type = "Performance-Planner-Agent"
         self.description = "Performance agent focused on generating comprehensive test plans and load scenarios"
         
@@ -41,26 +44,65 @@ class PerformancePlannerAgent(BaseAgent):
         self.test_duration = getattr(app_settings, 'performance_test_duration', 60)
         self.ramp_up_time = getattr(app_settings, 'performance_ramp_up_time', 30)
         self.think_time = getattr(app_settings, 'performance_think_time', 1)
-    
-    async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
+
+    async def execute(self, task: AgentTask, api_spec: Dict[str, Any], db_session: Optional[AsyncSession] = None) -> AgentResult:
         """
         Execute the Performance Planner Agent to generate performance test plans.
 
         Args:
             task: The agent task containing execution parameters
             api_spec: The parsed API specification
+            db_session: Optional database session for trajectory tracking
 
         Returns:
             AgentResult containing generated test cases
         """
+        # Start trajectory tracking
+        trajectory = None
+        if db_session:
+            try:
+                trajectory = await self.start_trajectory(
+                    task_type="performance_test_planning",
+                    task_description=f"Generate performance tests for spec {task.spec_id}",
+                    context_data={
+                        "task_id": task.task_id,
+                        "spec_id": task.spec_id,
+                        "agent_type": self.agent_type,
+                        "parameters": task.parameters
+                    },
+                    db_session=db_session,
+                    tenant_id=None
+                )
+            except Exception as e:
+                logger.warning(f"Could not start trajectory tracking: {e}")
+
         try:
             logger.info(f"Performance Planner Agent executing task {task.task_id}")
+
+            if trajectory:
+                await self.log_action("Analyzing API performance characteristics")
 
             # Generate test cases (pass task for LLM flag)
             test_cases = await self.generate_test_cases(api_spec, task)
 
+            if trajectory:
+                await self.log_action(
+                    f"Generated {len(test_cases)} performance test scenarios",
+                    action_metadata={"test_count": len(test_cases)}
+                )
+
             # Check if LLM was used
             use_llm = task.enable_llm and self.llm_enabled  # Both must be true: user wants it AND it's available
+
+            # Complete trajectory tracking
+            if trajectory:
+                await self.complete_trajectory(
+                    final_output={
+                        "test_case_count": len(test_cases),
+                        "llm_enhanced": use_llm
+                    },
+                    test_success_rate=1.0 if test_cases else 0.0
+                )
 
             return AgentResult(
                 task_id=task.task_id,
@@ -72,13 +114,19 @@ class PerformancePlannerAgent(BaseAgent):
                     "test_types": ["Load", "Stress", "Spike", "Soak", "Benchmark"],
                     "llm_enhanced": use_llm,
                     "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
-                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
+                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none',
+                    "trajectory_id": self.get_current_trajectory_id()
                 },
                 error_message=None
             )
-            
+
         except Exception as e:
             logger.error(f"Error in Performance Planner Agent: {str(e)}")
+
+            # Abort trajectory on error
+            if trajectory:
+                await self.abort_trajectory(str(e))
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,

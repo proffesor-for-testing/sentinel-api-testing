@@ -18,42 +18,74 @@ from urllib.parse import urlparse
 from copy import deepcopy
 
 from .base_agent import BaseAgent, AgentTask, AgentResult
+from .base_learning_agent import BaseLearningAgent
 from sentinel_backend.config.settings import get_application_settings
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-class FunctionalNegativeAgent(BaseAgent):
+class FunctionalNegativeAgent(BaseAgent, BaseLearningAgent):
     """
     Agent responsible for generating negative functional test cases.
-    
+
     This agent creates test cases that:
     - Use invalid data to trigger error responses
     - Test boundary conditions and edge cases
     - Validate proper error handling (4xx, 5xx responses)
     - Use both deterministic BVA and creative LLM-inspired techniques
     """
-    
+
     def __init__(self):
-        super().__init__("Functional-Negative-Agent")
-    
-    async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
+        BaseAgent.__init__(self, "Functional-Negative-Agent")
+        BaseLearningAgent.__init__(self)
+
+    async def execute(self, task: AgentTask, api_spec: Dict[str, Any], db_session: Optional[AsyncSession] = None) -> AgentResult:
         """
         Generate negative functional test cases for the given API specification.
-        
+
         Args:
             task: The agent task containing parameters and context
             api_spec: The parsed OpenAPI specification
-            
+            db_session: Optional database session for trajectory tracking
+
         Returns:
             AgentResult with generated negative test cases
         """
+        # Start trajectory tracking
+        trajectory = None
+        if db_session:
+            try:
+                trajectory = await self.start_trajectory(
+                    task_type="negative_test_generation",
+                    task_description=f"Generate negative tests for spec {task.spec_id}",
+                    context_data={
+                        "task_id": task.task_id,
+                        "spec_id": task.spec_id,
+                        "agent_type": self.agent_type,
+                        "parameters": task.parameters
+                    },
+                    db_session=db_session,
+                    tenant_id=None
+                )
+            except Exception as e:
+                self.logger.warning(f"Could not start trajectory tracking: {e}")
+
         try:
             self.logger.info(f"Starting negative test generation for spec_id: {task.spec_id}")
-            
+
+            if trajectory:
+                await self.log_action("Extracting endpoints from API specification")
+
             # Extract all endpoints from the specification
             endpoints = self._extract_endpoints(api_spec)
-            
+
             test_cases = []
-            
+
+            if trajectory:
+                await self.log_action(
+                    f"Generating negative test cases for {len(endpoints)} endpoints",
+                    action_metadata={"endpoint_count": len(endpoints)}
+                )
+
             # Generate test cases for each endpoint
             for endpoint in endpoints:
                 endpoint_tests = await self._generate_endpoint_negative_tests(endpoint, api_spec)
@@ -63,10 +95,25 @@ class FunctionalNegativeAgent(BaseAgent):
             use_llm = task.enable_llm and self.llm_enabled  # Both must be true: user wants it AND it's available
             if use_llm and test_cases:
                 self.logger.info("Generating LLM-enhanced negative test cases")
+
+                if trajectory:
+                    await self.log_action("Enhancing test cases with LLM creative variants")
+
                 llm_tests = await self._generate_llm_negative_tests(endpoints[:3], api_spec)  # Limit to 3 endpoints for cost
                 test_cases.extend(llm_tests)
 
             self.logger.info(f"Generated {len(test_cases)} negative test cases")
+
+            # Complete trajectory tracking
+            if trajectory:
+                await self.complete_trajectory(
+                    final_output={
+                        "test_case_count": len(test_cases),
+                        "endpoint_count": len(endpoints),
+                        "llm_enhanced": use_llm
+                    },
+                    test_success_rate=1.0 if test_cases else 0.0
+                )
 
             return AgentResult(
                 task_id=task.task_id,
@@ -86,12 +133,18 @@ class FunctionalNegativeAgent(BaseAgent):
                     ],
                     "llm_enhanced": use_llm,
                     "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
-                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
+                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none',
+                    "trajectory_id": self.get_current_trajectory_id()
                 }
             )
-            
+
         except Exception as e:
             self.logger.error(f"Error generating negative test cases: {str(e)}")
+
+            # Abort trajectory on error
+            if trajectory:
+                await self.abort_trajectory(str(e))
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,

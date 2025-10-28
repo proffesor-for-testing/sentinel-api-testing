@@ -11,11 +11,12 @@ import string
 from datetime import datetime, timedelta
 
 from .base_agent import BaseAgent, AgentTask, AgentResult
+from .base_learning_agent import BaseLearningAgent
 from sentinel_backend.config.settings import get_application_settings
 from sentinel_backend.orchestration_service.services.data_generation_service import DataGenerationService
 
 
-class FunctionalPositiveAgent(BaseAgent):
+class FunctionalPositiveAgent(BaseAgent, BaseLearningAgent):
     """
     Agent responsible for generating positive functional test cases.
     
@@ -27,28 +28,58 @@ class FunctionalPositiveAgent(BaseAgent):
     """
     
     def __init__(self):
-        super().__init__("Functional-Positive-Agent")
+        BaseAgent.__init__(self, "Functional-Positive-Agent")
+        BaseLearningAgent.__init__(self)
         self.data_service = DataGenerationService()
     
-    async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
+    async def execute(self, task: AgentTask, api_spec: Dict[str, Any], db_session=None) -> AgentResult:
         """
         Generate positive functional test cases for the given API specification.
-        
+
         Args:
             task: The agent task containing parameters and context
             api_spec: The parsed OpenAPI specification
-            
+            db_session: Optional database session for trajectory tracking
+
         Returns:
             AgentResult with generated test cases
         """
+        # Start trajectory tracking
+        trajectory = None
+        if db_session:
+            try:
+                trajectory = await self.start_trajectory(
+                    task_type="test_generation",
+                    task_description=f"Generate positive functional tests for spec {task.spec_id}",
+                    context_data={
+                        "task_id": task.task_id,
+                        "spec_id": task.spec_id,
+                        "agent_type": self.agent_type,
+                        "parameters": task.parameters
+                    },
+                    db_session=db_session,
+                    tenant_id=None
+                )
+            except Exception as e:
+                self.logger.warning(f"Could not start trajectory tracking: {e}")
+
         try:
             self.logger.info(f"Starting positive test generation for spec_id: {task.spec_id}")
-            
+
+            if trajectory:
+                await self.log_action("Extracting endpoints from API specification")
+
             # Extract all endpoints from the specification
             endpoints = self._extract_endpoints(api_spec)
             
             test_cases = []
-            
+
+            if trajectory:
+                await self.log_action(
+                    f"Generating test cases for {len(endpoints)} endpoints",
+                    action_metadata={"endpoint_count": len(endpoints)}
+                )
+
             # Generate test cases for each endpoint
             for endpoint in endpoints:
                 endpoint_tests = await self._generate_endpoint_tests(endpoint, api_spec)
@@ -58,6 +89,10 @@ class FunctionalPositiveAgent(BaseAgent):
             use_llm = task.enable_llm and self.llm_enabled  # Both must be true: user wants it AND it's available
             if use_llm and test_cases:
                 self.logger.info("Enhancing test cases with LLM-generated variants")
+
+                if trajectory:
+                    await self.log_action("Enhancing test cases with LLM variants")
+
                 enhanced_count = min(5, len(test_cases) // 3)  # Enhance up to 1/3 of tests, max 5
                 for i in range(enhanced_count):
                     original_test = test_cases[i]
@@ -65,8 +100,19 @@ class FunctionalPositiveAgent(BaseAgent):
                     if variant:
                         variant["description"] = f"[LLM Enhanced] {variant.get('description', 'Creative variant')}"
                         test_cases.append(variant)
-            
+
             self.logger.info(f"Generated {len(test_cases)} positive test cases")
+
+            # Complete trajectory tracking
+            if trajectory:
+                await self.complete_trajectory(
+                    final_output={
+                        "test_case_count": len(test_cases),
+                        "endpoint_count": len(endpoints),
+                        "llm_enhanced": use_llm
+                    },
+                    test_success_rate=1.0 if test_cases else 0.0
+                )
             
             return AgentResult(
                 task_id=task.task_id,
@@ -79,12 +125,18 @@ class FunctionalPositiveAgent(BaseAgent):
                     "generation_strategy": "schema_based_with_realistic_data",
                     "llm_enhanced": use_llm,
                     "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
-                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
+                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none',
+                    "trajectory_id": self.get_current_trajectory_id()
                 }
             )
             
         except Exception as e:
             self.logger.error(f"Error generating positive test cases: {str(e)}")
+
+            # Abort trajectory on error
+            if trajectory:
+                await self.abort_trajectory(str(e))
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,
