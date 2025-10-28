@@ -568,7 +568,10 @@ class TestFunctionalPositiveAgent:
     def test_server_url_handling(self, agent, api_spec):
         """Test handling of server URLs from specification"""
         servers = agent._extract_server_urls(api_spec)
-        
+
         assert len(servers) == 2
+        # lgtm[py/incomplete-url-substring-sanitization]
+        # CodeQL false positive: This is test assertion checking exact URL match in list, not URL sanitization
         assert "https://api.example.com" in servers
+        # lgtm[py/incomplete-url-substring-sanitization]
         assert "https://staging.example.com" in servers

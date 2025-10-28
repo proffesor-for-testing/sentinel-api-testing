@@ -106,7 +106,9 @@ class TestSecuritySettings:
             'SENTINEL_SECURITY_CORS_MAX_AGE': '3600'
         }):
             settings = get_security_settings()
-            
+
+            # lgtm[py/incomplete-url-substring-sanitization]
+            # CodeQL false positive: Test assertion checking CORS origin configuration, not URL sanitization
             assert "http://localhost:3000" in settings.cors_origins
             assert "https://app.example.com" in settings.cors_origins
             assert settings.cors_allow_credentials is True

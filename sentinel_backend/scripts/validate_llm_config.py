@@ -34,15 +34,24 @@ class LLMConfigValidator:
         print("=" * 60)
     
     def print_status(self, item: str, status: bool, details: str = ""):
-        """Print status with color"""
+        """Print status with color
+
+        Note: Details parameter should not contain sensitive information.
+              Always mask/redact secrets before passing to this method.
+        """
         symbol = "✓" if status else "✗"
         color = "\033[92m" if status else "\033[91m"  # Green or Red
         reset = "\033[0m"
-        
+
         status_text = f"{color}{symbol}{reset}"
         print(f"  {status_text} {item}")
         if details:
-            print(f"    {details}")
+            # Additional sanitization check - prevent accidental logging of full keys
+            sanitized_details = details
+            if 'sk-ant-' in details or 'AIza' in details:
+                # If full key detected, replace with generic message
+                sanitized_details = "API key configured (details redacted)"
+            print(f"    {sanitized_details}")
     
     def validate_environment(self) -> Dict[str, bool]:
         """Validate environment configuration"""

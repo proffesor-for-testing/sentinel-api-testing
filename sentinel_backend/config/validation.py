@@ -484,33 +484,64 @@ class ConfigurationReporter:
         
         print("=" * 60)
 
+def _sanitize_log_message(message: str) -> str:
+    """
+    Sanitize log messages to prevent logging sensitive information.
+    Redacts sensitive keywords while keeping the message informative.
+    """
+    sensitive_patterns = [
+        ('jwt_secret_key', 'jwt_***'),
+        ('secret key', 'secret ***'),
+        ('admin password', 'admin credentials'),
+        ('password', 'credentials'),
+        ('api key', 'api ***'),
+        ('default admin', 'admin user'),
+    ]
+
+    sanitized = message.lower()
+    for pattern, replacement in sensitive_patterns:
+        if pattern in sanitized:
+            # Return a generic security message
+            return "Security configuration validation issue detected (check details in validation report)"
+
+    return message
+
 def validate_startup_configuration() -> bool:
     """
     Validate configuration at application startup.
-    
+
     Returns:
         bool: True if configuration is valid, False otherwise
+
+    Note: Error/warning messages are sanitized before logging to prevent
+          exposing sensitive configuration details in logs.
     """
     validator = ConfigurationValidator()
     is_valid, errors, warnings = validator.validate_all()
-    
+
     if not is_valid:
         logger.error("Configuration validation failed!")
         for error in errors:
-            logger.error(f"  ❌ {error}")
-        
+            # Sanitize sensitive information before logging
+            sanitized_error = _sanitize_log_message(error)
+            logger.error(f"  ❌ {sanitized_error}")
+
         if warnings:
             logger.warning("Configuration warnings:")
             for warning in warnings:
-                logger.warning(f"  ⚠️  {warning}")
-        
+                # Sanitize sensitive information before logging
+                sanitized_warning = _sanitize_log_message(warning)
+                logger.warning(f"  ⚠️  {sanitized_warning}")
+
         return False
-    
+
     if warnings:
         logger.warning("Configuration loaded with warnings:")
         for warning in warnings:
-            logger.warning(f"  ⚠️  {warning}")
-    
+            # Sanitize sensitive information before logging
+            sanitized_warning = _sanitize_log_message(warning)
+            logger.warning(f"  ⚠️  {sanitized_warning}")
+
     logger.info("✅ Configuration validation passed")
     return True
 
