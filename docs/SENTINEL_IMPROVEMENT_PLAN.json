@@ -1,0 +1,993 @@
+{
+  "plan_metadata": {
+    "version": "1.0.0",
+    "generated_date": "2025-10-27",
+    "prepared_by": "Claude Code GOAP Specialist",
+    "platform": "Sentinel API Testing Platform",
+    "current_status": "72% Complete - Production Ready Core",
+    "target_status": "100% Complete - Autonomous Self-Improving Platform"
+  },
+
+  "executive_summary": {
+    "strategic_vision": "Transform Sentinel into an autonomous, self-improving API testing platform that learns from every execution, optimizes continuously, and provides cryptographic guarantees",
+    "expected_outcomes": {
+      "test_quality_6mo": "+40%",
+      "test_quality_12mo": "+80%",
+      "cost_efficiency_6mo": "-70%",
+      "cost_efficiency_12mo": "-85%",
+      "development_velocity_6mo": "2x",
+      "development_velocity_12mo": "4x",
+      "platform_completeness_6mo": "95%",
+      "platform_completeness_12mo": "100%",
+      "self_improvement_6mo": "30%",
+      "self_improvement_12mo": "60%"
+    },
+    "investment_summary": {
+      "phase_1_duration_weeks": "2-3",
+      "phase_1_effort_hours": "120-180",
+      "phase_1_roi": "Immediate cost savings (30-50%)",
+      "phase_2_duration_weeks": "4-6",
+      "phase_2_effort_hours": "240-360",
+      "phase_2_roi": "Self-improvement operational",
+      "phase_3_duration_weeks": "4-6",
+      "phase_3_effort_hours": "240-360",
+      "phase_3_roi": "96x-352x performance gains",
+      "phase_4_duration_weeks": "6-8",
+      "phase_4_effort_hours": "360-480",
+      "phase_4_roi": "Full autonomous testing",
+      "total_duration_weeks": "16-23",
+      "total_effort_hours": "960-1380",
+      "total_roi": "3-5x platform value increase"
+    }
+  },
+
+  "phases": [
+    {
+      "phase_number": 1,
+      "phase_name": "Quick Wins & Critical Fixes",
+      "duration_weeks": "2-3",
+      "effort_hours": "120-180",
+      "objectives": [
+        "Complete production-critical gaps",
+        "Integrate high-ROI features",
+        "Achieve immediate cost savings",
+        "Establish foundation for learning infrastructure"
+      ],
+      "milestones": [
+        {
+          "milestone_id": "1.1",
+          "name": "Production Deployment Readiness",
+          "priority": "Critical",
+          "effort_hours": "40-50",
+          "swarm_composition": {
+            "agents": [
+              {"type": "architect", "role": "frontend containerization lead", "count": 1},
+              {"type": "devops-engineer", "role": "Docker + deployment", "count": 2},
+              {"type": "security-engineer", "role": "secrets management", "count": 1},
+              {"type": "reviewer", "role": "validation", "count": 1}
+            ],
+            "total_agents": 5,
+            "topology": "hierarchical"
+          },
+          "tasks": [
+            {
+              "task_id": "1.1.1",
+              "description": "Frontend Dockerfile + nginx configuration",
+              "estimated_hours": 4,
+              "agent_assignment": "architect",
+              "dependencies": [],
+              "deliverables": ["Dockerfile.frontend", "nginx.conf", "docker-compose updates"]
+            },
+            {
+              "task_id": "1.1.2",
+              "description": "Production secrets management (AWS Secrets Manager/Vault)",
+              "estimated_hours": 8,
+              "agent_assignment": "security-engineer",
+              "dependencies": [],
+              "deliverables": ["secrets manager integration", "environment config updates", "migration guide"]
+            },
+            {
+              "task_id": "1.1.3",
+              "description": "Database initialization validation across environments",
+              "estimated_hours": 4,
+              "agent_assignment": "devops-engineer",
+              "dependencies": [],
+              "deliverables": ["init validation tests", "environment-specific configs"]
+            },
+            {
+              "task_id": "1.1.4",
+              "description": "HTTPS/SSL configuration",
+              "estimated_hours": 6,
+              "agent_assignment": "devops-engineer",
+              "dependencies": ["1.1.2"],
+              "deliverables": ["SSL certificates", "nginx HTTPS config", "auto-renewal setup"]
+            },
+            {
+              "task_id": "1.1.5",
+              "description": "Rate limiting implementation",
+              "estimated_hours": 8,
+              "agent_assignment": "backend-dev",
+              "dependencies": [],
+              "deliverables": ["rate limiting middleware", "configuration", "tests"]
+            },
+            {
+              "task_id": "1.1.6",
+              "description": "CI/CD pipeline integration",
+              "estimated_hours": 10,
+              "agent_assignment": "devops-engineer",
+              "dependencies": ["1.1.1", "1.1.4"],
+              "deliverables": ["GitHub Actions workflow", "automated tests", "deployment scripts"]
+            }
+          ],
+          "success_criteria": [
+            "Frontend containerized and deployable",
+            "Secrets managed via external service",
+            "All environments initialize correctly",
+            "HTTPS enforced in production",
+            "Rate limiting active (1000 req/min default)",
+            "CI/CD tests passing"
+          ],
+          "expected_benefits": [
+            "Deployment consistency",
+            "Production-ready security",
+            "Automated deployment pipeline"
+          ]
+        },
+        {
+          "milestone_id": "1.2",
+          "name": "AgentDB Vector Search Integration",
+          "priority": "High",
+          "effort_hours": "30-40",
+          "swarm_composition": {
+            "agents": [
+              {"type": "memory-architect", "role": "AgentDB integration", "count": 1},
+              {"type": "backend-dev", "role": "API integration", "count": 1},
+              {"type": "tester", "role": "vector search validation", "count": 2},
+              {"type": "performance-engineer", "role": "benchmarking", "count": 1}
+            ],
+            "total_agents": 5,
+            "topology": "hierarchical"
+          },
+          "tasks": [
+            {
+              "task_id": "1.2.1",
+              "description": "Install agentdb@1.6.0 as dependency",
+              "estimated_hours": 1,
+              "agent_assignment": "backend-dev",
+              "dependencies": [],
+              "deliverables": ["package.json update", "installation verification"]
+            },
+            {
+              "task_id": "1.2.2",
+              "description": "Create vector embedding service (OpenAI/Voyage)",
+              "estimated_hours": 4,
+              "agent_assignment": "memory-architect",
+              "dependencies": ["1.2.1"],
+              "deliverables": ["embedding_service.py", "API configuration", "tests"]
+            },
+            {
+              "task_id": "1.2.3",
+              "description": "Migrate test patterns to AgentDB vectors",
+              "estimated_hours": 8,
+              "agent_assignment": "backend-dev",
+              "dependencies": ["1.2.2"],
+              "deliverables": ["migration script", "100+ patterns with embeddings", "validation"]
+            },
+            {
+              "task_id": "1.2.4",
+              "description": "Implement semantic test search API",
+              "estimated_hours": 8,
+              "agent_assignment": "backend-dev",
+              "dependencies": ["1.2.3"],
+              "deliverables": ["vector_search_service.py", "API endpoints", "tests"]
+            },
+            {
+              "task_id": "1.2.5",
+              "description": "Build test pattern similarity matching",
+              "estimated_hours": 6,
+              "agent_assignment": "memory-architect",
+              "dependencies": ["1.2.4"],
+              "deliverables": ["similarity matching algorithm", "duplicate detection", "tests"]
+            },
+            {
+              "task_id": "1.2.6",
+              "description": "Performance benchmarking vs current system",
+              "estimated_hours": 3,
+              "agent_assignment": "performance-engineer",
+              "dependencies": ["1.2.4", "1.2.5"],
+              "deliverables": ["benchmark results", "performance report", "validation of 96x improvement"]
+            }
+          ],
+          "success_criteria": [
+            "AgentDB installed and operational",
+            "100+ test patterns migrated with embeddings",
+            "Semantic search <10ms p99 latency",
+            "96x-116x performance improvement validated",
+            "API integrated with orchestration service",
+            "Tests passing (90%+ coverage)"
+          ],
+          "expected_benefits": [
+            "116x faster test pattern retrieval",
+            "Semantic understanding vs keyword matching",
+            "Duplicate test detection via similarity",
+            "Pattern reuse across similar APIs"
+          ]
+        },
+        {
+          "milestone_id": "1.3",
+          "name": "Context Engineering & Cost Optimization",
+          "priority": "Critical",
+          "effort_hours": "20-30",
+          "swarm_composition": {
+            "agents": [
+              {"type": "cost-optimization-specialist", "role": "context engineering", "count": 1},
+              {"type": "llm-integration-engineer", "role": "LLM optimization", "count": 1},
+              {"type": "memory-architect", "role": "memory coordination", "count": 1},
+              {"type": "data-analyst", "role": "metrics tracking", "count": 1}
+            ],
+            "total_agents": 4,
+            "topology": "hierarchical"
+          },
+          "tasks": [
+            {
+              "task_id": "1.3.1",
+              "description": "Implement artifact-first workflow",
+              "estimated_hours": 6,
+              "agent_assignment": "memory-architect",
+              "dependencies": [],
+              "deliverables": ["artifact storage", "manifest generation", "reference system"]
+            },
+            {
+              "task_id": "1.3.2",
+              "description": "Build context bundle optimization (top-5 relevance)",
+              "estimated_hours": 8,
+              "agent_assignment": "cost-optimization-specialist",
+              "dependencies": ["1.3.1"],
+              "deliverables": ["relevance scoring", "bundle creation", "size optimization"]
+            },
+            {
+              "task_id": "1.3.3",
+              "description": "Create pre-tool-use hooks for context injection",
+              "estimated_hours": 4,
+              "agent_assignment": "llm-integration-engineer",
+              "dependencies": ["1.3.2"],
+              "deliverables": ["preToolUse hook", "context injection", "tests"]
+            },
+            {
+              "task_id": "1.3.4",
+              "description": "Implement namespace-based context filtering",
+              "estimated_hours": 4,
+              "agent_assignment": "memory-architect",
+              "dependencies": ["1.3.3"],
+              "deliverables": ["namespace filtering", "context boundaries", "tests"]
+            },
+            {
+              "task_id": "1.3.5",
+              "description": "Add token usage tracking and cost monitoring",
+              "estimated_hours": 4,
+              "agent_assignment": "data-analyst",
+              "dependencies": [],
+              "deliverables": ["token tracker", "cost dashboard", "metrics"]
+            },
+            {
+              "task_id": "1.3.6",
+              "description": "A/B test against baseline",
+              "estimated_hours": 4,
+              "agent_assignment": "data-analyst",
+              "dependencies": ["1.3.2", "1.3.3", "1.3.5"],
+              "deliverables": ["A/B test results", "quality validation", "cost comparison"]
+            }
+          ],
+          "success_criteria": [
+            "Context bundles ≤5KB average",
+            "30%+ token reduction achieved",
+            "Cost per test suite reduced by 30-50%",
+            "Hooks operational in orchestration service",
+            "Metrics tracked in performance_metrics table",
+            "A/B tests show quality maintained"
+          ],
+          "expected_benefits": [
+            "30-50% immediate cost reduction",
+            "Faster agent response (smaller context)",
+            "Better focus (relevant context only)",
+            "Token optimization without quality loss"
+          ]
+        },
+        {
+          "milestone_id": "1.4",
+          "name": "AQE Fleet Integration (Phase 1: Core Agents)",
+          "priority": "High",
+          "effort_hours": "30-40",
+          "swarm_composition": {
+            "agents": [
+              {"type": "qe-fleet-commander", "role": "coordination", "count": 1},
+              {"type": "agent-specialist", "role": "implementation", "count": 3},
+              {"type": "integration-tester", "role": "testing", "count": 2},
+              {"type": "documentation-writer", "role": "documentation", "count": 1}
+            ],
+            "total_agents": 7,
+            "topology": "hierarchical"
+          },
+          "tasks": [
+            {
+              "task_id": "1.4.1",
+              "description": "Configure AQE memory namespace (aqe/*)",
+              "estimated_hours": 2,
+              "agent_assignment": "qe-fleet-commander",
+              "dependencies": [],
+              "deliverables": ["namespace structure", "memory configuration", "documentation"]
+            },
+            {
+              "task_id": "1.4.2",
+              "description": "Integrate 5 core testing agents",
+              "estimated_hours": 18,
+              "agent_assignment": "agent-specialist",
+              "dependencies": ["1.4.1"],
+              "deliverables": ["qe-test-generator", "qe-test-executor", "qe-coverage-analyzer", "qe-quality-gate", "qe-quality-analyzer"]
+            },
+            {
+              "task_id": "1.4.3",
+              "description": "Connect agents to memory system",
+              "estimated_hours": 6,
+              "agent_assignment": "agent-specialist",
+              "dependencies": ["1.4.2"],
+              "deliverables": ["memory integration", "aqe/* namespace usage", "coordination"]
+            },
+            {
+              "task_id": "1.4.4",
+              "description": "Implement native AQE hooks (100-500x faster)",
+              "estimated_hours": 8,
+              "agent_assignment": "agent-specialist",
+              "dependencies": ["1.4.3"],
+              "deliverables": ["native hooks", "<1ms latency", "tests"]
+            },
+            {
+              "task_id": "1.4.5",
+              "description": "Create coordination protocol for 5 agents",
+              "estimated_hours": 6,
+              "agent_assignment": "qe-fleet-commander",
+              "dependencies": ["1.4.4"],
+              "deliverables": ["coordination protocol", "handoff procedures", "tests"]
+            },
+            {
+              "task_id": "1.4.6",
+              "description": "End-to-end testing with orchestration service",
+              "estimated_hours": 6,
+              "agent_assignment": "integration-tester",
+              "dependencies": ["1.4.5"],
+              "deliverables": ["integration tests", "end-to-end validation", "test reports"]
+            },
+            {
+              "task_id": "1.4.7",
+              "description": "Documentation and integration guide",
+              "estimated_hours": 4,
+              "agent_assignment": "documentation-writer",
+              "dependencies": ["1.4.6"],
+              "deliverables": ["integration guide", "API documentation", "examples"]
+            }
+          ],
+          "success_criteria": [
+            "5 core AQE agents operational",
+            "Native hooks implemented (<1ms latency)",
+            "Memory coordination via aqe/* namespace",
+            "Integration tests passing (95%+)",
+            "Agents generate/execute/analyze tests end-to-end",
+            "Documentation complete"
+          ],
+          "expected_benefits": [
+            "Comprehensive QE capabilities operational",
+            "100-500x faster hooks vs external",
+            "5 specialized agents working in concert",
+            "Foundation for full fleet (19 agents)"
+          ]
+        }
+      ],
+      "phase_kpis": {
+        "frontend_deployment_time_baseline": "Manual (30+ min)",
+        "frontend_deployment_time_target": "Automated (<5 min)",
+        "vector_search_latency_target": "<10ms p99",
+        "token_cost_reduction_target": "-30%",
+        "aqe_agents_operational_target": 5,
+        "production_readiness_baseline": "72%",
+        "production_readiness_target": "85%"
+      }
+    },
+    {
+      "phase_number": 2,
+      "phase_name": "Learning Infrastructure",
+      "duration_weeks": "4-6",
+      "effort_hours": "240-360",
+      "objectives": [
+        "Implement self-improving test generation",
+        "Integrate 9 RL algorithms",
+        "Build ReasoningBank core system",
+        "Implement consolidation engine",
+        "Complete AQE fleet integration (19 agents)"
+      ],
+      "milestones": [
+        {
+          "milestone_id": "2.1",
+          "name": "ReasoningBank Core System",
+          "priority": "Very High",
+          "effort_hours": "60-80",
+          "swarm_composition": {
+            "agents": [
+              {"type": "learning-system-architect", "role": "architecture design", "count": 1},
+              {"type": "backend-dev", "role": "storage + retrieval", "count": 2},
+              {"type": "ml-engineer", "role": "embeddings + scoring", "count": 1},
+              {"type": "llm-integration-specialist", "role": "judge implementation", "count": 1},
+              {"type": "tester", "role": "pattern learning validation", "count": 2}
+            ],
+            "total_agents": 7,
+            "topology": "hierarchical"
+          },
+          "tasks": [
+            {
+              "task_id": "2.1.1",
+              "description": "Create 4 new ReasoningBank tables",
+              "estimated_hours": 4,
+              "agent_assignment": "backend-dev",
+              "dependencies": [],
+              "deliverables": ["pattern_embeddings", "pattern_links", "task_trajectories", "matts_runs"]
+            },
+            {
+              "task_id": "2.1.2",
+              "description": "Implement retrieval algorithm with MMR",
+              "estimated_hours": 12,
+              "agent_assignment": "ml-engineer",
+              "dependencies": ["2.1.1"],
+              "deliverables": ["semantic similarity scoring", "recency/reliability weighting", "diversity penalty", "top-K selection"]
+            },
+            {
+              "task_id": "2.1.3",
+              "description": "Build LLM judge system",
+              "estimated_hours": 10,
+              "agent_assignment": "llm-integration-specialist",
+              "dependencies": ["2.1.1"],
+              "deliverables": ["Claude Sonnet 4.5 integration", "success/failure classification", "confidence scoring", "trajectory evaluation"]
+            },
+            {
+              "task_id": "2.1.4",
+              "description": "Implement distillation pipeline",
+              "estimated_hours": 14,
+              "agent_assignment": "backend-dev",
+              "dependencies": ["2.1.3"],
+              "deliverables": ["success pattern extraction", "failure guardrail generation", "PII redaction", "strategic principle isolation"]
+            },
+            {
+              "task_id": "2.1.5",
+              "description": "Create memory injection hooks",
+              "estimated_hours": 8,
+              "agent_assignment": "learning-system-architect",
+              "dependencies": ["2.1.2", "2.1.4"],
+              "deliverables": ["preTaskHook (pattern retrieval)", "postTaskHook (learning + judgment)", "system prompt formatting"]
+            },
+            {
+              "task_id": "2.1.6",
+              "description": "Integration with test execution pipeline",
+              "estimated_hours": 10,
+              "agent_assignment": "backend-dev",
+              "dependencies": ["2.1.5"],
+              "deliverables": ["end-to-end integration", "test execution feedback loop", "automatic learning"]
+            },
+            {
+              "task_id": "2.1.7",
+              "description": "Comprehensive testing",
+              "estimated_hours": 12,
+              "agent_assignment": "tester",
+              "dependencies": ["2.1.6"],
+              "deliverables": ["unit tests", "integration tests", "learning validation", "quality metrics"]
+            }
+          ],
+          "success_criteria": [
+            "ReasoningBank tables created and indexed",
+            "Retrieval algorithm returns top-3 patterns <10ms",
+            "LLM judge classifies 95%+ trajectories correctly",
+            "Distillation extracts 2-5 patterns per trajectory",
+            "Hooks inject patterns into test generation prompts",
+            "End-to-end: Test → Learn → Improve cycle working",
+            "20%+ improvement in test quality after 100 iterations"
+          ],
+          "expected_benefits": [
+            "Self-improving test generation operational",
+            "Learn from failures not just successes",
+            "20-40% quality improvement over 6 months",
+            "30-50% fewer generation errors",
+            "Pattern reuse across similar APIs"
+          ]
+        },
+        {
+          "milestone_id": "2.2",
+          "name": "9 RL Algorithms Integration",
+          "priority": "High",
+          "effort_hours": "40-50",
+          "swarm_composition": {
+            "agents": [
+              {"type": "ml-engineer", "role": "RL specialist", "count": 1},
+              {"type": "agentdb-integration-engineer", "role": "AgentDB integration", "count": 1},
+              {"type": "backend-dev", "role": "API + learning loops", "count": 2},
+              {"type": "performance-tester", "role": "performance testing", "count": 2}
+            ],
+            "total_agents": 6,
+            "topology": "hierarchical"
+          },
+          "tasks": [
+            {
+              "task_id": "2.2.1",
+              "description": "Replace single Q-Learning with claude-flow 9 algorithms",
+              "estimated_hours": 8,
+              "agent_assignment": "ml-engineer",
+              "dependencies": [],
+              "deliverables": ["9 RL algorithms integrated", "algorithm selector", "tests"]
+            },
+            {
+              "task_id": "2.2.2",
+              "description": "Implement experience replay system",
+              "estimated_hours": 10,
+              "agent_assignment": "backend-dev",
+              "dependencies": ["2.2.1"],
+              "deliverables": ["experience storage", "replay buffer", "sampling", "tests"]
+            },
+            {
+              "task_id": "2.2.3",
+              "description": "Create learning session management",
+              "estimated_hours": 6,
+              "agent_assignment": "backend-dev",
+              "dependencies": ["2.2.1"],
+              "deliverables": ["session creation", "episode tracking", "model persistence", "tests"]
+            },
+            {
+              "task_id": "2.2.4",
+              "description": "Build feedback loop integration",
+              "estimated_hours": 10,
+              "agent_assignment": "agentdb-integration-engineer",
+              "dependencies": ["2.2.2", "2.2.3"],
+              "deliverables": ["test execution → reward signal", "success/failure → policy update", "coverage gaps → exploration bonus"]
+            },
+            {
+              "task_id": "2.2.5",
+              "description": "Add algorithm selection logic",
+              "estimated_hours": 4,
+              "agent_assignment": "ml-engineer",
+              "dependencies": ["2.2.1"],
+              "deliverables": ["task-based algorithm selection", "performance monitoring", "automatic switching"]
+            },
+            {
+              "task_id": "2.2.6",
+              "description": "Performance comparison testing",
+              "estimated_hours": 6,
+              "agent_assignment": "performance-tester",
+              "dependencies": ["2.2.4", "2.2.5"],
+              "deliverables": ["benchmark results", "convergence analysis", "quality metrics"]
+            },
+            {
+              "task_id": "2.2.7",
+              "description": "Documentation and guidelines",
+              "estimated_hours": 6,
+              "agent_assignment": "backend-dev",
+              "dependencies": ["2.2.6"],
+              "deliverables": ["RL algorithm guide", "usage examples", "best practices"]
+            }
+          ],
+          "success_criteria": [
+            "9 RL algorithms operational via AgentDB",
+            "Experience replay stores 1000+ trajectories",
+            "Learning sessions persist across test runs",
+            "Feedback loops update policies in real-time",
+            "Algorithm selection automated by task type",
+            "30%+ faster convergence vs single Q-Learning",
+            "Tests generate better results after 50 episodes"
+          ],
+          "expected_benefits": [
+            "9x more RL algorithms vs current 1",
+            "Adaptive test generation learns optimal strategies",
+            "Faster convergence to high-quality tests",
+            "Task-specific optimization (security vs performance)",
+            "Continuous improvement from every test run"
+          ]
+        },
+        {
+          "milestone_id": "2.3",
+          "name": "Consolidation Engine & Memory Quality",
+          "priority": "Medium",
+          "effort_hours": "30-40",
+          "swarm_composition": {
+            "agents": [
+              {"type": "memory-architect", "role": "memory curation", "count": 1},
+              {"type": "ml-engineer", "role": "similarity/contradiction detection", "count": 1},
+              {"type": "backend-dev", "role": "implementation", "count": 1},
+              {"type": "tester", "role": "quality validation", "count": 1}
+            ],
+            "total_agents": 4,
+            "topology": "hierarchical"
+          },
+          "tasks": [
+            {
+              "task_id": "2.3.1",
+              "description": "Implement deduplication system",
+              "estimated_hours": 8,
+              "agent_assignment": "ml-engineer",
+              "dependencies": [],
+              "deliverables": ["cosine similarity clustering", "pattern merging", "lineage tracking"]
+            },
+            {
+              "task_id": "2.3.2",
+              "description": "Build contradiction detection",
+              "estimated_hours": 8,
+              "agent_assignment": "ml-engineer",
+              "dependencies": [],
+              "deliverables": ["NLI-based checks", "contradiction quarantine", "alert system"]
+            },
+            {
+              "task_id": "2.3.3",
+              "description": "Create aging and pruning mechanisms",
+              "estimated_hours": 6,
+              "agent_assignment": "memory-architect",
+              "dependencies": [],
+              "deliverables": ["exponential decay", "age threshold pruning", "automatic cleanup"]
+            },
+            {
+              "task_id": "2.3.4",
+              "description": "Implement confidence dynamics",
+              "estimated_hours": 6,
+              "agent_assignment": "backend-dev",
+              "dependencies": [],
+              "deliverables": ["success/failure confidence updates", "usage tracking", "reinforcement"]
+            },
+            {
+              "task_id": "2.3.5",
+              "description": "Schedule consolidation runs",
+              "estimated_hours": 2,
+              "agent_assignment": "backend-dev",
+              "dependencies": ["2.3.1", "2.3.2", "2.3.3", "2.3.4"],
+              "deliverables": ["consolidation scheduler", "batch processing", "API triggers"]
+            },
+            {
+              "task_id": "2.3.6",
+              "description": "Testing and validation",
+              "estimated_hours": 8,
+              "agent_assignment": "tester",
+              "dependencies": ["2.3.5"],
+              "deliverables": ["consolidation tests", "quality validation", "performance tests"]
+            }
+          ],
+          "success_criteria": [
+            "Deduplication reduces redundancy by 15-30%",
+            "Contradictions detected and quarantined",
+            "Old patterns pruned automatically",
+            "Confidence scores update based on usage",
+            "Memory quality maintained over time",
+            "Consolidation runs <5 minutes for 1000 patterns"
+          ],
+          "expected_benefits": [
+            "High-quality memory over long-term use",
+            "15-30% storage savings via deduplication",
+            "Conflict prevention through contradiction detection",
+            "Automatic curation of pattern library",
+            "Trust in learned patterns via confidence tracking"
+          ]
+        },
+        {
+          "milestone_id": "2.4",
+          "name": "Blackboard Coordination for 19 AQE Agents",
+          "priority": "High",
+          "effort_hours": "20-30",
+          "swarm_composition": {
+            "agents": [
+              {"type": "coordination-architect", "role": "blackboard design", "count": 1},
+              {"type": "backend-dev", "role": "implementation", "count": 2},
+              {"type": "qe-fleet-commander", "role": "coordination", "count": 1},
+              {"type": "integration-tester", "role": "testing", "count": 1}
+            ],
+            "total_agents": 5,
+            "topology": "hierarchical"
+          },
+          "tasks": [
+            {
+              "task_id": "2.4.1",
+              "description": "Design blackboard schema",
+              "estimated_hours": 4,
+              "agent_assignment": "coordination-architect",
+              "dependencies": [],
+              "deliverables": ["shared_state table", "coordination_hints with TTL", "agent_status tracking"]
+            },
+            {
+              "task_id": "2.4.2",
+              "description": "Implement blackboard pattern",
+              "estimated_hours": 6,
+              "agent_assignment": "backend-dev",
+              "dependencies": ["2.4.1"],
+              "deliverables": ["read/write coordination state", "TTL-based cleanup", "namespace isolation"]
+            },
+            {
+              "task_id": "2.4.3",
+              "description": "Create agent handoff protocol",
+              "estimated_hours": 6,
+              "agent_assignment": "qe-fleet-commander",
+              "dependencies": ["2.4.2"],
+              "deliverables": ["handoff signals", "progress tracking", "dependency resolution"]
+            },
+            {
+              "task_id": "2.4.4",
+              "description": "Integrate with remaining 14 AQE agents",
+              "estimated_hours": 8,
+              "agent_assignment": "backend-dev",
+              "dependencies": ["2.4.3"],
+              "deliverables": ["14 agents integrated", "blackboard coordination", "tests"]
+            },
+            {
+              "task_id": "2.4.5",
+              "description": "End-to-end multi-agent testing",
+              "estimated_hours": 4,
+              "agent_assignment": "integration-tester",
+              "dependencies": ["2.4.4"],
+              "deliverables": ["multi-agent tests", "coordination validation", "race condition tests"]
+            },
+            {
+              "task_id": "2.4.6",
+              "description": "Documentation",
+              "estimated_hours": 2,
+              "agent_assignment": "backend-dev",
+              "dependencies": ["2.4.5"],
+              "deliverables": ["blackboard pattern guide", "coordination protocols", "examples"]
+            }
+          ],
+          "success_criteria": [
+            "Blackboard pattern operational",
+            "19 AQE agents coordinate via blackboard",
+            "TTL cleanup prevents stale data",
+            "Agent handoffs clear and reliable",
+            "Integration tests pass (95%+)",
+            "No coordination conflicts or race conditions"
+          ],
+          "expected_benefits": [
+            "Decoupled agent communication",
+            "Clear handoffs between specialized agents",
+            "Better parallelism (no tight coupling)",
+            "Automatic cleanup via TTL",
+            "Foundation for full fleet coordination"
+          ]
+        }
+      ],
+      "phase_kpis": {
+        "test_quality_score_baseline": "Baseline",
+        "test_quality_score_3mo": "+20%",
+        "test_quality_score_6mo": "+40%",
+        "test_generation_success_rate_baseline": "70%",
+        "test_generation_success_rate_3mo": "80%",
+        "test_generation_success_rate_6mo": "90%+",
+        "pattern_reuse_rate_baseline": "0%",
+        "pattern_reuse_rate_3mo": "30%",
+        "pattern_reuse_rate_6mo": "50%",
+        "rl_algorithms_baseline": "1 (Q-Learning)",
+        "rl_algorithms_3mo": "3 algorithms",
+        "rl_algorithms_6mo": "9 algorithms",
+        "aqe_fleet_baseline": "0 agents",
+        "aqe_fleet_3mo": "12 agents",
+        "aqe_fleet_6mo": "19 agents"
+      }
+    },
+    {
+      "phase_number": 3,
+      "phase_name": "Performance Optimization",
+      "duration_weeks": "4-6",
+      "effort_hours": "240-360",
+      "objectives": [
+        "Achieve 96x-352x performance improvements",
+        "Integrate WASM Agent Booster",
+        "Implement HNSW indexing for large-scale search",
+        "Deploy QUIC transport for agent coordination",
+        "Enable multi-model routing with cost optimization",
+        "Implement MaTTS for critical tests"
+      ],
+      "milestones": [
+        {
+          "milestone_id": "3.1",
+          "name": "Agent Booster Integration (352x Speedup)",
+          "priority": "High",
+          "effort_hours": "10-15",
+          "swarm_composition": {
+            "agents": [
+              {"type": "performance-engineer", "role": "performance optimization", "count": 1},
+              {"type": "rust-wasm-specialist", "role": "WASM integration", "count": 1},
+              {"type": "backend-integrator", "role": "backend integration", "count": 1},
+              {"type": "benchmark-specialist", "role": "benchmarking", "count": 1}
+            ],
+            "total_agents": 4,
+            "topology": "mesh"
+          },
+          "tasks": [
+            {
+              "task_id": "3.1.1",
+              "description": "Integrate claude-flow Agent Booster",
+              "estimated_hours": 3,
+              "agent_assignment": "rust-wasm-specialist",
+              "dependencies": [],
+              "deliverables": ["Agent Booster integration", "configuration", "tests"]
+            },
+            {
+              "task_id": "3.1.2",
+              "description": "Identify code transformation operations",
+              "estimated_hours": 2,
+              "agent_assignment": "backend-integrator",
+              "dependencies": [],
+              "deliverables": ["test template generation", "pattern application", "code formatting"]
+            },
+            {
+              "task_id": "3.1.3",
+              "description": "Replace cloud operations with local WASM",
+              "estimated_hours": 4,
+              "agent_assignment": "rust-wasm-specialist",
+              "dependencies": ["3.1.1", "3.1.2"],
+              "deliverables": ["local WASM operations", "cloud fallback", "tests"]
+            },
+            {
+              "task_id": "3.1.4",
+              "description": "Performance benchmarking",
+              "estimated_hours": 3,
+              "agent_assignment": "benchmark-specialist",
+              "dependencies": ["3.1.3"],
+              "deliverables": ["benchmark results", "300x+ speedup validation", "cost analysis"]
+            },
+            {
+              "task_id": "3.1.5",
+              "description": "Integration testing",
+              "estimated_hours": 3,
+              "agent_assignment": "backend-integrator",
+              "dependencies": ["3.1.4"],
+              "deliverables": ["integration tests", "validation", "documentation"]
+            }
+          ],
+          "success_criteria": [
+            "Agent Booster operational",
+            "Local operations 300x+ faster than cloud",
+            "$0 cost for local transformations",
+            "<1ms latency for single operations",
+            "100 operations in <20ms"
+          ],
+          "expected_benefits": [
+            "352x faster local code operations",
+            "$0 cost vs cloud API calls",
+            "0.14ms average latency",
+            "Offline capable for rapid iteration"
+          ]
+        }
+      ],
+      "phase_kpis": {
+        "pattern_search_speed_baseline": "Baseline",
+        "pattern_search_speed_target": "96x-116x faster",
+        "local_operation_speed_baseline": "Cloud API",
+        "local_operation_speed_target": "352x faster (local WASM)",
+        "agent_coordination_latency_baseline": "HTTP/2",
+        "agent_coordination_latency_target": "-50% (QUIC)",
+        "cost_per_test_run_baseline": "Baseline",
+        "cost_per_test_run_target": "-70%",
+        "edge_case_discovery_baseline": "Baseline",
+        "edge_case_discovery_target": "+50% (MaTTS)"
+      }
+    },
+    {
+      "phase_number": 4,
+      "phase_name": "Advanced Features & Full Autonomy",
+      "duration_weeks": "6-8",
+      "effort_hours": "360-480",
+      "objectives": [
+        "Implement cryptographic verification (Ed25519)",
+        "Deploy GOAP planning for test optimization",
+        "Add consensus gating for multi-agent decisions",
+        "Complete AQE fleet integration (19 agents)",
+        "Implement checkpoint/resume for long campaigns",
+        "Build observability and performance dashboard"
+      ],
+      "milestones": [],
+      "phase_kpis": {
+        "test_authenticity_baseline": "No verification",
+        "test_authenticity_target": "100% cryptographically verified",
+        "test_execution_optimization_baseline": "Manual ordering",
+        "test_execution_optimization_target": "+15% faster (GOAP)",
+        "multi_agent_decision_quality_baseline": "Single agent",
+        "multi_agent_decision_quality_target": "+30% accuracy (consensus)",
+        "aqe_fleet_completeness_baseline": "0",
+        "aqe_fleet_completeness_target": "19 agents",
+        "campaign_fault_tolerance_baseline": "None",
+        "campaign_fault_tolerance_target": "100% resumable"
+      }
+    }
+  ],
+
+  "dependencies_graph": {
+    "phase_1_to_phase_2": [
+      "AgentDB vector search operational (96x improvement)",
+      "30%+ cost reduction achieved",
+      "5 AQE agents working",
+      "Frontend containerized"
+    ],
+    "phase_2_to_phase_3": [
+      "ReasoningBank learning operational",
+      "9 RL algorithms integrated",
+      "20%+ test quality improvement",
+      "12+ AQE agents working"
+    ],
+    "phase_3_to_phase_4": [
+      "96x-352x performance improvements validated",
+      "QUIC transport operational or HTTP/2 fallback working",
+      "70%+ cost reduction achieved",
+      "No major stability issues"
+    ]
+  },
+
+  "risk_mitigation": {
+    "technical_risks": [
+      {
+        "risk": "AgentDB Performance Claims Unvalidated",
+        "probability": "Medium",
+        "impact": "Medium",
+        "mitigation": "Independent benchmarking Phase 1"
+      },
+      {
+        "risk": "QUIC Blocked in Enterprise Firewalls",
+        "probability": "High",
+        "impact": "Medium",
+        "mitigation": "HTTP/2 fallback implemented"
+      },
+      {
+        "risk": "ReasoningBank Memory Quality Degradation",
+        "probability": "Medium",
+        "impact": "High",
+        "mitigation": "Consolidation engine + monitoring"
+      },
+      {
+        "risk": "9 RL Algorithms Complexity",
+        "probability": "Medium",
+        "impact": "Medium",
+        "mitigation": "Start with 3 algorithms, expand gradually"
+      }
+    ],
+    "implementation_risks": [
+      {
+        "risk": "Timeline Overruns",
+        "probability": "Medium",
+        "impact": "Medium",
+        "mitigation": "Phase gates, weekly reviews, scope adjustment"
+      },
+      {
+        "risk": "Skill Gaps (RL, Cryptography, QUIC)",
+        "probability": "Medium",
+        "impact": "High",
+        "mitigation": "Training, external consultants, vendor support"
+      },
+      {
+        "risk": "Integration Conflicts",
+        "probability": "High",
+        "impact": "Medium",
+        "mitigation": "Comprehensive testing, incremental rollout"
+      }
+    ]
+  },
+
+  "success_metrics": {
+    "overall_platform_kpis_12mo": {
+      "platform_completeness_current": "72%",
+      "platform_completeness_6mo": "95%",
+      "platform_completeness_12mo": "100%",
+      "test_quality_current": "Baseline",
+      "test_quality_6mo": "+40%",
+      "test_quality_12mo": "+80%",
+      "cost_efficiency_current": "Baseline",
+      "cost_efficiency_6mo": "-70%",
+      "cost_efficiency_12mo": "-85%",
+      "development_velocity_current": "Baseline",
+      "development_velocity_6mo": "2x",
+      "development_velocity_12mo": "4x",
+      "self_improvement_rate_current": "0%",
+      "self_improvement_rate_6mo": "30%",
+      "self_improvement_rate_12mo": "60%",
+      "test_coverage_current": "85%",
+      "test_coverage_6mo": "92%",
+      "test_coverage_12mo": "95%+",
+      "agent_performance_current": "Baseline",
+      "agent_performance_6mo": "96x",
+      "agent_performance_12mo": "352x"
+    }
+  }
+}

@@ -8,6 +8,7 @@ The platform is built upon the **ruv-FANN** and **ruv-swarm** frameworks, enabli
 
 ### Core Services
 
+- **Frontend** (Port 3000): React-based UI with Redux state management, served via nginx
 - **API Gateway** (Port 8000): Single entry point for all user interactions with RBAC integration
 - **Authentication Service** (Port 8005): JWT-based authentication and user management
 - **Specification Service** (Port 8001): Manages API specification ingestion and parsing
@@ -74,40 +75,44 @@ The platform employs a workforce of specialized AI agents with **both Python and
    make setup
    ```
    This will:
-   - Build all Docker images
+   - Build all Docker images (including frontend)
    - Initialize the database with all tables
    - Start all backend services
-   - Provide instructions for starting the frontend
+   - Start the containerized frontend with nginx
 
-4. **Start the frontend (in a separate terminal):**
-   ```bash
-   cd sentinel_frontend
-   npm install
-   npm start
-   ```
-
-5. **Access the platform:**
+4. **Access the platform:**
    - **Frontend Application**: http://localhost:3000
      - Default credentials: `admin@sentinel.com` / `admin123`
    - API Gateway: http://localhost:8000
    - Petstore Test API: http://localhost:8080 (for testing)
+   - Frontend Health Check: http://localhost:3000/health
+
+**Note**: The frontend is now fully containerized and starts automatically with `docker-compose`. For local development without Docker, see the [Frontend Development](#frontend-development) section below.
 
 ### Alternative: Manual Setup
 
 If you prefer manual control:
 
 ```bash
-# Build and start services (from project root)
+# Build and start all services including frontend (from project root)
 docker-compose up --build
 
 # Initialize database (in another terminal, from project root)
 make init-db
+```
 
-# Start frontend (from project root)
+### Frontend Development
+
+For local frontend development without Docker (hot reload enabled):
+
+```bash
+# From project root
 cd sentinel_frontend
 npm install
-npm start
+npm start  # Runs on port 3000 with hot reload
 ```
+
+For production deployment, the frontend is automatically containerized with nginx when using `docker-compose up`.
 
 ### Useful Makefile Commands
 

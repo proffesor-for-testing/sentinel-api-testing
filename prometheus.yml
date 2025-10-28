@@ -1,34 +1,115 @@
+# Prometheus Configuration for Sentinel Platform
+# This is the main configuration file used by docker-compose
+
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    cluster: 'sentinel'
+    environment: 'production'
 
+# Load alert rules
+rule_files:
+  - '/etc/prometheus/alerts.yml'
+  - '/etc/prometheus/recording_rules.yml'
+
+# Scrape configurations
 scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+          tier: 'observability'
+
+  # API Gateway
   - job_name: 'api_gateway'
     static_configs:
       - targets: ['api_gateway:8000']
     metrics_path: '/metrics'
+    scrape_interval: 10s
+    labels:
+      service: 'api_gateway'
+      tier: 'gateway'
 
+  # Auth Service
   - job_name: 'auth_service'
     static_configs:
-      - targets: ['auth_service:8000']
+      - targets: ['auth_service:8005']
     metrics_path: '/metrics'
+    scrape_interval: 10s
+    labels:
+      service: 'auth_service'
+      tier: 'backend'
 
+  # Spec Service
   - job_name: 'spec_service'
     static_configs:
       - targets: ['spec_service:8001']
     metrics_path: '/metrics'
+    scrape_interval: 10s
+    labels:
+      service: 'spec_service'
+      tier: 'backend'
 
+  # Orchestration Service
   - job_name: 'orchestration_service'
     static_configs:
       - targets: ['orchestration_service:8002']
     metrics_path: '/metrics'
+    scrape_interval: 10s
+    labels:
+      service: 'orchestration_service'
+      tier: 'backend'
 
+  # Execution Service
   - job_name: 'execution_service'
     static_configs:
       - targets: ['execution_service:8003']
     metrics_path: '/metrics'
+    scrape_interval: 10s
+    labels:
+      service: 'execution_service'
+      tier: 'backend'
 
+  # Data Service
   - job_name: 'data_service'
     static_configs:
       - targets: ['data_service:8004']
     metrics_path: '/metrics'
+    scrape_interval: 10s
+    labels:
+      service: 'data_service'
+      tier: 'backend'
+
+  # Rust Core Service
+  - job_name: 'sentinel_rust_core'
+    static_configs:
+      - targets: ['sentinel_rust_core:8088']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    labels:
+      service: 'rust_core'
+      tier: 'backend'
+      language: 'rust'
+
+  # RabbitMQ Metrics
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['message_broker:15692']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    labels:
+      service: 'rabbitmq'
+      tier: 'messaging'
+
+  # Jaeger Metrics (self-monitoring)
+  - job_name: 'jaeger'
+    static_configs:
+      - targets: ['jaeger:14269']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    labels:
+      service: 'jaeger'
+      tier: 'observability'

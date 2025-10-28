@@ -1,0 +1,188 @@
+# Prometheus Alert Rules for Sentinel Platform
+groups:
+  - name: sentinel_api_alerts
+    interval: 30s
+    rules:
+      # High error rate alert
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+            /
+            sum(rate(http_requests_total[5m])) by (service)
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High error rate detected in {{ $labels.service }}"
+          description: "{{ $labels.service }} has error rate above 5% (current: {{ $value | humanizePercentage }})"
+
+      # Service down alert
+      - alert: ServiceDown
+        expr: up{job=~".*_service|api_gateway|sentinel_rust_core"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been down for more than 1 minute"
+
+      # High response time alert
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "High response time in {{ $labels.service }}"
+          description: "95th percentile response time is {{ $value }}s in {{ $labels.service }}"
+
+      # Database connection pool exhaustion
+      - alert: DatabaseConnectionPoolExhaustion
+        expr: |
+          (
+            db_connections_active / db_connections_max
+          ) > 0.8
+        for: 3m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "Database connection pool is {{ $value | humanizePercentage }} full"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            process_resident_memory_bytes / 1024 / 1024 / 1024
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: resources
+        annotations:
+          summary: "High memory usage in {{ $labels.job }}"
+          description: "{{ $labels.job }} is using {{ $value }}GB of memory"
+
+      # Test generation queue backed up
+      - alert: TestGenerationQueueBacklog
+        expr: sentinel_test_generation_queue_size > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: orchestration
+        annotations:
+          summary: "Test generation queue has significant backlog"
+          description: "Test generation queue has {{ $value }} pending items"
+
+      # Agent execution failures
+      - alert: HighAgentFailureRate
+        expr: |
+          (
+            sum(rate(sentinel_agent_executions_total{status="failed"}[5m])) by (agent_type)
+            /
+            sum(rate(sentinel_agent_executions_total[5m])) by (agent_type)
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: agents
+        annotations:
+          summary: "High failure rate for {{ $labels.agent_type }}"
+          description: "{{ $labels.agent_type }} has failure rate of {{ $value | humanizePercentage }}"
+
+      # Disk space running low
+      - alert: DiskSpaceLow
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}
+          ) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "Disk space running low"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining"
+
+  - name: sentinel_llm_alerts
+    interval: 30s
+    rules:
+      # LLM API rate limit approaching
+      - alert: LLMRateLimitApproaching
+        expr: sentinel_llm_rate_limit_remaining < 100
+        for: 2m
+        labels:
+          severity: warning
+          component: llm
+        annotations:
+          summary: "LLM rate limit approaching for {{ $labels.provider }}"
+          description: "Only {{ $value }} requests remaining for {{ $labels.provider }}"
+
+      # High LLM cost
+      - alert: HighLLMCost
+        expr: rate(sentinel_llm_cost_total[1h]) > 10
+        for: 15m
+        labels:
+          severity: warning
+          component: llm
+        annotations:
+          summary: "High LLM API costs detected"
+          description: "LLM costs are ${{ $value }}/hour"
+
+      # LLM timeout rate high
+      - alert: HighLLMTimeoutRate
+        expr: |
+          (
+            sum(rate(sentinel_llm_requests_total{status="timeout"}[5m])) by (provider)
+            /
+            sum(rate(sentinel_llm_requests_total[5m])) by (provider)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: llm
+        annotations:
+          summary: "High timeout rate for {{ $labels.provider }}"
+          description: "{{ $labels.provider }} timeout rate: {{ $value | humanizePercentage }}"
+
+  - name: sentinel_rust_core_alerts
+    interval: 30s
+    rules:
+      # Rust core agent execution slow
+      - alert: RustCoreAgentSlow
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(sentinel_rust_agent_duration_seconds_bucket[5m])) by (le, agent_type)
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: rust_core
+        annotations:
+          summary: "Rust core {{ $labels.agent_type }} execution slow"
+          description: "95th percentile execution time is {{ $value }}s"
+
+      # Rust core high error rate
+      - alert: RustCoreHighErrorRate
+        expr: |
+          (
+            sum(rate(sentinel_rust_agent_errors_total[5m])) by (agent_type)
+            /
+            sum(rate(sentinel_rust_agent_executions_total[5m])) by (agent_type)
+          ) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          component: rust_core
+        annotations:
+          summary: "Rust core {{ $labels.agent_type }} high error rate"
+          description: "Error rate: {{ $value | humanizePercentage }}"

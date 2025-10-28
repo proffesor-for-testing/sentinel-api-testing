@@ -1,0 +1,153 @@
+# Prometheus Recording Rules for Sentinel Platform
+# Pre-aggregate expensive queries for faster dashboard performance
+
+groups:
+  - name: sentinel_aggregations
+    interval: 30s
+    rules:
+      # HTTP request rate by service
+      - record: sentinel:http_requests:rate5m
+        expr: sum(rate(http_requests_total[5m])) by (service, status, method)
+
+      # HTTP request success rate
+      - record: sentinel:http_requests:success_rate
+        expr: |
+          sum(rate(http_requests_total{status!~"5.."}[5m])) by (service)
+          /
+          sum(rate(http_requests_total[5m])) by (service)
+
+      # HTTP request error rate
+      - record: sentinel:http_requests:error_rate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+          /
+          sum(rate(http_requests_total[5m])) by (service)
+
+      # HTTP request latency percentiles
+      - record: sentinel:http_request_duration:p50
+        expr: |
+          histogram_quantile(0.50,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)
+          )
+
+      - record: sentinel:http_request_duration:p90
+        expr: |
+          histogram_quantile(0.90,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)
+          )
+
+      - record: sentinel:http_request_duration:p95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)
+          )
+
+      - record: sentinel:http_request_duration:p99
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)
+          )
+
+  - name: sentinel_agent_metrics
+    interval: 30s
+    rules:
+      # Agent execution rate
+      - record: sentinel:agent_executions:rate5m
+        expr: sum(rate(sentinel_agent_executions_total[5m])) by (agent_type, service)
+
+      # Agent execution success rate
+      - record: sentinel:agent_executions:success_rate
+        expr: |
+          sum(rate(sentinel_agent_executions_total{status="success"}[5m])) by (agent_type)
+          /
+          sum(rate(sentinel_agent_executions_total[5m])) by (agent_type)
+
+      # Agent execution failure rate
+      - record: sentinel:agent_executions:failure_rate
+        expr: |
+          sum(rate(sentinel_agent_executions_total{status="failed"}[5m])) by (agent_type)
+          /
+          sum(rate(sentinel_agent_executions_total[5m])) by (agent_type)
+
+      # Agent execution duration percentiles
+      - record: sentinel:agent_duration:p50
+        expr: |
+          histogram_quantile(0.50,
+            sum(rate(sentinel_agent_duration_seconds_bucket[5m])) by (le, agent_type)
+          )
+
+      - record: sentinel:agent_duration:p95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(sentinel_agent_duration_seconds_bucket[5m])) by (le, agent_type)
+          )
+
+      - record: sentinel:agent_duration:p99
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(sentinel_agent_duration_seconds_bucket[5m])) by (le, agent_type)
+          )
+
+  - name: sentinel_test_metrics
+    interval: 30s
+    rules:
+      # Test generation rate
+      - record: sentinel:test_generation:rate5m
+        expr: sum(rate(sentinel_test_generation_total[5m])) by (test_type, agent_type)
+
+      # Test execution rate
+      - record: sentinel:test_execution:rate5m
+        expr: sum(rate(sentinel_test_execution_total[5m])) by (test_type, status)
+
+      # Test execution success rate
+      - record: sentinel:test_execution:success_rate
+        expr: |
+          sum(rate(sentinel_test_execution_total{status="passed"}[5m])) by (test_type)
+          /
+          sum(rate(sentinel_test_execution_total[5m])) by (test_type)
+
+  - name: sentinel_llm_metrics
+    interval: 30s
+    rules:
+      # LLM request rate by provider
+      - record: sentinel:llm_requests:rate5m
+        expr: sum(rate(sentinel_llm_requests_total[5m])) by (provider, model)
+
+      # LLM token usage rate
+      - record: sentinel:llm_tokens:rate5m
+        expr: sum(rate(sentinel_llm_tokens_total[5m])) by (provider, token_type)
+
+      # LLM cost rate (per hour)
+      - record: sentinel:llm_cost:rate1h
+        expr: sum(rate(sentinel_llm_cost_total[1h])) by (provider)
+
+      # LLM success rate
+      - record: sentinel:llm_requests:success_rate
+        expr: |
+          sum(rate(sentinel_llm_requests_total{status="success"}[5m])) by (provider)
+          /
+          sum(rate(sentinel_llm_requests_total[5m])) by (provider)
+
+  - name: sentinel_database_metrics
+    interval: 30s
+    rules:
+      # Database query rate
+      - record: sentinel:db_queries:rate5m
+        expr: sum(rate(db_query_duration_seconds_count[5m])) by (operation, table)
+
+      # Database query latency percentiles
+      - record: sentinel:db_query_duration:p50
+        expr: |
+          histogram_quantile(0.50,
+            sum(rate(db_query_duration_seconds_bucket[5m])) by (le, operation)
+          )
+
+      - record: sentinel:db_query_duration:p95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(db_query_duration_seconds_bucket[5m])) by (le, operation)
+          )
+
+      # Database connection pool utilization
+      - record: sentinel:db_connections:utilization
+        expr: db_connections_active / db_connections_max

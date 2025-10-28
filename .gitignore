@@ -103,13 +103,26 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
+!.env.template
+!.env.example
 .env.docker
+!.env.docker.template
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Vault sensitive files
+.vault-keys/
+*.vault.*
+vault-credentials.*
+approle-credentials.*
+admin-credentials.*
+config/vault/*.key
+config/vault/root-token.txt
 
 # Spyder project settings
 .spyderproject
