@@ -470,9 +470,7 @@ class ConfigurationReporter:
         if report.get("warnings"):
             print("WARNINGS:")
             for warning in report["warnings"]:
-                # lgtm[py/clear-text-logging-sensitive-data]
-                # CodeQL false positive: CLI output tool for debugging, not production logging
-                # Sensitive data should be sanitized before being added to the report
+                # Sanitize potential sensitive data in warning messages before output
                 print(f"  ⚠️  {_sanitize_log_message(str(warning))}")
             print()
         
@@ -492,22 +490,30 @@ def _sanitize_log_message(message: str) -> str:
     """
     Redact or mask sensitive information (such as passwords, secrets, tokens, keys)
     from a log message before output.
+
+    Note: CodeQL may flag this function's internals, but this IS the sanitization
+    logic that prevents sensitive data from being logged.
     """
+    # lgtm[py/clear-text-logging-sensitive-data]
+    # CodeQL false positive: This is the sanitization function itself
+    # These keywords are used to DETECT and REDACT sensitive info, not log it
     SENSITIVE_KEYWORDS = [
         "password", "secret", "token", "key", "api_key", "jwt"
     ]
-    # rudimentary regexes, can be adjusted for your settings/errors
-    import re
+
+    # lgtm[py/clear-text-logging-sensitive-data]
+    # CodeQL false positive: Regex patterns to sanitize, not logging sensitive data
     sanitized = message
-    # redact specific patterns: <keyword>:<value>, <keyword> is <value>, etc.
+    # Redact specific patterns: <keyword>:<value>, <keyword>=<value>, <keyword> is <value>, etc.
     for keyword in SENSITIVE_KEYWORDS:
-        # Redact patterns like: password: something, password is something
+        # Redact patterns like: password: something, password=something
         sanitized = re.sub(
             fr"{keyword}([^\w\d]?[:=][^\w\d]?)\s*\S+",
             fr"{keyword}\1 ***REDACTED***",
             sanitized,
             flags=re.IGNORECASE
         )
+        # Redact patterns like: password is something
         sanitized = re.sub(
             fr"{keyword}\s+is\s+\S+",
             fr"{keyword} is ***REDACTED***",
@@ -515,34 +521,6 @@ def _sanitize_log_message(message: str) -> str:
             flags=re.IGNORECASE
         )
     return sanitized
-    """
-    Sanitize log messages to prevent logging sensitive information.
-    Redacts sensitive keywords while keeping the message informative.
-
-    Note: CodeQL may flag this function's internals, but this IS the sanitization
-    logic that prevents sensitive data from being logged.
-    """
-    # lgtm[py/clear-text-logging-sensitive-data]
-    # CodeQL false positive: This is the sanitization function itself
-    # These patterns are used to DETECT and REDACT sensitive info, not log it
-    sensitive_patterns = [
-        ('jwt_secret_key', 'jwt_***'),
-        ('secret key', 'secret ***'),
-        ('admin password', 'admin credentials'),
-        ('password', 'credentials'),
-        ('api key', 'api ***'),
-        ('default admin', 'admin user'),
-    ]
-
-    # lgtm[py/clear-text-logging-sensitive-data]
-    # CodeQL false positive: Checking patterns to sanitize, not logging sensitive data
-    sanitized = message.lower()
-    for pattern, replacement in sensitive_patterns:
-        if pattern in sanitized:
-            # Return a generic security message
-            return "Security configuration validation issue detected (check details in validation report)"
-
-    return message
 
 def validate_startup_configuration() -> bool:
     """
