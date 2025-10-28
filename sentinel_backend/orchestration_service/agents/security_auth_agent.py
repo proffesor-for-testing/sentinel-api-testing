@@ -12,51 +12,100 @@ from urllib.parse import urlparse, parse_qs
 import re
 import random
 from .base_agent import BaseAgent, AgentTask, AgentResult
+from .base_learning_agent import BaseLearningAgent
 from sentinel_backend.config.settings import get_application_settings
+from sentinel_backend.orchestration_service.services.data_generation_service import DataGenerationService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Get configuration
 app_settings = get_application_settings()
 logger = logging.getLogger(__name__)
 
-class SecurityAuthAgent(BaseAgent):
+class SecurityAuthAgent(BaseAgent, BaseLearningAgent):
     """
     Agent specialized in testing authentication and authorization vulnerabilities.
-    
+
     Primary focus areas:
     - Broken Object Level Authorization (BOLA)
     - Broken Function Level Authorization
     - Incorrect role enforcement
     - Authentication bypass attempts
     """
-    
+
     def __init__(self):
-        super().__init__("security-auth")
+        BaseAgent.__init__(self, "security-auth")
+        BaseLearningAgent.__init__(self)
         self.agent_type = "Security-Auth-Agent"
         self.description = "Security agent focused on authentication and authorization vulnerabilities"
-        
+
         # Configuration-driven settings
         self.max_bola_vectors = getattr(app_settings, 'security_max_bola_vectors', 12)
         self.max_auth_scenarios = getattr(app_settings, 'security_max_auth_scenarios', 4)
         self.default_test_timeout = getattr(app_settings, 'security_test_timeout', 30)
         self.enable_aggressive_testing = getattr(app_settings, 'security_enable_aggressive_testing', False)
-    
-    async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
+
+        # Initialize data generation service
+        self.data_service = DataGenerationService()
+
+    async def execute(self, task: AgentTask, api_spec: Dict[str, Any], db_session: Optional[AsyncSession] = None) -> AgentResult:
         """
         Execute the Security Auth Agent to generate auth vulnerability test cases.
-        
+
         Args:
             task: The agent task containing execution parameters
             api_spec: The parsed API specification
-            
+            db_session: Optional database session for trajectory tracking
+
         Returns:
             AgentResult containing generated test cases
         """
+        # Start trajectory tracking
+        trajectory = None
+        if db_session:
+            try:
+                trajectory = await self.start_trajectory(
+                    task_type="security_auth_testing",
+                    task_description=f"Generate auth security tests for spec {task.spec_id}",
+                    context_data={
+                        "task_id": task.task_id,
+                        "spec_id": task.spec_id,
+                        "agent_type": self.agent_type,
+                        "parameters": task.parameters
+                    },
+                    db_session=db_session,
+                    tenant_id=None
+                )
+            except Exception as e:
+                logger.warning(f"Could not start trajectory tracking: {e}")
+
         try:
             logger.info(f"Security Auth Agent executing task {task.task_id}")
-            
-            # Generate test cases
-            test_cases = await self.generate_test_cases(api_spec)
-            
+
+            if trajectory:
+                await self.log_action("Analyzing API for authentication vulnerabilities")
+
+            # Generate test cases (pass task for LLM flag)
+            test_cases = await self.generate_test_cases(api_spec, task)
+
+            if trajectory:
+                await self.log_action(
+                    f"Generated {len(test_cases)} security auth test cases",
+                    action_metadata={"test_count": len(test_cases)}
+                )
+
+            # Check if LLM was used
+            use_llm = task.enable_llm and self.llm_enabled  # Both must be true: user wants it AND it's available
+
+            # Complete trajectory tracking
+            if trajectory:
+                await self.complete_trajectory(
+                    final_output={
+                        "test_case_count": len(test_cases),
+                        "llm_enhanced": use_llm
+                    },
+                    test_success_rate=1.0 if test_cases else 0.0
+                )
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,
@@ -64,13 +113,22 @@ class SecurityAuthAgent(BaseAgent):
                 test_cases=test_cases,
                 metadata={
                     "total_tests": len(test_cases),
-                    "focus_areas": ["BOLA", "Function-level auth", "Auth bypass"]
+                    "focus_areas": ["BOLA", "Function-level auth", "Auth bypass"],
+                    "llm_enhanced": use_llm,
+                    "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
+                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none',
+                    "trajectory_id": self.get_current_trajectory_id()
                 },
                 error_message=None
             )
-            
+
         except Exception as e:
             logger.error(f"Error in Security Auth Agent: {str(e)}")
+
+            # Abort trajectory on error
+            if trajectory:
+                await self.abort_trajectory(str(e))
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,
@@ -80,36 +138,38 @@ class SecurityAuthAgent(BaseAgent):
                 error_message=str(e)
             )
     
-    async def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def generate_test_cases(self, spec_data: Dict[str, Any], task: AgentTask = None) -> List[Dict[str, Any]]:
         """
         Generate security test cases focused on authentication and authorization.
-        
+
         Args:
             spec_data: Parsed OpenAPI specification
-            
+            task: Optional agent task for LLM flag
+
         Returns:
             List of test cases targeting auth vulnerabilities
         """
         test_cases = []
-        
+
         try:
             # Extract paths and operations from spec
             paths = spec_data.get('paths', {})
-            
+
             for path, operations in paths.items():
                 for method, operation_spec in operations.items():
                     if method.upper() in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']:
                         # Generate BOLA test cases
                         test_cases.extend(self._generate_bola_tests(path, method, operation_spec))
-                        
+
                         # Generate function-level authorization tests
                         test_cases.extend(self._generate_function_auth_tests(path, method, operation_spec))
-                        
+
                         # Generate authentication bypass tests
                         test_cases.extend(self._generate_auth_bypass_tests(path, method, operation_spec))
-            
-            # If LLM is enabled, generate sophisticated auth attack vectors
-            if self.llm_enabled and paths:
+
+            # If LLM is enabled (either via config or task parameter), generate sophisticated auth attack vectors
+            use_llm = self.llm_enabled or (task and task.enable_llm)
+            if use_llm and paths:
                 logger.info("Generating LLM-enhanced security auth test cases")
                 llm_tests = await self._generate_llm_auth_tests(list(paths.items())[:3], spec_data)
                 test_cases.extend(llm_tests)
@@ -395,47 +455,20 @@ class SecurityAuthAgent(BaseAgent):
         return path_params
     
     def _generate_request_body(self, operation_spec: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Generate a basic request body for testing."""
+        """Generate a basic request body for testing using DataGenerationService."""
         request_body = operation_spec.get('requestBody', {})
         if not request_body:
             return None
-        
+
         content = request_body.get('content', {})
         json_content = content.get('application/json', {})
         schema = json_content.get('schema', {})
-        
+
         if not schema:
             return {'test': 'data'}
-        
-        return self._generate_data_from_schema(schema)
-    
-    def _generate_data_from_schema(self, schema: Dict[str, Any]) -> Any:
-        """Generate test data from a JSON schema."""
-        schema_type = schema.get('type', 'object')
-        
-        if schema_type == 'object':
-            properties = schema.get('properties', {})
-            required = schema.get('required', [])
-            
-            data = {}
-            for prop_name, prop_schema in properties.items():
-                if prop_name in required:
-                    data[prop_name] = self._generate_data_from_schema(prop_schema)
-            
-            return data
-        elif schema_type == 'string':
-            return 'test-string'
-        elif schema_type == 'integer':
-            return 123
-        elif schema_type == 'number':
-            return 123.45
-        elif schema_type == 'boolean':
-            return True
-        elif schema_type == 'array':
-            items_schema = schema.get('items', {'type': 'string'})
-            return [self._generate_data_from_schema(items_schema)]
-        else:
-            return 'test-value'
+
+        # Use DataGenerationService to generate realistic data
+        return self.data_service.generate_realistic_data(schema, strategy="realistic")
     
     def _get_bypass_techniques(self) -> List[Dict[str, Any]]:
         """Get authentication bypass techniques based on configuration."""

@@ -9,8 +9,9 @@ use std::time::Instant;
 
 use crate::types::{AgentTask, AgentResult, TestCase, EndpointInfo, Assertion};
 
-pub mod functional_positive;
-pub mod functional_negative;
+pub mod functional;  // Legacy functional agent (to be deprecated)
+pub mod functional_agent;  // New consolidated functional agent with strategies
+pub mod strategies;  // Strategy pattern implementations
 pub mod functional_stateful;
 pub mod data_mocking;
 pub mod security_auth;
@@ -43,16 +44,14 @@ impl AgentOrchestrator {
     /// Create a new orchestrator with all available agents
     pub fn new() -> Self {
         let mut agents: HashMap<String, Box<dyn Agent>> = HashMap::new();
-        
-        // Register all available agents
+
+        // Register consolidated functional agent with strategy pattern
         agents.insert(
-            "Functional-Positive-Agent".to_string(),
-            Box::new(functional_positive::FunctionalPositiveAgent::new()),
+            "Functional-Agent".to_string(),
+            Box::new(functional_agent::FunctionalAgent::new()),
         );
-        agents.insert(
-            "Functional-Negative-Agent".to_string(),
-            Box::new(functional_negative::FunctionalNegativeAgent::new()),
-        );
+
+        // Register other specialized agents
         agents.insert(
             "Functional-Stateful-Agent".to_string(),
             Box::new(functional_stateful::FunctionalStatefulAgent::new()),
@@ -118,11 +117,40 @@ impl AgentOrchestrator {
 /// Base agent implementation with common functionality
 pub struct BaseAgent {
     pub agent_type: String,
+    llm: Option<Box<dyn crate::llm::Llm>>,
 }
 
 impl BaseAgent {
     pub fn new(agent_type: String) -> Self {
-        Self { agent_type }
+        Self {
+            agent_type,
+            llm: None,
+        }
+    }
+
+    /// Add LLM support to the agent
+    pub fn with_llm(mut self, llm: Box<dyn crate::llm::Llm>) -> Self {
+        self.llm = Some(llm);
+        self
+    }
+
+    /// Use LLM to generate text if available
+    pub async fn use_llm(&self, prompt: &str) -> Result<String, crate::types::AgentError> {
+        match &self.llm {
+            Some(llm) => {
+                llm.generate(prompt)
+                    .await
+                    .map_err(|e| crate::types::AgentError::LlmError(e.to_string()))
+            }
+            None => Err(crate::types::AgentError::LlmError(
+                "LLM not configured for this agent".to_string()
+            ))
+        }
+    }
+
+    /// Check if LLM is available and enabled
+    pub fn has_llm(&self) -> bool {
+        self.llm.as_ref().map_or(false, |llm| llm.is_enabled())
     }
     
     /// Create a standardized test case

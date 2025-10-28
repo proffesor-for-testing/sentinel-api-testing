@@ -1,0 +1,149 @@
+/**
+ * Feedback Form Styles
+ * Additional CSS for custom styling beyond Tailwind
+ */
+
+/* Star Rating Animations */
+.star-icon {
+  transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.star-icon:hover {
+  transform: scale(1.1);
+}
+
+.star-icon:active {
+  transform: scale(0.95);
+}
+
+/* Slider Custom Styling */
+input[type="range"].slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+}
+
+input[type="range"].slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease-in-out;
+}
+
+input[type="range"].slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+input[type="range"].slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease-in-out;
+}
+
+input[type="range"].slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Toast Animation */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.toast-notification {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Focus States for Accessibility */
+.star-icon:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+input[type="checkbox"]:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .test-case-feedback,
+  .test-suite-feedback {
+    padding: 1rem;
+  }
+
+  .star-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  button {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Loading State */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Category Button Hover Effects */
+button[aria-pressed="true"] {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+button[aria-pressed="false"]:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Character Counter */
+.character-counter {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Error States */
+.error-border {
+  border-color: #ef4444;
+}
+
+.error-text {
+  color: #ef4444;
+}

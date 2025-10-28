@@ -34,5 +34,8 @@ lapin = "2.1.1"
 # Consciousness and Sublinear Solver Integration
 thiserror = "1.0"
 
-# HTTP client for MCP integration
+# HTTP client for MCP integration and LLM providers
 reqwest = { version = "0.11", features = ["json"] }
+
+# MD5 for test deduplication
+md5 = "0.7"

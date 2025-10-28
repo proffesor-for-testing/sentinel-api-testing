@@ -351,3 +351,209 @@ pub fn resolve_schema_ref(schema: &Value, api_spec: &Value) -> Value {
     }
     schema.clone()
 }
+
+/// Consolidated boundary value logic - returns (value, description) pairs
+pub fn get_boundary_values(schema: &Value) -> Vec<(Value, String)> {
+    let mut values = Vec::new();
+    let schema_type = schema.get("type").and_then(|t| t.as_str()).unwrap_or("string");
+
+    match schema_type {
+        "integer" | "number" => {
+            // Minimum boundary
+            if let Some(minimum) = schema.get("minimum").and_then(|m| m.as_f64()) {
+                let exclusive = schema.get("exclusiveMinimum").and_then(|e| e.as_bool()).unwrap_or(false);
+                if !exclusive {
+                    values.push((
+                        Value::Number(serde_json::Number::from_f64(minimum).unwrap()),
+                        format!("minimum value ({})", minimum)
+                    ));
+                }
+            }
+
+            // Maximum boundary
+            if let Some(maximum) = schema.get("maximum").and_then(|m| m.as_f64()) {
+                let exclusive = schema.get("exclusiveMaximum").and_then(|e| e.as_bool()).unwrap_or(false);
+                if !exclusive {
+                    values.push((
+                        Value::Number(serde_json::Number::from_f64(maximum).unwrap()),
+                        format!("maximum value ({})", maximum)
+                    ));
+                }
+            }
+        }
+        "string" => {
+            // Minimum length boundary
+            if let Some(min_length) = schema.get("minLength").and_then(|m| m.as_u64()) {
+                if min_length > 0 {
+                    let min_str = "x".repeat(min_length as usize);
+                    values.push((
+                        Value::String(min_str),
+                        format!("minimum length ({})", min_length)
+                    ));
+                }
+            }
+
+            // Maximum length boundary
+            if let Some(max_length) = schema.get("maxLength").and_then(|m| m.as_u64()) {
+                let max_str = "x".repeat(max_length as usize);
+                values.push((
+                    Value::String(max_str),
+                    format!("maximum length ({})", max_length)
+                ));
+            }
+
+            // Enum values
+            if let Some(enum_values) = schema.get("enum").and_then(|e| e.as_array()) {
+                for (i, enum_val) in enum_values.iter().enumerate() {
+                    values.push((
+                        enum_val.clone(),
+                        format!("enum value {} of {}", i + 1, enum_values.len())
+                    ));
+                }
+            }
+        }
+        "array" => {
+            // Minimum items boundary
+            if let Some(min_items) = schema.get("minItems").and_then(|m| m.as_u64()) {
+                if min_items > 0 {
+                    let min_array = Value::Array(vec![Value::String("item".to_string()); min_items as usize]);
+                    values.push((
+                        min_array,
+                        format!("minimum items ({})", min_items)
+                    ));
+                }
+            }
+
+            // Maximum items boundary
+            if let Some(max_items) = schema.get("maxItems").and_then(|m| m.as_u64()) {
+                let max_array = Value::Array(vec![Value::String("item".to_string()); max_items as usize]);
+                values.push((
+                    max_array,
+                    format!("maximum items ({})", max_items)
+                ));
+            }
+        }
+        _ => {}
+    }
+
+    values
+}
+
+/// Get wrong type value for testing type mismatches
+pub fn get_wrong_type_value(expected_type: &str) -> Option<Value> {
+    match expected_type {
+        "string" => Some(Value::Number(serde_json::Number::from(12345))),
+        "integer" => Some(Value::String("not_a_number".to_string())),
+        "number" => Some(Value::String("not_a_number".to_string())),
+        "boolean" => Some(Value::String("not_a_boolean".to_string())),
+        "array" => {
+            let mut obj = serde_json::Map::new();
+            obj.insert("not".to_string(), Value::String("an_array".to_string()));
+            Some(Value::Object(obj))
+        }
+        "object" => Some(Value::String("not_an_object".to_string())),
+        _ => None,
+    }
+}
+
+/// Get type name for a value
+pub fn get_value_type(value: &Value) -> &str {
+    match value {
+        Value::String(_) => "string",
+        Value::Number(_) => "number",
+        Value::Bool(_) => "boolean",
+        Value::Array(_) => "array",
+        Value::Object(_) => "object",
+        Value::Null => "null",
+    }
+}
+
+/// Get invalid format value for testing format violations
+pub fn get_invalid_format_value(format: &str) -> String {
+    match format {
+        "email" => "invalid-email".to_string(),
+        "uri" | "url" => "not-a-url".to_string(),
+        "date" => "not-a-date".to_string(),
+        "date-time" => "not-a-datetime".to_string(),
+        "uuid" => "not-a-uuid".to_string(),
+        "ipv4" => "not-an-ip".to_string(),
+        "ipv6" => "not-an-ipv6".to_string(),
+        "hostname" => "invalid..hostname".to_string(),
+        _ => "invalid_format_value".to_string(),
+    }
+}
+
+/// Determine if optional parameter/property should be included
+pub fn should_include_optional(name: &str) -> bool {
+    // Use deterministic approach based on name hash for consistency
+    let hash = name.len() % 3;
+    hash != 0 // Include ~66% of optional items
+}
+
+/// Generate minimal object with only required fields
+pub fn generate_minimal_object(schema: &Value, api_spec: &Value) -> Value {
+    if schema.get("type").and_then(|t| t.as_str()) != Some("object") {
+        return generate_schema_example(schema);
+    }
+
+    let properties = schema.get("properties").and_then(|p| p.as_object());
+    let required = schema.get("required")
+        .and_then(|r| r.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    let mut obj = serde_json::Map::new();
+
+    if let Some(props) = properties {
+        for (prop_name, prop_schema) in props {
+            if required.contains(&prop_name.as_str()) {
+                let resolved_prop_schema = resolve_schema_ref(prop_schema, api_spec);
+                obj.insert(
+                    prop_name.clone(),
+                    generate_realistic_property_value(prop_name, &resolved_prop_schema),
+                );
+            }
+        }
+    }
+
+    Value::Object(obj)
+}
+
+/// Generate realistic object with both required and optional fields
+pub fn generate_realistic_object(schema: &Value, api_spec: &Value) -> Value {
+    if schema.get("type").and_then(|t| t.as_str()) != Some("object") {
+        return generate_schema_example(schema);
+    }
+
+    let properties = schema.get("properties").and_then(|p| p.as_object());
+    let required = schema.get("required")
+        .and_then(|r| r.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    let mut obj = serde_json::Map::new();
+    let mut rng = thread_rng();
+
+    if let Some(props) = properties {
+        for (prop_name, prop_schema) in props {
+            // Always include required properties, sometimes include optional ones
+            if required.contains(&prop_name.as_str()) || rng.gen_bool(0.8) {
+                let resolved_prop_schema = resolve_schema_ref(prop_schema, api_spec);
+                obj.insert(
+                    prop_name.clone(),
+                    generate_realistic_property_value(prop_name, &resolved_prop_schema),
+                );
+            }
+        }
+    }
+
+    Value::Object(obj)
+}

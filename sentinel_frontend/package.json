@@ -34,6 +34,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:coverage": "react-scripts test --coverage --watchAll=false",
+    "test:feedback": "react-scripts test src/tests/components/ --watchAll=false",
+    "test:feedback:watch": "react-scripts test src/tests/components/",
     "test:ci": "CI=true react-scripts test --coverage --watchAll=false --testResultsProcessor=jest-junit",
     "eject": "react-scripts eject",
     "test:e2e": "playwright test",

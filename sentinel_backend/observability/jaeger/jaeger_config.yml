@@ -1,0 +1,129 @@
+# Jaeger Configuration for Sentinel Platform
+# Sampling strategy and collector configuration
+
+# Sampling strategy (probability-based)
+sampling:
+  # Default sampling strategy (applies to all services unless overridden)
+  default_strategy:
+    type: probabilistic
+    param: 0.1  # Sample 10% of traces
+
+  # Per-service sampling strategies
+  per_operation_strategies:
+    # High-volume endpoints - lower sampling
+    - service: api_gateway
+      operation: /health
+      strategy:
+        type: probabilistic
+        param: 0.01  # Sample 1% of health checks
+
+    - service: api_gateway
+      operation: /metrics
+      strategy:
+        type: probabilistic
+        param: 0.01  # Sample 1% of metrics requests
+
+    # Critical paths - higher sampling
+    - service: orchestration_service
+      operation: generate_tests
+      strategy:
+        type: probabilistic
+        param: 0.5  # Sample 50% of test generation
+
+    - service: auth_service
+      operation: login
+      strategy:
+        type: probabilistic
+        param: 0.3  # Sample 30% of login attempts
+
+    # Error traces - always sample
+    - service: "*"
+      operation: "*"
+      strategy:
+        type: rate_limiting
+        param: 100  # Max 100 traces per second per service
+
+# Adaptive sampling (adjust based on traffic)
+adaptive_sampling:
+  enabled: true
+  target_samples_per_second: 10
+  delta_tolerance: 0.1
+  initial_sampling_probability: 0.1
+  min_sampling_probability: 0.001
+  max_sampling_probability: 1.0
+
+# Storage configuration
+storage:
+  type: badger  # Options: memory, badger, cassandra, elasticsearch
+
+  # Badger (embedded) configuration
+  badger:
+    ephemeral: false
+    directory_value: /badger/data
+    directory_key: /badger/key
+
+  # TTL for traces
+  ttl:
+    enabled: true
+    duration: 168h  # 7 days
+
+# Collector configuration
+collector:
+  # Queue size for incoming spans
+  queue_size: 2000
+
+  # Number of workers processing spans
+  num_workers: 50
+
+  # OTLP receiver configuration
+  otlp:
+    grpc:
+      endpoint: 0.0.0.0:4317
+    http:
+      endpoint: 0.0.0.0:4318
+
+# Query service configuration
+query:
+  # Base path for UI
+  base_path: /
+
+  # Max clock skew adjustment
+  max_clock_skew_adjustment: 0s
+
+  # Max trace lookback duration
+  max_trace_lookback: 168h  # 7 days
+
+  # UI configuration
+  ui:
+    dependencies:
+      menu_enabled: true
+
+    # Archive traces configuration
+    archive:
+      enabled: false
+
+# Agent configuration
+agent:
+  # HTTP server configuration
+  http_server:
+    host_port: 5778
+
+  # Processor configuration
+  processor:
+    jaeger_binary:
+      server_host_port: 6832
+      server_max_packet_size: 65000
+      server_queue_size: 1000
+      workers: 10
+
+    jaeger_compact:
+      server_host_port: 6831
+      server_max_packet_size: 65000
+      server_queue_size: 1000
+      workers: 10
+
+# Metrics configuration for Jaeger itself
+metrics:
+  backend: prometheus
+  http_route: /metrics
+  namespace: jaeger

@@ -13,7 +13,9 @@ from dataclasses import dataclass
 from enum import Enum
 
 from .base_agent import BaseAgent, AgentTask, AgentResult
+from .base_learning_agent import BaseLearningAgent
 from sentinel_backend.config.settings import get_application_settings
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class DependencyType(Enum):
@@ -74,43 +76,76 @@ class StatefulTestScenario:
     cleanup_operations: List[Dict[str, Any]]  # Operations to clean up after test
 
 
-class FunctionalStatefulAgent(BaseAgent):
+class FunctionalStatefulAgent(BaseAgent, BaseLearningAgent):
     """
     Agent responsible for generating stateful functional test cases.
-    
+
     This agent creates test cases that:
     - Span multiple API operations in sequence
     - Manage state between operations using extract/inject rules
     - Validate complex business workflows and resource lifecycles
     - Support resource creation, retrieval, update, and deletion flows
     """
-    
+
     def __init__(self):
-        super().__init__("Functional-Stateful-Agent")
+        BaseAgent.__init__(self, "Functional-Stateful-Agent")
+        BaseLearningAgent.__init__(self)
         self.sodg: Dict[str, OperationNode] = {}
-    
-    async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
+
+    async def execute(self, task: AgentTask, api_spec: Dict[str, Any], db_session: Optional[AsyncSession] = None) -> AgentResult:
         """
         Generate stateful test cases for the given API specification.
-        
+
         Args:
             task: The agent task containing parameters and context
             api_spec: The parsed OpenAPI specification
-            
+            db_session: Optional database session for trajectory tracking
+
         Returns:
             AgentResult with generated stateful test scenarios
         """
+        # Start trajectory tracking
+        trajectory = None
+        if db_session:
+            try:
+                trajectory = await self.start_trajectory(
+                    task_type="stateful_test_generation",
+                    task_description=f"Generate stateful tests for spec {task.spec_id}",
+                    context_data={
+                        "task_id": task.task_id,
+                        "spec_id": task.spec_id,
+                        "agent_type": self.agent_type,
+                        "parameters": task.parameters
+                    },
+                    db_session=db_session,
+                    tenant_id=None
+                )
+            except Exception as e:
+                self.logger.warning(f"Could not start trajectory tracking: {e}")
+
         try:
             self.logger.info(f"Starting stateful test generation for spec_id: {task.spec_id}")
             
             # Step 1: Build the Semantic Operation Dependency Graph
             self.sodg = self._build_sodg(api_spec)
             self.logger.info(f"Built SODG with {len(self.sodg)} operations")
-            
+
+            if trajectory:
+                await self.log_action(
+                    "Identifying workflow patterns from SODG",
+                    action_metadata={"operation_count": len(self.sodg)}
+                )
+
             # Step 2: Identify workflow patterns
             workflow_patterns = self._identify_workflow_patterns()
             self.logger.info(f"Identified {len(workflow_patterns)} workflow patterns")
-            
+
+            if trajectory:
+                await self.log_action(
+                    f"Generating test scenarios for {len(workflow_patterns)} patterns",
+                    action_metadata={"pattern_count": len(workflow_patterns)}
+                )
+
             # Step 3: Generate test scenarios for each pattern
             test_scenarios = []
             for pattern in workflow_patterns:
@@ -123,17 +158,34 @@ class FunctionalStatefulAgent(BaseAgent):
                 test_case = self._convert_scenario_to_test_case(scenario)
                 test_cases.append(test_case)
             
-            # Step 5: If LLM is enabled, generate additional complex workflows
-            if self.llm_enabled and workflow_patterns:
+            # Step 5: If LLM is enabled (either via config or task parameter), generate additional complex workflows
+            use_llm = task.enable_llm and self.llm_enabled  # Both must be true: user wants it AND it's available
+            if use_llm and workflow_patterns:
                 self.logger.info("Generating LLM-enhanced stateful workflows")
+
+                if trajectory:
+                    await self.log_action("Enhancing workflows with LLM complex patterns")
+
                 llm_scenarios = await self._generate_llm_workflows(workflow_patterns[:2], api_spec)
                 for scenario in llm_scenarios:
                     test_case = self._convert_scenario_to_test_case(scenario)
-                    test_case['description'] = f"[LLM] {test_case.get('description', 'Complex workflow')}"
+                    test_case['description'] = f"[LLM Enhanced] {test_case.get('description', 'Complex workflow')}"
                     test_cases.append(test_case)
-            
+
             self.logger.info(f"Generated {len(test_cases)} stateful test cases")
-            
+
+            # Complete trajectory tracking
+            if trajectory:
+                await self.complete_trajectory(
+                    final_output={
+                        "test_case_count": len(test_cases),
+                        "operation_count": len(self.sodg),
+                        "workflow_patterns": len(workflow_patterns),
+                        "llm_enhanced": use_llm
+                    },
+                    test_success_rate=1.0 if test_cases else 0.0
+                )
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,
@@ -146,14 +198,20 @@ class FunctionalStatefulAgent(BaseAgent):
                     "total_test_cases": len(test_cases),
                     "generation_strategy": "sodg_based_stateful_workflows",
                     "supported_patterns": [p["type"] for p in workflow_patterns],
-                    "llm_enhanced": self.llm_enabled,
+                    "llm_enhanced": use_llm,
                     "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
-                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none'
+                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none',
+                    "trajectory_id": self.get_current_trajectory_id()
                 }
             )
-            
+
         except Exception as e:
             self.logger.error(f"Error generating stateful test cases: {str(e)}")
+
+            # Abort trajectory on error
+            if trajectory:
+                await self.abort_trajectory(str(e))
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,

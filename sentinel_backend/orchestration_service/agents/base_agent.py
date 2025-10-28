@@ -23,6 +23,7 @@ class AgentTask(BaseModel):
     agent_type: str
     parameters: Dict[str, Any] = {}
     target_environment: Optional[str] = None
+    enable_llm: bool = False
 
 
 class AgentResult(BaseModel):

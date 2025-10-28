@@ -23,6 +23,9 @@ include = "execution_service"
 include = "data_service"
 
 [[tool.poetry.packages]]
+include = "agentdb_service"
+
+[[tool.poetry.packages]]
 include = "config"
 
 [[tool.poetry.packages]]
@@ -87,6 +90,10 @@ pika = "^1.3.2"
 
 # Performance Testing
 psutil = "^5.9.0"  # For system resource monitoring
+
+# Vector Search and Embeddings
+sentence-transformers = "^2.2.0"  # For generating embeddings
+numpy = "^1.24.0"  # For vector operations
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"

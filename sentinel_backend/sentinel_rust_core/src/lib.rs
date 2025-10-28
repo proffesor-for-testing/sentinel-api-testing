@@ -9,9 +9,11 @@ pub mod types;
 pub mod consciousness;
 pub mod sublinear_orchestrator;
 pub mod mcp_integration;
+pub mod llm;
 
 pub use agents::{Agent, AgentOrchestrator};
 pub use consciousness::{ConsciousnessAgent, EmergentDiscovery};
 pub use sublinear_orchestrator::SublinearOrchestrator;
 pub use mcp_integration::{McpClient, McpError};
+pub use llm::{Llm, LlmError, LlmConfig, LlmResponse};
 pub use types::*;

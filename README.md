@@ -1,365 +1,364 @@
-# Sentinel - AI Agentic API Testing Platform
+# 🛡️ Sentinel - AI-Powered API Testing Platform
 
-Sentinel is an advanced, AI-powered platform designed to automate the entire API testing lifecycle. It leverages a modular, microservices-inspired architecture and an ecosystem of specialized, ephemeral AI agents to provide comprehensive, intelligent, and efficient testing across functional, security, and performance domains.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![React](https://img.shields.io/badge/React-18+-blue.svg)](https://reactjs.org/)
+[![Tests](https://img.shields.io/badge/Tests-540%2B-green.svg)](./sentinel_backend/tests/)
 
-## 🏗️ Architecture Overview
+> **Transform API testing with specialized AI agents that generate, execute, and analyze comprehensive test suites automatically.**
 
-The platform is built upon the **ruv-FANN** and **ruv-swarm** frameworks, enabling a paradigm of "ephemeral swarm intelligence" where lightweight, WASM-based agents are dynamically spawned to perform specific testing tasks and dissolved upon completion.
+Sentinel is an enterprise-grade, AI-powered platform that automates the entire API testing lifecycle using specialized agents for functional, security, and performance testing. Built with a modern microservices architecture and hybrid Python/Rust implementation for optimal performance.
 
-### Core Services
+---
 
-- **API Gateway** (Port 8000): Single entry point for all user interactions with RBAC integration
-- **Authentication Service** (Port 8005): JWT-based authentication and user management
-- **Specification Service** (Port 8001): Manages API specification ingestion and parsing
-- **Orchestration Service** (Port 8002): Central brain managing agentic workflows
-- **Execution Service** (Port 8003): Handles test execution and scheduling
-- **Data & Analytics Service** (Port 8004): Manages data persistence and analytics
-- **PostgreSQL Database** (Port 5432): Data storage with pgvector extension
-- **Sentinel Rust Core** (Port 8088): High-performance agentic core powered by `ruv-swarm`
-- **RabbitMQ Message Broker** (Port 5672/15672): Asynchronous task queue for decoupled service communication
-- **Prometheus** (Port 9090): Metrics collection and monitoring
-- **Jaeger** (Port 16686): Distributed tracing and request flow visualization
+## 📋 Table of Contents
 
-## 🤖 Specialized Agents (Hybrid Python/Rust Implementation)
+- [✨ Features](#-features)
+- [🚀 Quick Start](#-quick-start)
+- [📖 Documentation](#-documentation)
+- [🏗️ Architecture](#️-architecture)
+- [🤖 AI Agents](#-ai-agents)
+- [💻 Usage](#-usage)
+- [🧪 Testing](#-testing)
+- [🛠️ Development](#️-development)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [🆘 Support](#-support)
 
-The platform employs a workforce of specialized AI agents with **both Python and Rust implementations** for optimal performance and reliability:
+---
 
-### Functional Testing Agents
-- **Functional-Positive-Agent**: Generates valid, "happy path" test cases with schema-based data generation ✅ Python/Rust
-- **Functional-Negative-Agent**: Creates boundary value analysis and creative negative testing scenarios ✅ Python/Rust
-- **Functional-Stateful-Agent**: Builds complex multi-step workflows using Semantic Operation Dependency Graphs (SODG) ✅ Python/Rust
+## ✨ Features
 
-### Security Testing Agents
-- **Security-Auth-Agent**: Tests for BOLA, function-level authorization, and authentication bypass vulnerabilities ✅ Python/Rust
-- **Security-Injection-Agent**: Probes for SQL/NoSQL/Command injection and LLM prompt injection attacks ✅ Python/Rust
+### 🎯 **Intelligent Test Generation**
+- **AI-Powered Agents**: 7 specialized agents for functional, security, and performance testing
+- **Multi-LLM Support**: Anthropic Claude, OpenAI GPT-4, Google Gemini, Mistral, and local Ollama models
+- **Specification-Driven**: Automatic test generation from OpenAPI/Swagger specifications
+- **Hybrid Architecture**: Python + Rust for 18-21x performance improvement
 
-### Performance Testing Agents
-- **Performance-Planner-Agent**: Generates comprehensive load, stress, and spike testing scenarios with k6/JMeter/Locust scripts ✅ Python/Rust
+### 🔒 **Comprehensive Testing**
+- **Functional Testing**: Positive, negative, and stateful workflow testing
+- **Security Testing**: BOLA, injection attacks (SQL/NoSQL/Command/LLM), authorization testing
+- **Performance Testing**: Load, stress, and spike testing with k6/JMeter/Locust
+- **540+ Tests**: 97.8% pass rate with comprehensive coverage
 
-### Data Generation Agents
-- **Data-Mocking-Agent**: Creates intelligent, schema-aware test data with multiple generation strategies ✅ Python/Rust
+### 🎨 **Modern User Interface**
+- **React Dashboard**: Real-time metrics and interactive test management
+- **Specification Management**: Upload, parse, and manage OpenAPI specs
+- **Test Execution**: One-click test runs with detailed results
+- **Analytics**: Trend analysis and comprehensive reporting
 
-### Planned Agents
-- **Spec-Linter-Agent**: Analyzes API specs for "LLM-readiness" ⏳ Python only
-- **Performance-Analyzer-Agent**: Analyzes performance test results with AI-powered insights ⏳ Python only
+### ⚡ **Enterprise-Ready**
+- **Microservices Architecture**: 10 independent, scalable services
+- **Docker Deployment**: Complete containerization with Docker Compose
+- **Observability**: Prometheus metrics, Jaeger tracing, structured logging
+- **RBAC**: Role-based access control with JWT authentication
 
-**Performance Benefits**: Rust agents provide 10-50x performance improvement for compute-intensive operations while maintaining Python agents as fallback for resilience.
+---
 
 ## 🚀 Quick Start
 
+Get Sentinel running in **under 5 minutes**:
+
 ### Prerequisites
 
-- Docker and Docker Compose
-- Python 3.10+ (for local development)
-- Poetry (for dependency management)
-- Node.js 14+ and npm (for frontend development)
-- Anthropic API Key (for LLM-powered features)
-- Make (for convenient commands)
+- **Docker** and **Docker Compose** (required)
+- **Git** (required)
+- **Make** (optional, for convenience commands)
+- **Python 3.10+** (only for local development)
+- **Node.js 14+** (only for frontend development)
 
-### Running the Platform - Easy Way (Recommended)
+### Installation
 
-1. **Clone and navigate to the project:**
+1. **Clone the repository**
    ```bash
    git clone https://github.com/proffesor-for-testing/sentinel-api-testing.git
    cd sentinel-api-testing
    ```
 
-2. **Set up LLM configuration (required for AI features):**
+2. **Configure LLM provider** (optional but recommended for AI features)
    ```bash
-   export SENTINEL_APP_ANTHROPIC_API_KEY=your-anthropic-api-key
+   # Set your API key for AI-powered test generation
+   export SENTINEL_APP_ANTHROPIC_API_KEY="your-anthropic-api-key"
+
+   # Or use the configuration script for other providers
+   cd sentinel_backend/scripts
+   ./switch_llm.sh claude    # Claude (default)
+   ./switch_llm.sh openai    # OpenAI GPT-4
+   ./switch_llm.sh gemini    # Google Gemini
+   ./switch_llm.sh local     # Local Ollama
    ```
 
-3. **Complete setup with one command:**
+3. **Start the platform**
    ```bash
+   # Complete setup with one command
    make setup
-   ```
-   This will:
-   - Build all Docker images
-   - Initialize the database with all tables
-   - Start all backend services
-   - Provide instructions for starting the frontend
 
-4. **Start the frontend (in a separate terminal):**
-   ```bash
-   cd sentinel_frontend
-   npm install
-   npm start
+   # Or manually with Docker Compose
+   docker-compose up --build -d
+   make init-db
    ```
 
-5. **Access the platform:**
-   - **Frontend Application**: http://localhost:3000
-     - Default credentials: `admin@sentinel.com` / `admin123`
-   - API Gateway: http://localhost:8000
-   - Petstore Test API: http://localhost:8080 (for testing)
+4. **Access the platform**
+   - 🌐 **Frontend**: http://localhost:3000
+   - 🔐 **Login**: `admin@sentinel.com` / `admin123`
+   - 📚 **API Docs**: http://localhost:8000/docs
+   - 🧪 **Test API**: http://localhost:8080 (Petstore demo)
 
-### Alternative: Manual Setup
-
-If you prefer manual control:
+### Verify Installation
 
 ```bash
-# Build and start services (from project root)
-docker-compose up --build
+# Check all services are running
+make status
 
-# Initialize database (in another terminal, from project root)
-make init-db
+# View service logs
+make logs
 
-# Start frontend (from project root)
+# Run health checks
+curl http://localhost:3000/health
+curl http://localhost:8000/health
+```
+
+**That's it!** You now have a fully functional AI-powered API testing platform running locally.
+
+---
+
+## 📖 Documentation
+
+### 📘 **Getting Started**
+- [**Quick Start Guide**](docs/user-guide/quick-start.md) - Detailed setup instructions
+- [**User Guide**](docs/user-guide/index.md) - Complete platform usage guide
+- [**FAQ**](docs/troubleshooting/index.md) - Common questions and solutions
+
+### 🏗️ **Technical Documentation**
+- [**Architecture Overview**](docs/technical-guide/architecture.md) - System design and components
+- [**API Reference**](docs/api-reference/index.md) - REST API documentation
+- [**Database Schema**](memory-bank/database-schema.md) - Data model design
+- [**Hybrid Python/Rust Architecture**](docs/HYBRID_AGENT_ARCHITECTURE.md) - Performance details
+
+### 🚀 **Deployment & Operations**
+- [**Deployment Guide**](docs/deployment/index.md) - Production deployment
+- [**Docker Guide**](QUICK_DEPLOYMENT_GUIDE.md) - Container orchestration
+- [**Troubleshooting**](docs/troubleshooting/index.md) - Common issues and solutions
+- [**Observability**](README.md#observability--monitoring) - Metrics and tracing
+
+### 🤖 **AI Agents**
+- [**Agent Specifications**](memory-bank/agent-specifications.md) - Detailed agent capabilities
+- [**Rust Agents**](docs/RUST_AGENTS_OVERVIEW.md) - High-performance implementations
+- [**LLM Configuration**](CLAUDE.md#llm-integration) - Multi-provider setup
+
+---
+
+## 🏗️ Architecture
+
+Sentinel uses a modern microservices architecture with 10 independent services:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Frontend (React + nginx)                 │
+│                     http://localhost:3000                   │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────────┐
+│                   API Gateway (FastAPI)                     │
+│                     http://localhost:8000                   │
+└─────┬────────┬────────┬────────┬────────┬──────────────────┘
+      │        │        │        │        │
+┌─────▼────┐ ┌▼──────┐ ┌▼──────┐ ┌▼─────┐ ┌▼────────────────┐
+│   Auth   │ │ Spec  │ │ Orch. │ │ Exec.│ │  Data Service   │
+│ Service  │ │Service│ │Service│ │Service│ │   (Analytics)   │
+│  :8005   │ │ :8001 │ │ :8002 │ │ :8003│ │      :8004      │
+└──────────┘ └───────┘ └───┬───┘ └──────┘ └─────────────────┘
+                            │
+                   ┌────────▼────────┐
+                   │  Rust Core      │
+                   │  (ruv-swarm)    │
+                   │     :8088       │
+                   └────────┬────────┘
+                            │
+         ┌──────────────────┼──────────────────┐
+         │                  │                  │
+    ┌────▼─────┐     ┌─────▼──────┐    ┌─────▼──────┐
+    │PostgreSQL│     │  RabbitMQ  │    │ Prometheus │
+    │  +vector │     │   :5672    │    │   :9090    │
+    │  :5432   │     └────────────┘    └────────────┘
+    └──────────┘
+```
+
+### Core Services
+
+| Service | Port | Description |
+|---------|------|-------------|
+| **Frontend** | 3000 | React UI with Redux state management |
+| **API Gateway** | 8000 | Single entry point with RBAC |
+| **Auth Service** | 8005 | JWT authentication and user management |
+| **Spec Service** | 8001 | OpenAPI specification management |
+| **Orchestration** | 8002 | AI agent coordination and workflows |
+| **Execution Service** | 8003 | Test execution engine |
+| **Data Service** | 8004 | Data persistence and analytics |
+| **Rust Core** | 8088 | High-performance agent execution |
+| **PostgreSQL** | 5432 | Database with pgvector for AI |
+| **RabbitMQ** | 5672 | Asynchronous message broker |
+
+---
+
+## 🤖 AI Agents
+
+Sentinel employs **7 specialized AI agents** with both Python and Rust implementations:
+
+### Functional Testing Agents
+- **🟢 Functional-Positive-Agent**: Valid "happy path" test generation with schema-based data
+- **🔴 Functional-Negative-Agent**: Boundary value analysis and creative negative testing
+- **🔄 Functional-Stateful-Agent**: Complex multi-step workflows with dependency graphs
+
+### Security Testing Agents
+- **🔒 Security-Auth-Agent**: BOLA, authorization bypass, authentication vulnerabilities
+- **💉 Security-Injection-Agent**: SQL/NoSQL/Command/LLM injection attack testing
+
+### Performance Testing Agents
+- **⚡ Performance-Planner-Agent**: Load, stress, spike testing with k6/JMeter/Locust scripts
+
+### Data Generation Agents
+- **📊 Data-Mocking-Agent**: Intelligent, schema-aware test data generation
+
+### Performance
+
+| Implementation | Language | Performance | Use Case |
+|----------------|----------|-------------|----------|
+| **Rust Agents** | Rust | **18-21x faster** | High-volume test generation |
+| **Python Agents** | Python | Baseline | General testing, fallback |
+
+**Automatic Fallback**: System automatically uses Rust for performance, falls back to Python for resilience.
+
+---
+
+## 💻 Usage
+
+### 1️⃣ Upload API Specification
+
+```bash
+# Via UI: Navigate to Specifications → Upload
+# Or via API:
+curl -X POST http://localhost:8000/api/v1/specifications \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "file=@petstore.yaml"
+```
+
+### 2️⃣ Generate Tests with AI
+
+```bash
+# Via UI: Click "Generate Tests" → Select agents
+# Or via API:
+curl -X POST http://localhost:8000/api/v1/test-generation \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "specification_id": "spec-123",
+    "agents": ["functional-positive", "security-auth"],
+    "options": {
+      "max_tests_per_agent": 50,
+      "use_rust": true
+    }
+  }'
+```
+
+### 3️⃣ Execute Test Suites
+
+```bash
+# Via UI: Test Suites → Click "Run"
+# Or via API:
+curl -X POST http://localhost:8000/api/v1/test-runs \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "test_suite_id": "suite-456",
+    "target_environment": "http://api.example.com"
+  }'
+```
+
+### 4️⃣ View Results & Analytics
+
+- **Dashboard**: Real-time metrics at http://localhost:3000/dashboard
+- **Test Runs**: Detailed results at http://localhost:3000/test-runs
+- **Analytics**: Trend analysis at http://localhost:3000/analytics
+
+### Example Workflow
+
+```bash
+# 1. Start the platform
+make setup
+
+# 2. Login to the UI
+# Visit http://localhost:3000
+# Login: admin@sentinel.com / admin123
+
+# 3. Upload Petstore specification
+# Navigate to Specifications → Upload → Choose petstore.yaml
+
+# 4. Generate tests with multiple agents
+# Click "Generate Tests" → Select all agents → Generate
+
+# 5. Create test suite
+# Navigate to Test Cases → Select tests → "Create Suite"
+
+# 6. Run tests
+# Navigate to Test Suites → Select suite → "Run Tests"
+# Target: http://localhost:8080 (Petstore API)
+
+# 7. View results
+# Navigate to Test Runs → Click latest run → View detailed results
+```
+
+---
+
+## 🧪 Testing
+
+Sentinel includes **540+ comprehensive tests** with 97.8% pass rate:
+
+### Run All Tests
+
+```bash
+# Recommended: Run tests in Docker for consistency
+cd sentinel_backend
+./run_tests.sh -d
+
+# Run specific test categories
+./run_tests.sh -d -t unit          # Unit tests (456 tests)
+./run_tests.sh -d -t integration   # Integration tests (20 tests)
+./run_tests.sh -d -t e2e           # End-to-end tests (30 tests)
+./run_tests.sh -d -t agents        # AI agent tests (184 tests)
+```
+
+### Test Coverage
+
+| Category | Tests | Coverage | Status |
+|----------|-------|----------|--------|
+| **AI Agents** | 184 | 100% | ✅ Complete |
+| **LLM Providers** | 272 | 100% | ✅ Complete |
+| **Unit Tests** | 456 | 84% | ✅ Complete |
+| **Integration** | 20 | 4% | ✅ Complete |
+| **Backend E2E** | 30 | 6% | ✅ Complete |
+| **Frontend E2E** | 45+ | 8% | ✅ Complete |
+| **Total** | **540+** | **97.8%** | ✅ **Production Ready** |
+
+### Frontend E2E Tests (Playwright)
+
+```bash
 cd sentinel_frontend
-npm install
-npm start
+npm test                           # Run all Playwright tests
+npm test -- auth.spec.ts          # Run authentication tests
+npm test -- --headed              # Run with browser UI
 ```
 
-### Useful Makefile Commands
+### Performance Tests
 
 ```bash
-make help          # Show all available commands
-make start         # Start all services
-make stop          # Stop all services
-make restart       # Restart services
-make init-db       # Initialize/repair database
-make reset-db      # Reset database (WARNING: data loss)
-make backup-db     # Backup database
-make restore-db    # Restore from backup
-make status        # Check service status
-make logs          # View service logs
-make test          # Run tests
-make clean         # Clean up everything
+cd sentinel_backend
+pytest tests/performance/ -v       # Run all performance tests
+pytest tests/performance/test_load_performance.py -v  # Load testing
 ```
 
-### API Documentation
-
-Once running, you can access the interactive API documentation:
-- API Gateway: http://localhost:8000/docs
-- Each service also exposes its own `/docs` endpoint
-
-### Observability & Monitoring
-
-The platform includes comprehensive observability features:
-
-- **Prometheus Metrics**: http://localhost:9090
-  - View service metrics and health status
-  - Query time-series data for performance analysis
-  - Monitor request rates, latencies, and error rates
-
-- **Jaeger Tracing**: http://localhost:16686
-  - Visualize distributed request flows across services
-  - Analyze service dependencies and bottlenecks
-  - Debug complex multi-service interactions
-
-- **Structured Logging**: All services output JSON-formatted logs with:
-  - Correlation IDs for request tracking
-  - Service context and metadata
-  - Error details and stack traces
-
-
-## 🧠 Advanced AI Features - Consciousness & Intelligence
-
-### Consciousness Verification System
-The platform now includes an advanced consciousness verification system in the Rust core that enables:
-
-- **Emergent Intelligence**: Self-modifying test generation with pattern learning
-- **Psycho-Symbolic Reasoning**: Combines psychological models with symbolic logic for deeper test insights
-- **Temporal Consciousness**: Nanosecond-precision scheduling with temporal computational advantages
-- **Knowledge Graph Integration**: Semantic understanding of API relationships and dependencies
-- **Sublinear Solvers**: O(log n) performance for large-scale test optimization
-
-
-### Key Capabilities:
-- **Predictive Testing**: Solve test scenarios before data arrives using temporal advantages
-- **Pattern Recognition**: Identify edge cases through emergent behavior analysis
-- **Self-Learning**: Tests improve over time through feedback loops
-- **Distributed Intelligence**: Multi-agent swarms with collective decision making
-
-### Testing with Consciousness Features:
-```bash
-# Run consciousness verification tests
-./test_consciousness_improvements.py
-
-# Monitor consciousness emergence
-./monitor_consciousness.sh
-
-# Test API with consciousness features
-./test_api_consciousness.sh
-```
-
-For detailed documentation see:
-- [Consciousness Verification Guide](docs/CONSCIOUSNESS_VERIFICATION_GUIDE.md)
-- [Psycho-Symbolic Test Generation](docs/PSYCHO_SYMBOLIC_TEST_GENERATION_ANALYSIS.md)
-- [Sublinear Implementation Strategy](docs/SUBLINEAR_IMPLEMENTATION_STRATEGY.md)
-
-## 🏎️ Hybrid Architecture
-
-The platform implements a cutting-edge hybrid Python/Rust architecture for optimal performance:
-
-### Execution Strategy
-- **Rust Priority**: When available, high-performance Rust agents execute via RabbitMQ
-- **Python Fallback**: Automatic fallback to Python agents ensures 100% availability
-- **Seamless Switching**: No code changes required - the system automatically selects the best option
-
-### Performance Improvements
-- **18-21x Faster**: Rust agents execute test generation 18-21x faster than Python equivalents
-- **Memory Efficient**: Lower memory footprint with Rust's zero-cost abstractions
-- **Concurrent Processing**: Safe parallel execution without Global Interpreter Lock (GIL)
-- **Type Safety**: Compile-time guarantees prevent runtime errors
-
-### Documentation
-Complete documentation for the hybrid architecture is available in the `docs/` directory:
-- [Hybrid Architecture Overview](docs/HYBRID_AGENT_ARCHITECTURE.md)
-- [Rust Agents Complete Documentation](docs/RUST_AGENTS_OVERVIEW.md)
-- Individual agent implementation guides for each Rust agent
-
-## 🎨 Frontend Features
-
-The platform includes a comprehensive React-based frontend with the following features:
-
-### Core Functionality
-- **Authentication System**: JWT-based login with secure token management
-- **Dashboard**: Real-time database-driven metrics and system status
-- **Specifications Management**: 
-  - Upload and parse OpenAPI specifications (including OpenAPI 3.1.0 with webhooks)
-  - View detailed specification information including endpoints and schemas
-  - Full CRUD operations (Create, Read, Update, Delete)
-  - Quick Test functionality for rapid test generation
-  - Generate Tests with AI agent selection
-- **Test Cases Browser**: 
-  - View all generated test cases with filtering by agent type
-  - Display full test definition details (method, endpoint, expected status)
-  - Create test suites from selected test cases
-  - Tag management for organization
-  - Detailed test case inspection with specification relationships
-- **Test Suites Management**:
-  - Create, view, edit, and delete test suites
-  - Add/remove test cases from suites
-  - View test case count and specification relationships
-  - One-click test suite execution
-- **Test Runs**: 
-  - Execute test suites against target environments
-  - Modal-based test run creation workflow
-  - Real-time status tracking
-  - Detailed results viewing
-- **Analytics**: Comprehensive dashboards with trend analysis and insights
-
-### AI-Powered Test Generation
-- **Agent Selection Modal**: Choose from multiple specialized AI agents
-- **Quick Test**: One-click test generation using default agents
-- **LLM Enhancement**: All agents powered by Claude Sonnet 4 for intelligent test creation
-- **Real-time Progress**: Track test generation status and results
-
-## 📁 Project Structure
-
-```
-Agents for API testing/
-├── docs/                          # Comprehensive documentation
-│   ├── index.md                  # Documentation hub
-│   ├── user-guide/               # User guides and tutorials
-│   ├── technical-guide/          # Technical architecture docs
-│   ├── api-reference/            # API documentation
-│   ├── deployment/               # Deployment guides
-│   └── troubleshooting/          # Common issues and solutions
-├── memory-bank/                  # Project documentation and memory bank
-│   ├── projectbrief.md          # Project overview and objectives
-│   ├── agent-specifications.md  # Detailed agent capabilities
-│   ├── database-schema.md       # Database design
-│   ├── api-design.md            # REST API specifications
-│   └── progress.md              # Implementation roadmap
-├── sentinel_backend/             # Backend microservices
-│   ├── pyproject.toml           # Python dependencies
-│   ├── config/                  # Centralized configuration
-│   │   └── settings.py          # Environment-specific settings
-│   ├── api_gateway/             # API Gateway service (8000)
-│   ├── auth_service/            # Authentication service (8005)
-│   ├── spec_service/            # Specification service (8001)
-│   ├── orchestration_service/   # Agent orchestration (8002)
-│   │   └── agents/              # AI agent implementations
-│   │       ├── functional_positive_agent.py
-│   │       ├── functional_negative_agent.py
-│   │       ├── functional_stateful_agent.py
-│   │       ├── security_auth_agent.py
-│   │       ├── security_injection_agent.py
-│   │       ├── performance_planner_agent.py
-│   │       └── data_mocking_agent.py
-│   ├── execution_service/       # Test execution service (8003)
-│   ├── data_service/           # Data & analytics service (8004)
-│   ├── llm_providers/          # Multi-LLM provider support
-│   │   ├── providers/          # Provider implementations
-│   │   ├── templates/          # Model-specific templates
-│   │   └── utils/              # Cost tracking, caching
-│   ├── sentinel_rust_core/     # High-performance agent core (8088)
-│   ├── scripts/                # LLM configuration scripts
-│   └── tests/                  # Comprehensive test suite (540+ tests)
-│       ├── unit/               # Unit tests (456 tests)
-│       ├── integration/        # Integration tests (20 tests)
-│       ├── e2e/                # Backend E2E tests (30 tests)
-│       └── performance/        # Performance tests
-├── sentinel_frontend/          # React-based frontend UI
-│   ├── src/                   # React application source
-│   │   ├── components/        # Reusable UI components
-│   │   ├── pages/             # Application pages
-│   │   ├── features/          # Redux slices
-│   │   └── services/          # API communication
-│   ├── e2e/                   # Playwright E2E tests (45+ tests)
-│   ├── package.json           # Node.js dependencies
-│   └── tailwind.config.js     # Tailwind CSS configuration
-├── docker-compose.yml         # Main Docker orchestration
-├── demo_*.py                  # Demonstration scripts
-├── scripts/                   # Utility scripts
-└── CLAUDE.md                  # SPARC development configuration
-```
-
-
-## 🤖 Multi-LLM Provider Support
-
-### Overview
-The platform features a comprehensive LLM abstraction layer that enables all AI agents to leverage multiple LLM providers with automatic fallback capabilities. This hybrid approach combines deterministic algorithms with LLM creativity for superior test generation.
-
-### Supported Providers
-- **Anthropic** (Default): Claude Opus 4.1/4, Claude Sonnet 4, Claude Haiku 3.5
-- **OpenAI**: GPT-4 Turbo, GPT-4, GPT-3.5 Turbo
-- **Google**: Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini 2.0 Flash
-- **Mistral**: Mistral Large, Small 3, Codestral
-- **Ollama** (Local): DeepSeek-R1, Llama 3.3, Qwen 2.5, and more
-
-### Key Features
-- **Automatic Fallback**: Seamlessly switches to backup providers on failure
-- **Cost Tracking**: Real-time usage monitoring with budget limits
-- **Response Caching**: Reduces API calls and costs
-- **Token Management**: Intelligent context window handling
-- **Provider-Specific Templates**: Optimized prompts for each model
-
-### Quick Configuration
-
-#### Using Configuration Scripts (Recommended)
-```bash
-# Interactive configuration wizard
-cd sentinel_backend/scripts
-./switch_llm.sh
-
-# Quick presets
-./switch_llm.sh claude    # Use Claude Sonnet 4 (default)
-./switch_llm.sh openai    # Use OpenAI GPT-4 Turbo
-./switch_llm.sh gemini    # Use Google Gemini 2.5
-./switch_llm.sh local     # Use local Ollama
-./switch_llm.sh none      # Disable LLM
-```
-
-#### Manual Configuration
-```bash
-# Use default (Claude Sonnet 4)
-export SENTINEL_APP_ANTHROPIC_API_KEY=your-key
-
-# Switch to OpenAI
-export SENTINEL_APP_LLM_PROVIDER=openai
-export SENTINEL_APP_OPENAI_API_KEY=your-key
-export SENTINEL_APP_LLM_MODEL=gpt-4-turbo
-
-# Use local models with Ollama
-export SENTINEL_APP_LLM_PROVIDER=ollama
-export SENTINEL_APP_LLM_MODEL=llama3.3:70b
-```
-
-For detailed configuration options and scripts, see:
-- [CLAUDE.md](CLAUDE.md#llm-integration) - Complete LLM configuration guide
-- [Scripts README](sentinel_backend/scripts/README.md) - Script documentation
+---
 
 ## 🛠️ Development
 
@@ -367,542 +366,225 @@ For detailed configuration options and scripts, see:
 
 #### Backend Services
 
-1. **Install dependencies:**
+1. **Install dependencies**
    ```bash
    cd sentinel_backend
    poetry install
    ```
 
-2. **Run individual services:**
+2. **Run individual services**
    ```bash
-   # Example: Run the API Gateway
+   # Example: API Gateway
    cd api_gateway
    poetry run uvicorn main:app --reload --port 8000
    ```
 
 #### Frontend Application
 
-1. **Navigate to frontend directory:**
+1. **Install dependencies**
    ```bash
    cd sentinel_frontend
-   ```
-
-2. **Install dependencies:**
-   ```bash
    npm install
    ```
 
-3. **Start the development server:**
+2. **Start development server**
    ```bash
-   npm start
+   npm start  # Runs on port 3000 with hot reload
    ```
 
-4. **Access the frontend:**
-   - Frontend Application: http://localhost:3000
-   - Default credentials: `admin@sentinel.com` / `admin123`
+### Configuration
 
-**Note**: The frontend requires the backend services to be running. You can either:
-- Use Docker Compose to start all backend services: `docker-compose up` (from project root)
-- Run individual backend services manually as shown above
-
-### Configuration Management
-
-The platform uses a comprehensive centralized configuration system built with Pydantic BaseSettings for type-safe configuration management.
-
-#### Configuration Structure
-
-All configuration is managed through `sentinel_backend/config/settings.py` with the following sections:
-
-- **Database Settings**: Connection strings, pool configurations, migration settings
-- **Service Discovery**: Inter-service URLs, ports, timeouts, health check intervals
-- **Security Configuration**: JWT secrets, password policies, CORS settings, rate limiting
-- **Network Settings**: Host bindings, port mappings, timeout configurations
-- **Application Settings**: Feature flags, pagination limits, logging levels, agent parameters
-
-#### Environment-Specific Configuration
-
-The platform supports multiple deployment environments:
-
-```bash
-# Development (default)
-SENTINEL_ENVIRONMENT=development
-
-# Testing
-SENTINEL_ENVIRONMENT=testing
-
-# Production
-SENTINEL_ENVIRONMENT=production
-
-# Docker
-SENTINEL_ENVIRONMENT=docker
-```
-
-#### Configuration Files
-
-Environment-specific configuration files are located in `sentinel_backend/config/`:
-
-- `development.env` - Local development settings
-- `testing.env` - Test environment settings
-- `production.env` - Production deployment settings
-- `docker.env` - Docker container settings
-
-#### Configuration Usage
-
-Services import configuration using centralized functions:
+All configuration is centralized in `sentinel_backend/config/settings.py`:
 
 ```python
-from config.settings import get_settings, get_service_settings, get_application_settings
+from config.settings import get_settings, get_service_settings
 
-# Get all settings
+# Get configuration
 settings = get_settings()
-
-# Get specific setting sections
 service_settings = get_service_settings()
-app_settings = get_application_settings()
 
 # Use configuration
+database_url = settings.database.url
 timeout = service_settings.service_timeout
-log_level = app_settings.log_level
 ```
 
-#### Environment Variables
-
-All configuration can be overridden using environment variables with the `SENTINEL_` prefix:
+**Environment Variables**: All settings can be overridden with `SENTINEL_*` prefix:
 
 ```bash
-# Database configuration
-SENTINEL_DB_URL=postgresql+asyncpg://user:pass@host/db
-SENTINEL_DB_POOL_SIZE=20
-
-# Service URLs
-SENTINEL_SERVICE_AUTH_SERVICE_URL=http://auth:8005
-SENTINEL_SERVICE_SERVICE_TIMEOUT=60
-
-# Security settings
-SENTINEL_SECURITY_JWT_SECRET_KEY=your-secret-key
-SENTINEL_SECURITY_JWT_EXPIRATION_HOURS=24
-
-# Application settings
-SENTINEL_APP_LOG_LEVEL=DEBUG
-SENTINEL_APP_DEBUG=true
+export SENTINEL_DB_URL="postgresql+asyncpg://user:pass@host/db"
+export SENTINEL_APP_LOG_LEVEL="DEBUG"
+export SENTINEL_SECURITY_JWT_SECRET_KEY="your-secret-key"
 ```
 
-#### Docker Configuration
-
-For Docker deployments, use the `.env.docker` file:
+### Database Management
 
 ```bash
-# Copy and customize the Docker environment file
-cp sentinel_backend/.env.docker sentinel_backend/.env.local
-# Edit .env.local with your settings
-docker-compose --env-file .env.local up
+make init-db       # Initialize or repair database
+make reset-db      # Complete reset (WARNING: data loss)
+make backup-db     # Backup to timestamped file
+make restore-db    # Restore from backup
 ```
 
-#### Production Security
-
-For production deployments:
-
-1. **Change default secrets**: Update JWT secret keys and database passwords
-2. **Use environment variables**: Never commit secrets to version control
-3. **Validate configuration**: The system validates configuration on startup
-4. **Monitor configuration**: Enable configuration audit logging
-
-### Observability Configuration
-
-The platform includes comprehensive observability settings:
-
-```python
-# Jaeger tracing configuration
-SENTINEL_NETWORK_JAEGER_AGENT_HOST=localhost
-SENTINEL_NETWORK_JAEGER_AGENT_PORT=6831
-
-# Prometheus metrics
-# Metrics are automatically exposed on /metrics endpoint for all services
-
-# Structured logging
-SENTINEL_APP_LOG_LEVEL=INFO
-SENTINEL_APP_LOG_FORMAT=json  # json or text
-
-# Message Broker configuration
-SENTINEL_BROKER_URL=amqp://guest:guest@message_broker:5672/
-SENTINEL_BROKER_TASK_QUEUE_NAME=sentinel_task_queue
-SENTINEL_BROKER_RESULT_QUEUE_NAME=sentinel_result_queue
-```
-
-### Message Broker Architecture
-
-The platform uses RabbitMQ for asynchronous task processing:
-
-- **Task Queue**: The Orchestration Service publishes agent tasks to RabbitMQ
-- **Consumer**: The Sentinel Rust Core consumes tasks from the queue
-- **Durability**: Messages persist across service restarts
-- **Scalability**: Multiple Rust Core instances can consume from the same queue
-
-To test the message broker integration:
-```bash
-python3 test_rabbitmq_integration.py
-```
-
-This validates:
-- ✅ RabbitMQ connection and queue management
-- ✅ Task publishing from Python services
-- ✅ Task consumption by Rust Core
-- ✅ Message persistence and durability
-
-For production deployments:
-1. Configure external Jaeger collector for trace aggregation
-2. Set up Prometheus scraping and alerting rules
-3. Use log aggregation tools (ELK, Splunk) for centralized logging
-4. Enable correlation ID propagation for distributed debugging
-
-### Testing Infrastructure
-
-The platform includes a comprehensive testing infrastructure with **539+ tests** covering all critical components across unit, integration, and end-to-end test levels:
-
-#### Current Test Statistics (Updated: August 2025)
-- **Total Tests**: 540+ comprehensive tests
-- **Overall Pass Rate**: 97.8%
-- **Test Distribution**:
-  - Unit Tests: 456 tests (84%)
-  - Integration Tests: 20 tests (4%)
-  - Backend E2E Tests: 30 tests (6%)
-  - Frontend E2E Tests: 45+ tests (8%)
-
-#### Test Coverage
-- **AI Agents**: 184 tests covering all 8 specialized agents with comprehensive unit testing (Phase 1 Complete)
-- **LLM Providers**: 272 tests covering all provider implementations and utilities (Phase 2 Complete)
-  - Provider implementations: Google, Mistral, Ollama, vLLM (117+ tests)
-  - Supporting utilities: Model registry, cost tracker, response cache, token counter (155+ tests)
-- **Configuration Management**: 4 comprehensive test files (Phase 5 Complete)
-  - Environment-specific configuration validation
-  - Security settings (JWT, CORS, authentication)
-  - Database configuration and connection validation
-  - LLM provider configuration and API key management
-- **Performance Testing**: 5 comprehensive test files (Phase 5 Complete)
-  - Load testing with concurrent requests and sustained load
-  - Agent performance and scaling benchmarks
-  - Database query optimization and connection pooling
-  - Concurrent execution and race condition handling
-  - Memory usage profiling and leak detection
-- **Auth Service**: 24 tests covering authentication, authorization, and user management
-- **API Gateway**: 23 tests covering routing, middleware, and service communication
-- **Spec Service**: 21 tests covering OpenAPI parsing and specification management
-- **Orchestration Service**: 24 tests covering agent management and task delegation
-- **Data Service**: 25 tests covering CRUD operations and analytics
-- **Execution Service**: 22 tests covering test execution and result collection
-- **Rust Integration**: 3 tests (conditionally run based on service availability)
-
-#### Backend Testing
-- **Unit Tests**: 465+ tests across all services
-  - AI Agents: 184 tests (100% coverage)
-  - LLM Providers: 272+ tests (100% coverage)
-  - Configuration Management: 4 test files (970+ lines)
-  - Performance Testing: 5 test files (1,280+ lines)
-  - Service Components: Comprehensive coverage
-- **Integration Tests**: 6 comprehensive test suites (2,342+ lines)
-  - Service-to-service communication
-  - Database operations & transactions
-  - Message broker (RabbitMQ) integration
-  - Security & authentication flows
-  - Agent-LLM integration
-  - API workflow orchestration
-- **E2E Tests**: 4 comprehensive backend suites
-  - `test_spec_to_execution.py`: Complete API workflow testing
-  - `test_multi_agent_coordination.py`: Agent orchestration & collaboration
-  - `test_performance_pipeline.py`: Load, stress, spike, and endurance testing
-  - `test_security_pipeline.py`: Authentication, authorization, injection testing
-
-#### Frontend Testing (Playwright E2E)
-- **Real Browser E2E Tests**: Chrome, Firefox, Safari, Mobile
-- **9 Comprehensive Test Suites** (45+ test scenarios):
-  - `auth.spec.ts`: Authentication flows & session management
-  - `specifications.spec.ts`: API specification management
-  - `test-generation.spec.ts`: AI-powered test generation workflows
-  - `test-execution.spec.ts`: Complete test execution pipeline
-  - `results-visualization.spec.ts`: Analytics and reporting
-  - `multi-agent.spec.ts`: Multi-agent coordination scenarios
-  - `rbac.spec.ts`: Role-based access control enforcement
-  - `api-import.spec.ts`: OpenAPI/Swagger/Postman import workflows
-
-#### Running Tests
-```bash
-# IMPORTANT: Always run tests in Docker for consistent environment
-cd sentinel_backend
-./run_tests.sh -d                # Run all tests in Docker (RECOMMENDED)
-./run_tests.sh -d -t unit        # Unit tests only in Docker
-./run_tests.sh -d -t integration # Integration tests in Docker
-./run_tests.sh -d -t agents      # AI agent tests in Docker
-
-# Run AI Agent Tests
-./run_agent_tests.sh              # Run all agent tests with colored output
-./run_agent_tests.sh -c           # Run with coverage report
-./run_agent_tests.sh base auth    # Run specific agent tests
-./run_agent_tests.sh -v -p        # Verbose with parallel execution
-
-# Smart test filtering based on environment
-./run_tests_filtered.sh          # Auto-detects Rust service availability
-./run_tests_filtered.sh --with-rust  # Force Rust tests with mocks
-pytest -m "not rust"              # Exclude Rust tests explicitly
-
-# Rebuild test Docker image after dependency changes
-docker-compose -f docker-compose.test.yml build test_runner
-
-# Run tests for specific service
-pytest tests/unit/test_auth_service.py -v
-pytest tests/unit/test_llm_providers.py -v
-pytest tests/unit/agents/         # Run all agent tests
-
-# Run tests with coverage
-pytest tests/unit/ --cov=. --cov-report=term-missing
-
-# Run configuration tests
-pytest tests/unit/test_config_validation.py -v
-pytest tests/unit/test_security_config.py -v
-pytest tests/unit/test_database_config.py -v
-pytest tests/unit/test_llm_config.py -v
-
-# Run performance tests
-pytest tests/performance/ -v
-pytest tests/performance/test_load_performance.py -v
-pytest tests/performance/test_concurrent_execution.py -v
-```
-
-#### Factory Pattern Architecture
-All services implement the factory pattern for enhanced testability:
-- Dependency injection at app creation time
-- Mock mode for isolated testing without external dependencies
-- Configurable timeouts and connections
-- Consistent testing approach across all services
-
-#### Test Helpers & Fixtures
-- `tests/helpers/auth_helpers.py`: Authentication test utilities
-- `tests/fixtures/`: Shared test data and mock responses
-- Docker test environment for consistent testing
-
-### Database Setup & Management
-
-The platform includes a comprehensive database initialization system that automatically creates all required tables and columns.
-
-#### Automatic Database Initialization
-
-When you start the services, the database is automatically initialized with:
-- All required tables (users, projects, test_cases, test_results, etc.)
-- All necessary columns and indexes
-- Default admin user (admin@sentinel.com / admin123)
-- Proper foreign key relationships
-
-#### Database Management Commands
+### Useful Commands
 
 ```bash
-# Initialize or repair database (safe to run anytime)
-make init-db
-
-# Reset database completely (WARNING: destroys all data)
-make reset-db
-
-# Backup database to timestamped file
-make backup-db
-
-# Restore from latest backup
-make restore-db
+make help          # Show all available commands
+make start         # Start all services
+make stop          # Stop all services
+make restart       # Restart services
+make status        # Check service health
+make logs          # View service logs
+make clean         # Clean up containers and volumes
 ```
-
-#### Troubleshooting Database Issues
-
-If you encounter "column does not exist" or "table does not exist" errors:
-
-1. **Quick Fix**: Run `make init-db` to apply the schema
-2. **Complete Reset**: If issues persist, run `make reset-db` (WARNING: data loss)
-3. **Manual Check**: Verify database status:
-   ```bash
-   docker-compose exec -T db psql -U sentinel sentinel_db -c "\dt"
-   ```
-
-#### Database Files
-
-- `sentinel_backend/init_db.sql` - Complete schema definition
-- `sentinel_backend/init_database.py` - Automatic initialization script
-- `sentinel_backend/docker-entrypoint.sh` - Startup initialization
-- `docs/DATABASE_SETUP.md` - Detailed database documentation
-
-The database uses PostgreSQL with the pgvector extension for AI-powered features.
-
-### Authentication & RBAC
-
-The platform includes comprehensive Role-Based Access Control (RBAC) with a modern React-based authentication system:
-
-**Frontend Authentication:**
-- **Login Page**: http://localhost:3000/login (automatically redirected when not authenticated)
-- **Demo Credentials Button**: Quick-fill form with default admin credentials
-- **Route Protection**: All dashboard pages require authentication
-- **User Menu**: Access profile and logout functionality from the top-right corner
-
-**Default Admin Credentials:**
-- Email: `admin@sentinel.com`
-- Password: `admin123`
-
-**User Roles:**
-- **Admin**: Full access including user management
-- **Manager**: Most permissions except user management
-- **Tester**: Testing-focused permissions (create/edit test cases, run tests)
-- **Viewer**: Read-only access to all resources
-
-**Authentication Features:**
-- JWT-based authentication with secure token storage
-- Redux state management for authentication across the application
-- Automatic token handling in API requests
-- Session persistence across browser refreshes
-- Secure logout with token cleanup
-
-**Demo RBAC Features:**
-```bash
-python demo_rbac.py
-```
-
-This script demonstrates authentication, authorization, and role-based permissions across different user types.
-
-## 📊 Key Features
-
-- **Intelligent Test Generation**: AI agents automatically generate comprehensive test suites
-- **Multi-Domain Testing**: Covers functional, security, and performance testing
-- **Specification-Driven**: Deep understanding of OpenAPI specifications
-- **Hybrid AI Approach**: Combines deterministic algorithms with LLM creativity
-- **Real-time Analytics**: Historical trend analysis and anomaly detection
-- **CI/CD Integration**: Seamless integration with modern DevOps workflows
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
-
-We welcome contributions from the community! Whether you're a developer, a tester, or just an enthusiast, there are many ways to get involved.
-
-Before you start, please read our [**Code of Conduct**](CODE_OF_CONDUCT.md) to understand our community standards.
-
-### How to Contribute
-
-For a detailed guide on how to contribute, set up your development environment, and follow our style guidelines, please see our [**Contributing Guide**](CONTRIBUTING.md).
-
-Here's a quick overview of the process:
-
-1.  **Find an issue** to work on or propose a new feature. Check out issues labeled `good first issue` for a great place to start.
-2.  **Fork the repository** and create a new branch for your work.
-3.  **Make your changes**, following the project's coding and style guidelines.
-4.  **Write tests** to cover your changes and ensure existing tests pass.
-5.  **Submit a Pull Request** with a clear description of your changes.
-
-We use GitHub issues to track bugs and feature requests. Please use our issue templates when creating a new issue:
-
--   [**Report a Bug**](https://github.com/proffesor-for-testing/sentinel-api-testing/issues/new?template=bug_report.md)
--   [**Request a Feature**](https://github.com/proffesor-for-testing/sentinel-api-testing/issues/new?template=feature_request.md)
-
-### Key Principles
-
-This project follows the patterns and preferences outlined in `.clinerules`. Key principles include:
-
--   **Modularity**: Develop within the microservices architecture.
--   **Agent Specialization**: Create specialized agents for new testing types.
--   **Specification-Driven**: All development is driven by API specifications.
--   **Hybrid AI**: Combine deterministic algorithms with LLM capabilities.
-
-## 📚 Documentation
-
-### 📖 Comprehensive Documentation Portal
-
-The Sentinel platform now includes extensive documentation covering all aspects of usage, deployment, and development:
-
-#### [**📘 Complete Documentation Index**](docs/index.md)
-Your starting point for all Sentinel documentation.
-
-#### Core Documentation Sections:
-
-- **[User Guide](docs/user-guide/index.md)** - Complete guide for using Sentinel
-  - [Quick Start Guide](docs/user-guide/quick-start.md) - Get up and running in minutes
-  - [Managing API Specifications](docs/user-guide/specifications.md) - Upload and manage OpenAPI specs
-  - [Understanding Test Types](docs/user-guide/test-types.md) - Learn about different testing approaches
-  - [CI/CD Integration](docs/user-guide/cicd-integration.md) - Integrate with your DevOps pipeline
-
-- **[Technical Guide](docs/technical-guide/index.md)** - In-depth technical documentation
-  - [Architecture Overview](docs/technical-guide/architecture.md) - System design and components
-  - Service components and interactions
-  - Agent implementation details
-  - Database schema and models
-
-- **[API Reference](docs/api-reference/index.md)** - Complete API documentation
-  - REST API endpoints with examples
-  - Authentication and authorization
-  - Code examples in multiple languages
-  - SDK libraries and usage
-
-- **[Deployment Guide](docs/deployment/index.md)** - Production deployment instructions
-  - Docker and Kubernetes deployment
-  - Cloud platform deployments (AWS, GCP, Azure)
-  - Scaling strategies
-  - Security hardening
-
-- **[Troubleshooting Guide](docs/troubleshooting/index.md)** - Diagnose and resolve issues
-  - Common problems and solutions
-  - Debugging techniques
-  - Performance optimization
-  - FAQ
-
-### Common Issues & Solutions
-
-#### Test Execution Failures
-
-**Issue**: All tests fail with "Request URL has an unsupported protocol" error
-- **Cause**: Invalid target environment URL (e.g., `ttp://` instead of `http://`)
-- **Solution**: Ensure URLs start with `http://` or `https://`
-- **Prevention**: Frontend now validates URLs and provides default value
-
-#### Database Errors
-
-**Issue**: "column does not exist" or "table does not exist" errors
-- **Solution**: Run `make init-db` to initialize/repair database
-- **Alternative**: Run `make reset-db` for complete reset (WARNING: data loss)
-
-**Issue**: Services fail to start after restart
-- **Solution**: Run `make setup` for complete initialization
-
-#### Frontend Issues
-
-**Issue**: Frontend shows blank page or connection errors
-- **Solution**: Ensure backend services are running: `make status`
-- **Alternative**: Restart all services: `make restart`
-
-#### Petstore API Issues
-
-**Issue**: Test runs fail because target API is not available
-- **Solution**: Start Petstore: `make start-petstore`
-- **Default URL**: `http://host.docker.internal:8080`
-
-#### Memory Bank Documentation:
-
-Additional technical documentation is maintained in the `memory-bank/` directory:
-
-- **[Project Brief](memory-bank/projectbrief.md)**: Overall project scope and objectives
-- **[System Patterns](memory-bank/systemPatterns.md)**: Architectural decisions and patterns
-- **[Agent Specifications](memory-bank/agent-specifications.md)**: Detailed agent capabilities and workflows
-- **[Database Schema](memory-bank/database-schema.md)**: Complete data model design
-- **[API Design](memory-bank/api-design.md)**: Internal REST API specifications
-- **[Progress Tracking](memory-bank/progress.md)**: Implementation roadmap and status
-- **[Active Context](memory-bank/activeContext.md)**: Current development focus
-
-## 🔮 Future Vision
-
-Sentinel aims to transform API testing from a manual, reactive process to an intelligent, proactive, and automated part of the development lifecycle. The platform will continuously evolve to incorporate the latest advances in AI and testing methodologies.
 
 ---
 
-The Sentinel platform is production-ready and provides comprehensive API testing across all major domains:
+## 🤝 Contributing
 
-🔧 **Functional Testing**: Positive, negative, and stateful workflow testing with advanced boundary value analysis and creative test generation.
+We welcome contributions! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
 
-🔐 **Security Testing**: BOLA, function-level authorization, authentication bypass, and comprehensive injection vulnerability testing (SQL/NoSQL/Command/Prompt injection for LLM-backed APIs).
+### Quick Start
 
-⚡ **Performance Testing**: Load, stress, and spike testing with intelligent API analysis and automated k6/JMeter script generation.
+1. **Fork the repository** and clone your fork
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/sentinel-api-testing.git
+   cd sentinel-api-testing
+   ```
 
-📊 **Enhanced Reporting**: React-based UI with detailed failure analysis, agent-specific insights, and interactive test case exploration.
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-The platform is enterprise-ready for comprehensive API testing across functional, security, and performance domains!
+3. **Make your changes**
+   - Follow the project's coding standards
+   - Write tests for new features
+   - Update documentation as needed
+
+4. **Run tests**
+   ```bash
+   cd sentinel_backend
+   ./run_tests.sh -d
+   ```
+
+5. **Commit and push**
+   ```bash
+   git add .
+   git commit -m "feat: add your feature description"
+   git push origin feature/your-feature-name
+   ```
+
+6. **Create a Pull Request**
+   - Go to the repository on GitHub
+   - Click "New Pull Request"
+   - Select your branch
+   - Fill in the PR template
+
+### Development Guidelines
+
+- **Code Style**: Follow PEP 8 for Python, ESLint for JavaScript/React
+- **Testing**: Maintain 90%+ test coverage for new code
+- **Documentation**: Update relevant docs for new features
+- **Commits**: Use conventional commits (feat:, fix:, docs:, etc.)
+
+### Resources
+
+- [**Contributing Guide**](CONTRIBUTING.md) - Detailed contribution instructions
+- [**Code of Conduct**](CODE_OF_CONDUCT.md) - Community standards
+- [**Development Setup**](docs/technical-guide/index.md) - Technical documentation
+
+### Report Issues
+
+- [**Report a Bug**](https://github.com/proffesor-for-testing/sentinel-api-testing/issues/new?template=bug_report.md)
+- [**Request a Feature**](https://github.com/proffesor-for-testing/sentinel-api-testing/issues/new?template=feature_request.md)
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🆘 Support
+
+### 📚 Documentation
+
+- [**Complete Documentation**](docs/index.md) - Full documentation portal
+- [**FAQ**](docs/troubleshooting/index.md) - Frequently asked questions
+- [**Troubleshooting Guide**](docs/troubleshooting/index.md) - Common issues and solutions
+
+### 💬 Community
+
+- **GitHub Issues**: [Report bugs or request features](https://github.com/proffesor-for-testing/sentinel-api-testing/issues)
+- **GitHub Discussions**: [Ask questions and share ideas](https://github.com/proffesor-for-testing/sentinel-api-testing/discussions)
+
+### 🔧 Common Issues
+
+<details>
+<summary><strong>Database connection errors</strong></summary>
+
+```bash
+# Fix database issues
+make init-db
+
+# Or complete reset
+make reset-db
+```
+</details>
+
+<details>
+<summary><strong>Services not starting</strong></summary>
+
+```bash
+# Check service status
+make status
+
+# View logs for errors
+make logs
+
+# Restart all services
+make restart
+```
+</details>
+
+<details>
+<summary><strong>Frontend blank page</strong></summary>
+
+```bash
+# Ensure backend is running
+make status
+
+# Check frontend logs
+docker-compose logs frontend
+
+# Restart frontend
+docker-compose restart frontend
+```
+</details>
+
+<details>
+<summary><strong>Test execution fails</strong></summary>
+
+- Ensure target API URL is valid (starts with `http://` or `https://`)
+- Check target API is accessible: `curl http://your-api-url`
+- Verify test suite has test cases assigned
+</details>
+
+### 📧 Contact
+
+For additional support or questions:
+- Open an issue on [GitHub](https://github.com/proffesor-for-testing/sentinel-api-testing/issues)
+- Check our [documentation](docs/index.md)
+
+---
+
+<div align="center">
+
+**⭐ Star this repository if you find it helpful!**
+
+Made with ❤️ by the Sentinel Team
+
+[Documentation](docs/index.md) • [Contributing](CONTRIBUTING.md) • [License](LICENSE) • [Issues](https://github.com/proffesor-for-testing/sentinel-api-testing/issues)
+
+</div>

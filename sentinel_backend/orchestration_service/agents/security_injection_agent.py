@@ -12,14 +12,16 @@ from typing import Dict, List, Any, Optional
 import re
 import base64
 from .base_agent import BaseAgent, AgentTask, AgentResult
+from .base_learning_agent import BaseLearningAgent
 from sentinel_backend.config.settings import get_application_settings
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
-class SecurityInjectionAgent(BaseAgent):
+class SecurityInjectionAgent(BaseAgent, BaseLearningAgent):
     """
     Agent specialized in testing injection vulnerabilities.
-    
+
     Primary focus areas:
     - Prompt Injection (for LLM-backed APIs)
     - SQL Injection
@@ -28,29 +30,72 @@ class SecurityInjectionAgent(BaseAgent):
     - LDAP Injection
     - XPath Injection
     """
-    
+
     def __init__(self):
-        super().__init__("security-injection")
+        BaseAgent.__init__(self, "security-injection")
+        BaseLearningAgent.__init__(self)
         self.agent_type = "Security-Injection-Agent"
         self.description = "Security agent focused on injection vulnerabilities including prompt injection"
-    
-    async def execute(self, task: AgentTask, api_spec: Dict[str, Any]) -> AgentResult:
+
+    async def execute(self, task: AgentTask, api_spec: Dict[str, Any], db_session: Optional[AsyncSession] = None) -> AgentResult:
         """
         Execute the Security Injection Agent to generate injection vulnerability test cases.
-        
+
         Args:
             task: The agent task containing execution parameters
             api_spec: The parsed API specification
-            
+            db_session: Optional database session for trajectory tracking
+
         Returns:
             AgentResult containing generated test cases
         """
+        # Start trajectory tracking
+        trajectory = None
+        if db_session:
+            try:
+                trajectory = await self.start_trajectory(
+                    task_type="security_injection_testing",
+                    task_description=f"Generate injection security tests for spec {task.spec_id}",
+                    context_data={
+                        "task_id": task.task_id,
+                        "spec_id": task.spec_id,
+                        "agent_type": self.agent_type,
+                        "parameters": task.parameters
+                    },
+                    db_session=db_session,
+                    tenant_id=None
+                )
+            except Exception as e:
+                logger.warning(f"Could not start trajectory tracking: {e}")
+
         try:
             logger.info(f"Security Injection Agent executing task {task.task_id}")
-            
-            # Generate test cases
-            test_cases = await self.generate_test_cases(api_spec)
-            
+
+            if trajectory:
+                await self.log_action("Analyzing API for injection vulnerabilities")
+
+            # Generate test cases (pass task for LLM flag)
+            test_cases = await self.generate_test_cases(api_spec, task)
+
+            if trajectory:
+                await self.log_action(
+                    f"Generated {len(test_cases)} injection test cases",
+                    action_metadata={"test_count": len(test_cases)}
+                )
+
+            # Check if LLM was used
+            use_llm = task.enable_llm and self.llm_enabled  # Both must be true: user wants it AND it's available
+
+            # Complete trajectory tracking
+            if trajectory:
+                await self.complete_trajectory(
+                    final_output={
+                        "test_case_count": len(test_cases),
+                        "llm_enhanced": use_llm
+                    },
+                    test_success_rate=1.0 if test_cases else 0.0
+                )
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,
@@ -58,13 +103,22 @@ class SecurityInjectionAgent(BaseAgent):
                 test_cases=test_cases,
                 metadata={
                     "total_tests": len(test_cases),
-                    "injection_types": ["Prompt", "SQL", "NoSQL", "Command", "LDAP", "XPath"]
+                    "injection_types": ["Prompt", "SQL", "NoSQL", "Command", "LDAP", "XPath"],
+                    "llm_enhanced": use_llm,
+                    "llm_provider": getattr(self.llm_provider.config, 'provider', 'none') if self.llm_provider else 'none',
+                    "llm_model": getattr(self.llm_provider.config, 'model', 'none') if self.llm_provider else 'none',
+                    "trajectory_id": self.get_current_trajectory_id()
                 },
                 error_message=None
             )
-            
+
         except Exception as e:
             logger.error(f"Error in Security Injection Agent: {str(e)}")
+
+            # Abort trajectory on error
+            if trajectory:
+                await self.abort_trajectory(str(e))
+
             return AgentResult(
                 task_id=task.task_id,
                 agent_type=self.agent_type,
@@ -74,37 +128,49 @@ class SecurityInjectionAgent(BaseAgent):
                 error_message=str(e)
             )
     
-    async def generate_test_cases(self, spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def generate_test_cases(self, spec_data: Dict[str, Any], task: AgentTask = None) -> List[Dict[str, Any]]:
         """
         Generate security test cases focused on injection vulnerabilities.
-        
+
         Args:
             spec_data: Parsed OpenAPI specification
-            
+            task: Optional agent task for LLM flag
+
         Returns:
             List of test cases targeting injection vulnerabilities
         """
         test_cases = []
-        
+
         try:
             # Extract paths and operations from spec
             paths = spec_data.get('paths', {})
-            
+
             for path, operations in paths.items():
                 for method, operation_spec in operations.items():
                     if method.upper() in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']:
                         # Generate prompt injection test cases
                         test_cases.extend(self._generate_prompt_injection_tests(path, method, operation_spec))
-                        
+
                         # Generate SQL injection test cases
                         test_cases.extend(self._generate_sql_injection_tests(path, method, operation_spec))
-                        
+
                         # Generate NoSQL injection test cases
                         test_cases.extend(self._generate_nosql_injection_tests(path, method, operation_spec))
-                        
+
                         # Generate command injection test cases
                         test_cases.extend(self._generate_command_injection_tests(path, method, operation_spec))
-            
+
+            # If LLM is enabled (either via config or task parameter), generate sophisticated injection vectors
+            use_llm = self.llm_enabled or (task and task.enable_llm)
+            if use_llm and paths:
+                logger.info("Generating LLM-enhanced security injection test cases")
+                # Generate additional sophisticated injection variants
+                for test in test_cases[:5]:  # Enhance first 5 tests
+                    variant = await self.generate_creative_variant(test, "edge_case")
+                    if variant:
+                        variant["description"] = f"[LLM Enhanced] {variant.get('description', 'Sophisticated injection')}"
+                        test_cases.append(variant)
+
             logger.info(f"Generated {len(test_cases)} security injection test cases")
             return test_cases
             
