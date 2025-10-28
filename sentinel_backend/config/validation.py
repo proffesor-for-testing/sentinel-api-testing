@@ -463,10 +463,8 @@ class ConfigurationReporter:
         if report.get("errors"):
             print("ERRORS:")
             for error in report["errors"]:
-                # lgtm[py/clear-text-logging-sensitive-data]
-                # CodeQL false positive: CLI output tool for debugging, not production logging
-                # Sensitive data should be sanitized before being added to the report
-                print(f"  ❌ {error}")
+                # Sanitize potential sensitive data in error messages before output
+                print(f"  ❌ {_sanitize_log_message(str(error))}")
             print()
 
         if report.get("warnings"):
@@ -475,7 +473,7 @@ class ConfigurationReporter:
                 # lgtm[py/clear-text-logging-sensitive-data]
                 # CodeQL false positive: CLI output tool for debugging, not production logging
                 # Sensitive data should be sanitized before being added to the report
-                print(f"  ⚠️  {warning}")
+                print(f"  ⚠️  {_sanitize_log_message(str(warning))}")
             print()
         
         if report.get("sections"):
@@ -491,6 +489,32 @@ class ConfigurationReporter:
         print("=" * 60)
 
 def _sanitize_log_message(message: str) -> str:
+    """
+    Redact or mask sensitive information (such as passwords, secrets, tokens, keys)
+    from a log message before output.
+    """
+    SENSITIVE_KEYWORDS = [
+        "password", "secret", "token", "key", "api_key", "jwt"
+    ]
+    # rudimentary regexes, can be adjusted for your settings/errors
+    import re
+    sanitized = message
+    # redact specific patterns: <keyword>:<value>, <keyword> is <value>, etc.
+    for keyword in SENSITIVE_KEYWORDS:
+        # Redact patterns like: password: something, password is something
+        sanitized = re.sub(
+            fr"{keyword}([^\w\d]?[:=][^\w\d]?)\s*\S+",
+            fr"{keyword}\1 ***REDACTED***",
+            sanitized,
+            flags=re.IGNORECASE
+        )
+        sanitized = re.sub(
+            fr"{keyword}\s+is\s+\S+",
+            fr"{keyword} is ***REDACTED***",
+            sanitized,
+            flags=re.IGNORECASE
+        )
+    return sanitized
     """
     Sanitize log messages to prevent logging sensitive information.
     Redacts sensitive keywords while keeping the message informative.
