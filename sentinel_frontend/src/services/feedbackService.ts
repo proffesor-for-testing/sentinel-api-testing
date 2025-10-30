@@ -31,7 +31,8 @@ import type {
  * - GET /api/v1/feedback/patterns/{pattern_id} - Get pattern feedback
  */
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8002';
+// Use API Gateway (port 8000) instead of direct orchestration service access
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
 const FEEDBACK_ENDPOINT = process.env.REACT_APP_FEEDBACK_ENDPOINT || '/api/v1/feedback';
 
 class FeedbackService {
@@ -96,10 +97,12 @@ class FeedbackService {
           return Promise.reject(corsError);
         }
 
+        // Type the error response data
+        const responseData = error.response?.data as any;
         const apiError: ApiError = {
-          message: error.response?.data?.message || error.message || 'An unexpected error occurred',
-          code: error.response?.data?.code || error.code,
-          details: error.response?.data?.details
+          message: responseData?.message || error.message || 'An unexpected error occurred',
+          code: responseData?.code || error.code,
+          details: responseData?.details
         };
         return Promise.reject(apiError);
       }

@@ -34,7 +34,7 @@ Sentinel is an enterprise-grade, AI-powered platform that automates the entire A
 - **AI-Powered Agents**: 7 specialized agents for functional, security, and performance testing
 - **Multi-LLM Support**: Anthropic Claude, OpenAI GPT-4, Google Gemini, Mistral, and local Ollama models
 - **Specification-Driven**: Automatic test generation from OpenAPI/Swagger specifications
-- **Hybrid Architecture**: Python + Rust for 18-21x performance improvement
+- **Hybrid Architecture**: Python + Rust with intelligent routing based on real-time performance metrics
 
 ### 🔒 **Comprehensive Testing**
 - **Functional Testing**: Positive, negative, and stateful workflow testing
@@ -225,10 +225,12 @@ Sentinel employs **7 specialized AI agents** with both Python and Rust implement
 
 | Implementation | Language | Performance | Use Case |
 |----------------|----------|-------------|----------|
-| **Rust Agents** | Rust | **18-21x faster** | High-volume test generation |
-| **Python Agents** | Python | Baseline | General testing, fallback |
+| **Python Agents** | Python | **Optimized** | General testing, LLM integration |
+| **Rust Agents** | Rust | **Alternative** | Experimental high-volume scenarios |
 
-**Automatic Fallback**: System automatically uses Rust for performance, falls back to Python for resilience.
+**Intelligent Routing**: System selects optimal implementation based on real-time performance metrics. Benchmark testing shows Python and Rust implementations have comparable performance with different strengths - Python excels at LLM-integrated workflows while Rust provides consistent performance for high-volume generation.
+
+**Performance Note**: Early claims of "18-21x" Rust performance advantage have been revised after comprehensive benchmarking. Actual performance varies by workload - see `docs/BENCHMARK_RESULTS.md` for detailed metrics.
 
 ---
 

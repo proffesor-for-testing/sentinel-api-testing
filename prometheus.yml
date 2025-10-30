@@ -19,9 +19,11 @@ scrape_configs:
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
-        labels:
-          service: 'prometheus'
-          tier: 'observability'
+    relabel_configs:
+      - target_label: service
+        replacement: 'prometheus'
+      - target_label: tier
+        replacement: 'observability'
 
   # API Gateway
   - job_name: 'api_gateway'
@@ -29,9 +31,11 @@ scrape_configs:
       - targets: ['api_gateway:8000']
     metrics_path: '/metrics'
     scrape_interval: 10s
-    labels:
-      service: 'api_gateway'
-      tier: 'gateway'
+    relabel_configs:
+      - target_label: service
+        replacement: 'api_gateway'
+      - target_label: tier
+        replacement: 'gateway'
 
   # Auth Service
   - job_name: 'auth_service'
@@ -39,9 +43,11 @@ scrape_configs:
       - targets: ['auth_service:8005']
     metrics_path: '/metrics'
     scrape_interval: 10s
-    labels:
-      service: 'auth_service'
-      tier: 'backend'
+    relabel_configs:
+      - target_label: service
+        replacement: 'auth_service'
+      - target_label: tier
+        replacement: 'backend'
 
   # Spec Service
   - job_name: 'spec_service'
@@ -49,9 +55,11 @@ scrape_configs:
       - targets: ['spec_service:8001']
     metrics_path: '/metrics'
     scrape_interval: 10s
-    labels:
-      service: 'spec_service'
-      tier: 'backend'
+    relabel_configs:
+      - target_label: service
+        replacement: 'spec_service'
+      - target_label: tier
+        replacement: 'backend'
 
   # Orchestration Service
   - job_name: 'orchestration_service'
@@ -59,9 +67,11 @@ scrape_configs:
       - targets: ['orchestration_service:8002']
     metrics_path: '/metrics'
     scrape_interval: 10s
-    labels:
-      service: 'orchestration_service'
-      tier: 'backend'
+    relabel_configs:
+      - target_label: service
+        replacement: 'orchestration_service'
+      - target_label: tier
+        replacement: 'backend'
 
   # Execution Service
   - job_name: 'execution_service'
@@ -69,9 +79,11 @@ scrape_configs:
       - targets: ['execution_service:8003']
     metrics_path: '/metrics'
     scrape_interval: 10s
-    labels:
-      service: 'execution_service'
-      tier: 'backend'
+    relabel_configs:
+      - target_label: service
+        replacement: 'execution_service'
+      - target_label: tier
+        replacement: 'backend'
 
   # Data Service
   - job_name: 'data_service'
@@ -79,9 +91,11 @@ scrape_configs:
       - targets: ['data_service:8004']
     metrics_path: '/metrics'
     scrape_interval: 10s
-    labels:
-      service: 'data_service'
-      tier: 'backend'
+    relabel_configs:
+      - target_label: service
+        replacement: 'data_service'
+      - target_label: tier
+        replacement: 'backend'
 
   # Rust Core Service
   - job_name: 'sentinel_rust_core'
@@ -89,10 +103,13 @@ scrape_configs:
       - targets: ['sentinel_rust_core:8088']
     metrics_path: '/metrics'
     scrape_interval: 10s
-    labels:
-      service: 'rust_core'
-      tier: 'backend'
-      language: 'rust'
+    relabel_configs:
+      - target_label: service
+        replacement: 'rust_core'
+      - target_label: tier
+        replacement: 'backend'
+      - target_label: language
+        replacement: 'rust'
 
   # RabbitMQ Metrics
   - job_name: 'rabbitmq'
@@ -100,9 +117,11 @@ scrape_configs:
       - targets: ['message_broker:15692']
     metrics_path: '/metrics'
     scrape_interval: 15s
-    labels:
-      service: 'rabbitmq'
-      tier: 'messaging'
+    relabel_configs:
+      - target_label: service
+        replacement: 'rabbitmq'
+      - target_label: tier
+        replacement: 'messaging'
 
   # Jaeger Metrics (self-monitoring)
   - job_name: 'jaeger'
@@ -110,6 +129,8 @@ scrape_configs:
       - targets: ['jaeger:14269']
     metrics_path: '/metrics'
     scrape_interval: 30s
-    labels:
-      service: 'jaeger'
-      tier: 'observability'
+    relabel_configs:
+      - target_label: service
+        replacement: 'jaeger'
+      - target_label: tier
+        replacement: 'observability'

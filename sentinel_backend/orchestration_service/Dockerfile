@@ -4,6 +4,14 @@ FROM python:3.10-slim
 # Set the working directory in the container
 WORKDIR /app
 
+# Install build dependencies for compiling Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    build-essential \
+    python3-dev && \
+    rm -rf /var/lib/apt/lists/*
+
 # Create the sentinel_backend directory structure
 RUN mkdir -p /app/sentinel_backend
 

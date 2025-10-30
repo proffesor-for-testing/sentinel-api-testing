@@ -31,8 +31,11 @@ from sentinel_backend.orchestration_service.agent_performance_tracker import (
 )
 
 # Import API routers
-from sentinel_backend.orchestration_service.api.feedback_endpoints import router as feedback_router
+from sentinel_backend.orchestration_service.feedback_endpoints import router as feedback_router
 from sentinel_backend.rl_service.api.rl_endpoints import router as rl_router
+
+# Import ReasoningBank integration
+from sentinel_backend.reasoningbank.integration.reasoningbank_orchestrator import ReasoningBankOrchestrator
 
 # Import configuration
 from sentinel_backend.config.settings import get_settings, get_service_settings, get_application_settings, get_database_settings
@@ -49,29 +52,11 @@ db_settings = get_database_settings()
 
 logger = structlog.get_logger(__name__)
 
-app = FastAPI(title="Sentinel Orchestration Service")
-
-# Add CORS middleware to allow frontend to communicate with backend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://frontend:3000",
-        "http://127.0.0.1:3000"
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Correlation-ID"],
-)
-
-# Instrument for Prometheus
-Instrumentator().instrument(app).expose(app)
-
-# Set up Jaeger tracing
-setup_tracing(app, "orchestration-service")
+# ==================== Database Setup ====================
 
 # Create async database engine and session
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from contextlib import asynccontextmanager
 
 engine = create_async_engine(
     db_settings.url,
@@ -91,6 +76,69 @@ async def get_db() -> AsyncSession:
             yield session
         finally:
             await session.close()
+
+# ==================== ReasoningBank Lifecycle Management ====================
+
+# Global ReasoningBank orchestrator instance
+reasoningbank_orchestrator: Optional[ReasoningBankOrchestrator] = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan manager for startup and shutdown.
+    Handles ReasoningBank background task lifecycle.
+    """
+    global reasoningbank_orchestrator
+
+    # Startup: Initialize ReasoningBank and start background tasks
+    logger.info("Starting ReasoningBank orchestrator...")
+    try:
+        reasoningbank_orchestrator = ReasoningBankOrchestrator(
+            db_engine=engine,
+            anthropic_api_key=os.getenv("ANTHROPIC_API_KEY"),
+            openai_api_key=os.getenv("OPENAI_API_KEY"),
+            enable_background_tasks=True
+        )
+        await reasoningbank_orchestrator.start_background_tasks()
+        logger.info("ReasoningBank orchestrator started successfully")
+    except Exception as e:
+        logger.error(f"Failed to start ReasoningBank orchestrator: {e}", exc_info=True)
+        # Don't fail startup - ReasoningBank is optional
+
+    yield
+
+    # Shutdown: Stop background tasks gracefully
+    if reasoningbank_orchestrator:
+        logger.info("Stopping ReasoningBank orchestrator...")
+        try:
+            await reasoningbank_orchestrator.stop_background_tasks(timeout=60)
+            logger.info("ReasoningBank orchestrator stopped successfully")
+        except Exception as e:
+            logger.error(f"Error stopping ReasoningBank orchestrator: {e}", exc_info=True)
+
+app = FastAPI(
+    title="Sentinel Orchestration Service",
+    lifespan=lifespan
+)
+
+# Add CORS middleware to allow frontend to communicate with backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://frontend:3000",
+        "http://127.0.0.1:3000"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Correlation-ID"],
+)
+
+# Instrument for Prometheus
+Instrumentator().instrument(app).expose(app)
+
+# Set up Jaeger tracing
+setup_tracing(app, "orchestration-service")
 
 # Register API routers
 # The routers will use get_db via dependency injection

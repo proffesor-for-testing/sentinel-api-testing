@@ -27,7 +27,7 @@ class DatabaseSettings(BaseSettings):
     
     # Connection settings
     url: str = Field(
-        default="postgresql+asyncpg://sentinel:sentinel_password@localhost:5432/sentinel_db",
+        default="postgresql+asyncpg://sentinel:sentinel_password@db:5432/sentinel_db",
         description="Database connection URL"
     )
     
@@ -51,7 +51,7 @@ class ServiceSettings(BaseSettings):
     
     # Service URLs
     auth_service_url: str = Field(
-        default="http://auth_service:8000",
+        default="http://auth_service:8005",
         description="Authentication service URL"
     )
     spec_service_url: str = Field(
@@ -184,7 +184,7 @@ class NetworkSettings(BaseSettings):
     health_check_path: str = Field(default="/health", description="Health check endpoint path")
     
     # Jaeger settings
-    jaeger_agent_host: str = Field(default="localhost", description="Jaeger agent host")
+    jaeger_agent_host: str = Field(default="jaeger", description="Jaeger agent host")
     jaeger_agent_port: int = Field(default=6831, description="Jaeger agent port")
     
     class Config:
@@ -313,6 +313,7 @@ class ApplicationSettings(BaseSettings):
     class Config:
         env_prefix = "SENTINEL_APP_"
         case_sensitive = False
+        extra = "ignore"  # Ignore unknown environment variables to avoid validation errors
 
 
 class Settings(BaseSettings):
@@ -386,6 +387,7 @@ class Settings(BaseSettings):
         case_sensitive = False
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"  # Ignore unknown environment variables to avoid validation errors
 
 
 @lru_cache()

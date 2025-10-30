@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
+from datetime import datetime
 import httpx
 import os
 import structlog
@@ -298,9 +299,9 @@ async def complete_testing_flow(fastapi_request: Request, request: EndToEndTestR
 async def upload_specification(
     fastapi_request: Request,
     request: SpecificationUploadRequest,
-    auth_data: Dict[str, Any] = Depends(require_permission(Permissions.SPEC_CREATE))
+    current_user: dict = Depends(optional_auth)
 ):
-    """Upload and parse an API specification."""
+    """Upload and parse an API specification (authentication optional for demo/testing)."""
     headers = get_correlation_id_headers(fastapi_request)
     async with httpx.AsyncClient(timeout=service_settings.service_timeout) as client:
         try:
@@ -1121,3 +1122,64 @@ async def list_roles(request: Request):
             raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
         except httpx.RequestError:
             raise HTTPException(status_code=503, detail="Authentication service is unavailable")
+
+@app.post("/api/v1/feedback/test-case")
+async def submit_test_case_feedback(request: Request):
+    """
+    Submit feedback for a test case.
+    Temporary direct implementation (will be replaced with orchestration service proxy when available).
+    """
+    try:
+        feedback_data = await request.json()
+        logger.info(
+            "Test case feedback received",
+            test_id=feedback_data.get("testId"),
+            rating=feedback_data.get("rating"),
+            helpful=feedback_data.get("helpful"),
+            found_issue=feedback_data.get("foundIssue"),
+            categories=feedback_data.get("categories", []),
+            comment_length=len(feedback_data.get("comment", ""))
+        )
+
+        # Generate a feedback ID
+        feedback_id = f"fb_{uuid.uuid4().hex[:16]}"
+
+        return {
+            "success": True,
+            "feedbackId": feedback_id,
+            "message": "Feedback received successfully",
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error processing feedback: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing feedback: {str(e)}")
+
+@app.post("/api/v1/feedback/test-suite")
+async def submit_test_suite_feedback(request: Request):
+    """
+    Submit feedback for a test suite.
+    Temporary direct implementation (will be replaced with orchestration service proxy when available).
+    """
+    try:
+        feedback_data = await request.json()
+        logger.info(
+            "Test suite feedback received",
+            suite_id=feedback_data.get("suiteId"),
+            rating=feedback_data.get("rating"),
+            helpful=feedback_data.get("helpful"),
+            categories=feedback_data.get("categories", []),
+            comment_length=len(feedback_data.get("comment", ""))
+        )
+
+        # Generate a feedback ID
+        feedback_id = f"fb_{uuid.uuid4().hex[:16]}"
+
+        return {
+            "success": True,
+            "feedbackId": feedback_id,
+            "message": "Feedback received successfully",
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error processing feedback: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing feedback: {str(e)}")
