@@ -363,13 +363,28 @@ def deduplicate_test_cases(test_cases: List[Dict[str, Any]]) -> List[Dict[str, A
         test_def = test_case
         
         # Extract key fields for comparison
+        # Handle bytes objects in body/query_params by using repr() for hashing
+        import base64
+        body = test_def.get('body', {})
+        if isinstance(body, bytes):
+            # Use base64 encoding for bytes to avoid decode errors
+            body_str = base64.b64encode(body).decode('ascii')
+        else:
+            body_str = json.dumps(body, sort_keys=True) if body else ''
+
+        query_params = test_def.get('query_params', {})
+        if isinstance(query_params, bytes):
+            query_str = base64.b64encode(query_params).decode('ascii')
+        else:
+            query_str = json.dumps(query_params, sort_keys=True) if query_params else ''
+
         key_fields = {
             'test_name': test_def.get('test_name', ''),
             'method': test_def.get('method', ''),
             'path': test_def.get('path', ''),
             'test_type': test_def.get('test_type', ''),
-            'body': json.dumps(test_def.get('body', {}), sort_keys=True) if test_def.get('body') else '',
-            'query_params': json.dumps(test_def.get('query_params', {}), sort_keys=True) if test_def.get('query_params') else ''
+            'body': body_str,
+            'query_params': query_str
         }
         
         # Create a hash from the key fields
@@ -547,7 +562,17 @@ async def generate_tests(fastapi_request: Request, request: TestGenerationReques
             })
         
         logger.info(f"Test generation task {task_id} completed. Total test cases: {total_test_cases}")
-        
+
+        # DEBUG: Inspect agent_results for bytes objects
+        logger.info(f"DEBUG: About to serialize agent_results. Count: {len(agent_results)}")
+        for i, result in enumerate(agent_results):
+            logger.info(f"DEBUG: Result {i} keys: {list(result.keys())}")
+            for key, value in result.items():
+                logger.info(f"DEBUG: Result {i}.{key} type: {type(value).__name__}, value: {str(value)[:200]}")
+                if isinstance(value, dict):
+                    for k, v in value.items():
+                        logger.info(f"DEBUG: Result {i}.{key}.{k} type: {type(v).__name__}, value: {str(v)[:200]}")
+
         return TestGenerationResponse(
             task_id=task_id,
             status="completed",
@@ -556,7 +581,9 @@ async def generate_tests(fastapi_request: Request, request: TestGenerationReques
         )
         
     except Exception as e:
+        import traceback
         logger.error(f"Error in test generation: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Test generation failed: {str(e)}")
 
 

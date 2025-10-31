@@ -154,7 +154,7 @@ class BaseLearningAgent:
             agent_type=agent_type,
             actions=[],
             final_output={},
-            outcome=TrajectoryOutcome.UNKNOWN,
+            outcome="UNKNOWN",
             tenant_id=tenant_id,
             created_at=datetime.utcnow()
         )

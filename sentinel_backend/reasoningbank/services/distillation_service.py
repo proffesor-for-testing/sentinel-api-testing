@@ -161,7 +161,7 @@ Requirements:
             ValueError: If trajectory is not ready for distillation
         """
         # Validate trajectory is ready for distillation
-        if trajectory.outcome == TrajectoryOutcome.UNKNOWN:
+        if trajectory.outcome == "UNKNOWN":
             raise ValueError(f"Trajectory {trajectory.trajectory_id} has not been judged yet")
 
         if trajectory.distillation_performed:
@@ -171,7 +171,7 @@ Requirements:
             return []
 
         # Only distill from successful trajectories (or high-confidence partial)
-        if trajectory.outcome == TrajectoryOutcome.FAILURE:
+        if trajectory.outcome == "FAILURE":
             logger.info(
                 f"Skipping distillation for failed trajectory {trajectory.trajectory_id}"
             )
@@ -179,7 +179,7 @@ Requirements:
             return []
 
         if (
-            trajectory.outcome == TrajectoryOutcome.PARTIAL
+            trajectory.outcome == "PARTIAL"
             and trajectory.outcome_confidence < 0.7
         ):
             logger.info(

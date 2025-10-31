@@ -179,7 +179,7 @@ class TrajectoryService:
             List[TaskTrajectory]: List of unjudged trajectories
         """
         query = select(TaskTrajectory).where(
-            TaskTrajectory.outcome == TrajectoryOutcome.UNKNOWN
+            TaskTrajectory.outcome == "UNKNOWN"
         )
 
         if task_type:
@@ -213,7 +213,7 @@ class TrajectoryService:
         query = select(TaskTrajectory).where(
             and_(
                 TaskTrajectory.distillation_performed == 0,
-                TaskTrajectory.outcome != TrajectoryOutcome.UNKNOWN,
+                TaskTrajectory.outcome != "UNKNOWN",
             )
         )
 
@@ -263,7 +263,7 @@ class TrajectoryService:
     async def update_judgment(
         self,
         trajectory_id: str,
-        outcome: TrajectoryOutcome,
+        outcome: str,
         confidence: float,
         reasoning: Optional[str] = None,
     ) -> TaskTrajectory:
@@ -357,10 +357,10 @@ class TrajectoryService:
         trajectories = list(result.scalars().all())
 
         total = len(trajectories)
-        success = sum(1 for t in trajectories if t.outcome == TrajectoryOutcome.SUCCESS)
-        failure = sum(1 for t in trajectories if t.outcome == TrajectoryOutcome.FAILURE)
-        partial = sum(1 for t in trajectories if t.outcome == TrajectoryOutcome.PARTIAL)
-        unjudged = sum(1 for t in trajectories if t.outcome == TrajectoryOutcome.UNKNOWN)
+        success = sum(1 for t in trajectories if t.outcome == "SUCCESS")
+        failure = sum(1 for t in trajectories if t.outcome == "FAILURE")
+        partial = sum(1 for t in trajectories if t.outcome == "PARTIAL")
+        unjudged = sum(1 for t in trajectories if t.outcome == "UNKNOWN")
         distilled = sum(1 for t in trajectories if t.distillation_performed)
 
         return {

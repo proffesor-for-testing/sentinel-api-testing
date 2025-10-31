@@ -92,7 +92,7 @@ Be strict in your evaluation. Only mark as SUCCESS if the output is high-quality
     async def judge_trajectory(
         self,
         trajectory: TaskTrajectory,
-    ) -> Tuple[TrajectoryOutcome, float, str, Dict[str, Any]]:
+    ) -> Tuple[str, float, str, Dict[str, Any]]:
         """
         Judge a trajectory using Claude Sonnet 4.5.
 
@@ -139,7 +139,7 @@ Be strict in your evaluation. Only mark as SUCCESS if the output is high-quality
         except Exception as e:
             # Fallback to UNKNOWN if judgment fails
             return (
-                TrajectoryOutcome.UNKNOWN,
+                "UNKNOWN",
                 0.0,
                 f"Judgment failed: {str(e)}",
                 {"error": str(e)},
@@ -247,7 +247,7 @@ Be strict in your evaluation. Only mark as SUCCESS if the output is high-quality
     async def batch_judge_trajectories(
         self,
         trajectories: list[TaskTrajectory],
-    ) -> list[Tuple[TaskTrajectory, TrajectoryOutcome, float, str, Dict[str, Any]]]:
+    ) -> list[Tuple[TaskTrajectory, str, float, str, Dict[str, Any]]]:
         """
         Judge multiple trajectories in batch.
 

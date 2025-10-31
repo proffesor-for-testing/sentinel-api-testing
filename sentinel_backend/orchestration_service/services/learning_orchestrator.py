@@ -153,7 +153,7 @@ class LearningOrchestrator:
         logger.debug(f"Processing trajectory: {trajectory.trajectory_id}")
 
         # Skip if already judged
-        if trajectory.outcome != TrajectoryOutcome.UNKNOWN:
+        if trajectory.outcome != "UNKNOWN":
             logger.debug(f"Trajectory already judged: {trajectory.trajectory_id}")
             return
 
@@ -179,7 +179,7 @@ class LearningOrchestrator:
 
             logger.info(
                 f"Judged trajectory {trajectory.trajectory_id}: "
-                f"{outcome.value} (confidence: {confidence:.2f})"
+                f"{outcome} (confidence: {confidence:.2f})"
             )
 
             # Log additional metrics
@@ -218,7 +218,7 @@ class LearningOrchestrator:
         for trajectory in undistilled:
             try:
                 # Extract patterns from successful trajectories
-                if trajectory.outcome == TrajectoryOutcome.SUCCESS:
+                if trajectory.outcome == "SUCCESS":
                     patterns = await self._extract_patterns(trajectory)
 
                     if patterns:
@@ -354,7 +354,7 @@ class LearningOrchestrator:
         """
         # Get successful trajectories for this agent
         successful = await self.trajectory_service.get_trajectories_by_outcome(
-            outcome=TrajectoryOutcome.SUCCESS,
+            outcome="SUCCESS",
             limit=limit
         )
 

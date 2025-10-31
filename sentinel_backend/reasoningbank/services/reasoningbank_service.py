@@ -147,7 +147,7 @@ class ReasoningBankService:
                 "trajectory_id": trajectory_id,
                 "judgment_performed": False,
                 "distillation_performed": False,
-                "outcome": trajectory.outcome.value,
+                "outcome": str(trajectory.outcome).upper() if trajectory.outcome else "UNKNOWN",
                 "confidence": trajectory.outcome_confidence,
                 "patterns_extracted": 0,
                 "processing_time_ms": 0,
@@ -528,11 +528,11 @@ class ReasoningBankService:
                 "patterns_learned": len(recent_patterns),
                 "success_count": sum(
                     1 for t in recent_trajectories
-                    if t.outcome == TrajectoryOutcome.SUCCESS
+                    if t.outcome == "SUCCESS"
                 ),
                 "failure_count": sum(
                     1 for t in recent_trajectories
-                    if t.outcome == TrajectoryOutcome.FAILURE
+                    if t.outcome == "FAILURE"
                 ),
                 "avg_execution_time_ms": (
                     sum(t.execution_time_ms or 0 for t in recent_trajectories)

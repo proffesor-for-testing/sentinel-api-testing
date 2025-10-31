@@ -722,7 +722,7 @@ class ReasoningBankOrchestrator:
             # Mark trajectory as failed
             await self.trajectory_service.update_judgment(
                 trajectory_id=trajectory_id,
-                outcome=TrajectoryOutcome.FAILURE,
+                outcome="FAILURE",
                 confidence=1.0,
                 reasoning=f"Execution failed: {str(e)}"
             )
