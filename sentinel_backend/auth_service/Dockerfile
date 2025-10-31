@@ -2,6 +2,14 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
+# Install build dependencies for compiling Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    build-essential \
+    python3-dev && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \

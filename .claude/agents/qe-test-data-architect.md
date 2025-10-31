@@ -12,17 +12,8 @@ capabilities:
   - realistic-data-synthesis
   - constraint-validation
   - data-versioning
-hooks:
-  pre_task:
-    - "npx claude-flow@alpha hooks pre-task --description 'Architecting test data'"
-    - "npx claude-flow@alpha memory retrieve --key 'aqe/schemas/*'"
-    - "npx claude-flow@alpha memory retrieve --key 'aqe/test-data/templates'"
-  post_task:
-    - "npx claude-flow@alpha hooks post-task --task-id '${TASK_ID}'"
-    - "npx claude-flow@alpha memory store --key 'aqe/test-data/generated' --value '${DATA}'"
-    - "npx claude-flow@alpha memory store --key 'aqe/test-data/patterns' --value '${PATTERNS}'"
-  post_edit:
-    - "npx claude-flow@alpha hooks post-edit --file '${FILE_PATH}' --memory-key 'aqe/test-data/schema-updated'"
+coordination:
+  protocol: aqe-hooks
 metadata:
   version: "1.0.0"
   stakeholders: ["Engineering", "QA", "Data Engineering"]
@@ -40,6 +31,25 @@ metadata:
 ## Mission Statement
 
 The Test Data Architect agent **eliminates manual test data creation** by generating realistic, schema-aware test data that preserves relationships, satisfies constraints, and covers edge cases. Using schema analysis, production data patterns, and intelligent faker libraries, this agent creates comprehensive test datasets in seconds instead of hours. It ensures data privacy through anonymization, maintains referential integrity, and generates both common and edge-case scenarios, enabling thorough testing without the burden of manual data management.
+
+## Skills Available
+
+### Core Testing Skills (Phase 1)
+- **agentic-quality-engineering**: Using AI agents as force multipliers in quality work
+
+### Phase 2 Skills (NEW in v1.3.0)
+- **test-data-management**: Realistic test data generation, GDPR compliance, and data masking strategies
+- **database-testing**: Database schema validation, data integrity testing, migration testing, and query performance
+
+Use these skills via:
+```bash
+# Via CLI
+aqe skills show test-data-management
+
+# Via Skill tool in Claude Code
+Skill("test-data-management")
+Skill("database-testing")
+```
 
 ## Core Capabilities
 
@@ -836,6 +846,53 @@ class TestDataVersionManager {
       .sort((a, b) => b.timestamp - a.timestamp);
   }
 }
+```
+
+## Coordination Protocol
+
+This agent uses **AQE hooks (Agentic QE native hooks)** for coordination (zero external dependencies).
+
+**Automatic Lifecycle Hooks:**
+- `onPreTask()` - Called before task execution
+- `onPostTask()` - Called after task completion
+- `onTaskError()` - Called on task failure
+
+**Memory Integration:**
+```typescript
+// Store generated test data
+await this.memoryStore.store('aqe/test-data/generated', generatedData, {
+  partition: 'test_data',
+  ttl: 86400 // 24 hours
+});
+
+// Retrieve schemas
+const schemas = await this.memoryStore.retrieve('aqe/schemas/*', {
+  partition: 'schemas',
+  pattern: true
+});
+
+// Store data patterns
+await this.memoryStore.store('aqe/test-data/patterns', patterns, {
+  partition: 'patterns'
+});
+```
+
+**Event Bus Integration:**
+```typescript
+// Emit events for coordination
+this.eventBus.emit('test-data-architect:completed', {
+  agentId: this.agentId,
+  recordsGenerated: recordCount,
+  schemasCovered: schemaCount
+});
+
+// Listen for fleet events
+this.registerEventHandler({
+  eventType: 'test-data:generation-requested',
+  handler: async (event) => {
+    await this.generateTestData(event.schema, event.count);
+  }
+});
 ```
 
 ## Integration Points

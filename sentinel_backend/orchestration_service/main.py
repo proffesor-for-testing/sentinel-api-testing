@@ -20,6 +20,7 @@ from sentinel_backend.orchestration_service.agents.functional_stateful_agent imp
 from sentinel_backend.orchestration_service.agents.security_auth_agent import SecurityAuthAgent
 from sentinel_backend.orchestration_service.agents.security_injection_agent import SecurityInjectionAgent
 from sentinel_backend.orchestration_service.agents.performance_planner_agent import PerformancePlannerAgent
+from sentinel_backend.orchestration_service.agents.data_mocking_agent import DataMockingAgent
 # Consolidated agents (new architecture)
 from sentinel_backend.orchestration_service.agents.functional_agent import FunctionalAgent
 from sentinel_backend.orchestration_service.agents.security_agent import SecurityAgent
@@ -31,8 +32,11 @@ from sentinel_backend.orchestration_service.agent_performance_tracker import (
 )
 
 # Import API routers
-from sentinel_backend.orchestration_service.api.feedback_endpoints import router as feedback_router
+from sentinel_backend.orchestration_service.feedback_endpoints import router as feedback_router
 from sentinel_backend.rl_service.api.rl_endpoints import router as rl_router
+
+# Import ReasoningBank integration
+from sentinel_backend.reasoningbank.integration.reasoningbank_orchestrator import ReasoningBankOrchestrator
 
 # Import configuration
 from sentinel_backend.config.settings import get_settings, get_service_settings, get_application_settings, get_database_settings
@@ -49,29 +53,11 @@ db_settings = get_database_settings()
 
 logger = structlog.get_logger(__name__)
 
-app = FastAPI(title="Sentinel Orchestration Service")
-
-# Add CORS middleware to allow frontend to communicate with backend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://frontend:3000",
-        "http://127.0.0.1:3000"
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Correlation-ID"],
-)
-
-# Instrument for Prometheus
-Instrumentator().instrument(app).expose(app)
-
-# Set up Jaeger tracing
-setup_tracing(app, "orchestration-service")
+# ==================== Database Setup ====================
 
 # Create async database engine and session
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from contextlib import asynccontextmanager
 
 engine = create_async_engine(
     db_settings.url,
@@ -91,6 +77,69 @@ async def get_db() -> AsyncSession:
             yield session
         finally:
             await session.close()
+
+# ==================== ReasoningBank Lifecycle Management ====================
+
+# Global ReasoningBank orchestrator instance
+reasoningbank_orchestrator: Optional[ReasoningBankOrchestrator] = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan manager for startup and shutdown.
+    Handles ReasoningBank background task lifecycle.
+    """
+    global reasoningbank_orchestrator
+
+    # Startup: Initialize ReasoningBank and start background tasks
+    logger.info("Starting ReasoningBank orchestrator...")
+    try:
+        reasoningbank_orchestrator = ReasoningBankOrchestrator(
+            db_engine=engine,
+            anthropic_api_key=os.getenv("ANTHROPIC_API_KEY"),
+            openai_api_key=os.getenv("OPENAI_API_KEY"),
+            enable_background_tasks=True
+        )
+        await reasoningbank_orchestrator.start_background_tasks()
+        logger.info("ReasoningBank orchestrator started successfully")
+    except Exception as e:
+        logger.error(f"Failed to start ReasoningBank orchestrator: {e}", exc_info=True)
+        # Don't fail startup - ReasoningBank is optional
+
+    yield
+
+    # Shutdown: Stop background tasks gracefully
+    if reasoningbank_orchestrator:
+        logger.info("Stopping ReasoningBank orchestrator...")
+        try:
+            await reasoningbank_orchestrator.stop_background_tasks(timeout=60)
+            logger.info("ReasoningBank orchestrator stopped successfully")
+        except Exception as e:
+            logger.error(f"Error stopping ReasoningBank orchestrator: {e}", exc_info=True)
+
+app = FastAPI(
+    title="Sentinel Orchestration Service",
+    lifespan=lifespan
+)
+
+# Add CORS middleware to allow frontend to communicate with backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://frontend:3000",
+        "http://127.0.0.1:3000"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Correlation-ID"],
+)
+
+# Instrument for Prometheus
+Instrumentator().instrument(app).expose(app)
+
+# Set up Jaeger tracing
+setup_tracing(app, "orchestration-service")
 
 # Register API routers
 # The routers will use get_db via dependency injection
@@ -135,7 +184,8 @@ RUST_AVAILABLE_AGENTS = {
     "Functional-Stateful-Agent",
     "Security-Auth-Agent",
     "Security-Injection-Agent",
-    "Performance-Planner-Agent"
+    "Performance-Planner-Agent",
+    "Data-Mocking-Agent"
 }
 
 
@@ -315,13 +365,28 @@ def deduplicate_test_cases(test_cases: List[Dict[str, Any]]) -> List[Dict[str, A
         test_def = test_case
         
         # Extract key fields for comparison
+        # Handle bytes objects in body/query_params by using repr() for hashing
+        import base64
+        body = test_def.get('body', {})
+        if isinstance(body, bytes):
+            # Use base64 encoding for bytes to avoid decode errors
+            body_str = base64.b64encode(body).decode('ascii')
+        else:
+            body_str = json.dumps(body, sort_keys=True) if body else ''
+
+        query_params = test_def.get('query_params', {})
+        if isinstance(query_params, bytes):
+            query_str = base64.b64encode(query_params).decode('ascii')
+        else:
+            query_str = json.dumps(query_params, sort_keys=True) if query_params else ''
+
         key_fields = {
             'test_name': test_def.get('test_name', ''),
             'method': test_def.get('method', ''),
             'path': test_def.get('path', ''),
             'test_type': test_def.get('test_type', ''),
-            'body': json.dumps(test_def.get('body', {}), sort_keys=True) if test_def.get('body') else '',
-            'query_params': json.dumps(test_def.get('query_params', {}), sort_keys=True) if test_def.get('query_params') else ''
+            'body': body_str,
+            'query_params': query_str
         }
         
         # Create a hash from the key fields
@@ -371,7 +436,8 @@ async def generate_tests(fastapi_request: Request, request: TestGenerationReques
             "Functional-Stateful-Agent": FunctionalStatefulAgent(),
             "Security-Auth-Agent": SecurityAuthAgent(),
             "Security-Injection-Agent": SecurityInjectionAgent(),
-            "Performance-Planner-Agent": PerformancePlannerAgent()
+            "Performance-Planner-Agent": PerformancePlannerAgent(),
+            "Data-Mocking-Agent": DataMockingAgent()
         }
         
         agent_results = []
@@ -499,7 +565,17 @@ async def generate_tests(fastapi_request: Request, request: TestGenerationReques
             })
         
         logger.info(f"Test generation task {task_id} completed. Total test cases: {total_test_cases}")
-        
+
+        # DEBUG: Inspect agent_results for bytes objects
+        logger.info(f"DEBUG: About to serialize agent_results. Count: {len(agent_results)}")
+        for i, result in enumerate(agent_results):
+            logger.info(f"DEBUG: Result {i} keys: {list(result.keys())}")
+            for key, value in result.items():
+                logger.info(f"DEBUG: Result {i}.{key} type: {type(value).__name__}, value: {str(value)[:200]}")
+                if isinstance(value, dict):
+                    for k, v in value.items():
+                        logger.info(f"DEBUG: Result {i}.{key}.{k} type: {type(v).__name__}, value: {str(v)[:200]}")
+
         return TestGenerationResponse(
             task_id=task_id,
             status="completed",
@@ -508,7 +584,9 @@ async def generate_tests(fastapi_request: Request, request: TestGenerationReques
         )
         
     except Exception as e:
+        import traceback
         logger.error(f"Error in test generation: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Test generation failed: {str(e)}")
 
 
@@ -551,7 +629,8 @@ async def execute_test_generation_task(
             "Functional-Stateful-Agent": FunctionalStatefulAgent(),
             "Security-Auth-Agent": SecurityAuthAgent(),
             "Security-Injection-Agent": SecurityInjectionAgent(),
-            "Performance-Planner-Agent": PerformancePlannerAgent()
+            "Performance-Planner-Agent": PerformancePlannerAgent(),
+            "Data-Mocking-Agent": DataMockingAgent()
         }
         
         agent_results = []

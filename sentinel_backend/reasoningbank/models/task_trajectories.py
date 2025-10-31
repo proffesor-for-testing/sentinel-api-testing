@@ -9,20 +9,14 @@ Archives complete execution paths for learning:
 """
 
 from datetime import datetime
-from enum import Enum
-from typing import List, Dict, Any, Optional
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Index, JSON, Enum as SQLEnum
+from typing import List, Dict, Any, Optional, Literal
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Index, JSON
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
-
-class TrajectoryOutcome(str, Enum):
-    """Possible outcomes for task execution."""
-    SUCCESS = "success"
-    FAILURE = "failure"
-    PARTIAL = "partial"  # Partially successful
-    UNKNOWN = "unknown"  # Not yet judged
+# Outcome type as Literal for type hints
+TrajectoryOutcome = Literal["SUCCESS", "PARTIAL_SUCCESS", "FAILURE", "ERROR", "UNKNOWN"]
 
 
 class TaskTrajectory(Base):
@@ -61,7 +55,7 @@ class TaskTrajectory(Base):
     token_count = Column(Integer, nullable=True)
 
     # Judgment (LLM-as-judge)
-    outcome = Column(SQLEnum(TrajectoryOutcome), default=TrajectoryOutcome.UNKNOWN, nullable=False, index=True)
+    outcome = Column(String(20), default='UNKNOWN', nullable=False, index=True)
     outcome_confidence = Column(Float, default=0.0, nullable=False)  # 0.0-1.0
     judgment_reasoning = Column(Text, nullable=True)
 
@@ -92,25 +86,31 @@ class TaskTrajectory(Base):
     @property
     def is_success(self) -> bool:
         """Check if trajectory was successful."""
-        return self.outcome == TrajectoryOutcome.SUCCESS
+        outcome_upper = str(self.outcome).upper() if self.outcome else ""
+        return outcome_upper == "SUCCESS"
 
     @property
     def is_failure(self) -> bool:
         """Check if trajectory was a failure."""
-        return self.outcome == TrajectoryOutcome.FAILURE
+        outcome_upper = str(self.outcome).upper() if self.outcome else ""
+        return outcome_upper == "FAILURE"
 
     @property
     def needs_judgment(self) -> bool:
         """Check if trajectory needs to be judged."""
-        return self.outcome == TrajectoryOutcome.UNKNOWN
+        outcome_upper = str(self.outcome).upper() if self.outcome else ""
+        return outcome_upper == "UNKNOWN"
 
     @property
     def needs_distillation(self) -> bool:
         """Check if trajectory needs pattern distillation."""
-        return not self.distillation_performed and self.outcome != TrajectoryOutcome.UNKNOWN
+        outcome_upper = str(self.outcome).upper() if self.outcome else ""
+        return not self.distillation_performed and outcome_upper not in ("UNKNOWN", "")
 
     def to_dict(self) -> dict:
         """Convert to dictionary for API responses."""
+        outcome_str = str(self.outcome).upper() if self.outcome else "UNKNOWN"
+
         return {
             "id": self.id,
             "trajectory_id": self.trajectory_id,
@@ -120,7 +120,7 @@ class TaskTrajectory(Base):
             "agent_type": self.agent_type,
             "actions": self.actions,
             "final_output": self.final_output,
-            "outcome": self.outcome.value,
+            "outcome": outcome_str,
             "outcome_confidence": self.outcome_confidence,
             "judgment_reasoning": self.judgment_reasoning,
             "extracted_pattern_ids": self.extracted_pattern_ids,
@@ -171,6 +171,6 @@ Provide:
             f"<TaskTrajectory(id={self.id}, "
             f"trajectory_id='{self.trajectory_id}', "
             f"task_type='{self.task_type}', "
-            f"outcome='{self.outcome.value}', "
+            f"outcome='{self.outcome}', "
             f"confidence={self.outcome_confidence:.2f})>"
         )

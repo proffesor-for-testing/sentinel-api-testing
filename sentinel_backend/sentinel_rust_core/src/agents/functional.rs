@@ -657,19 +657,21 @@ impl FunctionalAgent {
             None => return test_cases,
         };
 
-        // Deep nesting test
-        let mut deep_nested = serde_json::Map::new();
-        let mut current_map = &mut deep_nested;
+        // Deep nesting test - build recursively to avoid borrow checker issues
+        fn build_nested_object(depth: i32, max_depth: i32) -> serde_json::Map<String, Value> {
+            let mut map = serde_json::Map::new();
+            map.insert("value".to_string(), Value::String("deep".to_string()));
 
-        for i in 0..50 {
-            let mut new_map = serde_json::Map::new();
-            new_map.insert("value".to_string(), Value::String("deep".to_string()));
-            current_map.insert(format!("level_{}", i), Value::Object(new_map));
-
-            if let Some(Value::Object(ref mut next)) = current_map.get_mut(&format!("level_{}", i)) {
-                current_map = next;
+            if depth < max_depth {
+                let key = format!("level_{}", depth);
+                let nested = build_nested_object(depth + 1, max_depth);
+                map.insert(key, Value::Object(nested));
             }
+
+            map
         }
+
+        let deep_nested = build_nested_object(0, 50);
 
         let test_case = self.base.create_test_case(
             self.build_endpoint_path(endpoint),

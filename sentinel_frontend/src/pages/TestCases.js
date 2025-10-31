@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  TestTube, 
-  Filter, 
-  Search, 
+import {
+  TestTube,
+  Filter,
+  Search,
   RefreshCw,
   Eye,
   AlertTriangle,
@@ -15,12 +15,14 @@ import {
   Plus,
   Save,
   X,
-  Users
+  Users,
+  MessageSquare
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import NotificationModal from '../components/NotificationModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import useNotification from '../hooks/useNotification';
+import TestCaseFeedback from '../components/feedback/TestCaseFeedback.tsx';
 
 const TestCases = () => {
   const [testCases, setTestCases] = useState([]);
@@ -1061,6 +1063,28 @@ const TestCases = () => {
                             </div>
                           )}
                         </dl>
+                      </div>
+                    </div>
+
+                    {/* Feedback Section */}
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h5 className="text-sm font-medium text-gray-900 mb-4 flex items-center">
+                        <MessageSquare className="h-5 w-5 mr-2 text-primary-600" />
+                        Provide Feedback on This Test
+                      </h5>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <TestCaseFeedback
+                          testId={testCase.id?.toString() || `test-${index}`}
+                          testName={testCase.description || 'Unnamed Test'}
+                          onSuccess={(feedbackId) => {
+                            showSuccess('Thank you for your feedback! Your input helps improve our test generation.');
+                            console.log('Feedback submitted with ID:', feedbackId);
+                          }}
+                          onError={(error) => {
+                            showError(`Failed to submit feedback: ${error.message}`);
+                            console.error('Feedback submission error:', error);
+                          }}
+                        />
                       </div>
                     </div>
                   </div>

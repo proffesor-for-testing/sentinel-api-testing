@@ -7,6 +7,7 @@ mod types;
 mod consciousness;
 mod sublinear_orchestrator;
 mod mcp_integration;
+mod llm;
 
 use agents::AgentOrchestrator;
 use sublinear_orchestrator::SublinearOrchestrator;
