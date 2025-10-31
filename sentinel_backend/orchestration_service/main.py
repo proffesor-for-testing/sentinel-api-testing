@@ -20,6 +20,7 @@ from sentinel_backend.orchestration_service.agents.functional_stateful_agent imp
 from sentinel_backend.orchestration_service.agents.security_auth_agent import SecurityAuthAgent
 from sentinel_backend.orchestration_service.agents.security_injection_agent import SecurityInjectionAgent
 from sentinel_backend.orchestration_service.agents.performance_planner_agent import PerformancePlannerAgent
+from sentinel_backend.orchestration_service.agents.data_mocking_agent import DataMockingAgent
 # Consolidated agents (new architecture)
 from sentinel_backend.orchestration_service.agents.functional_agent import FunctionalAgent
 from sentinel_backend.orchestration_service.agents.security_agent import SecurityAgent
@@ -183,7 +184,8 @@ RUST_AVAILABLE_AGENTS = {
     "Functional-Stateful-Agent",
     "Security-Auth-Agent",
     "Security-Injection-Agent",
-    "Performance-Planner-Agent"
+    "Performance-Planner-Agent",
+    "Data-Mocking-Agent"
 }
 
 
@@ -434,7 +436,8 @@ async def generate_tests(fastapi_request: Request, request: TestGenerationReques
             "Functional-Stateful-Agent": FunctionalStatefulAgent(),
             "Security-Auth-Agent": SecurityAuthAgent(),
             "Security-Injection-Agent": SecurityInjectionAgent(),
-            "Performance-Planner-Agent": PerformancePlannerAgent()
+            "Performance-Planner-Agent": PerformancePlannerAgent(),
+            "Data-Mocking-Agent": DataMockingAgent()
         }
         
         agent_results = []
@@ -626,7 +629,8 @@ async def execute_test_generation_task(
             "Functional-Stateful-Agent": FunctionalStatefulAgent(),
             "Security-Auth-Agent": SecurityAuthAgent(),
             "Security-Injection-Agent": SecurityInjectionAgent(),
-            "Performance-Planner-Agent": PerformancePlannerAgent()
+            "Performance-Planner-Agent": PerformancePlannerAgent(),
+            "Data-Mocking-Agent": DataMockingAgent()
         }
         
         agent_results = []

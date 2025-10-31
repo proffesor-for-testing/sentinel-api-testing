@@ -235,9 +235,6 @@ async def data_mocking_python(
     """
     Generate mock data using Python implementation.
 
-    Note: DataMockingAgent not currently implemented in Python.
-    Returns a placeholder result for benchmarking purposes.
-
     Args:
         spec: OpenAPI specification dictionary
         config: Optional configuration parameters
@@ -245,17 +242,25 @@ async def data_mocking_python(
     Returns:
         Dictionary with test_cases, success status, and metadata
     """
-    # DataMockingAgent is not implemented in Python yet
-    # Return a placeholder result
+    from .data_mocking_agent import DataMockingAgent
+
+    agent = DataMockingAgent()
+
+    task = AgentTask(
+        task_id=f"bench_mock_{datetime.now().timestamp()}",
+        agent_type="Data-Mocking-Agent",
+        spec_id=spec.get("info", {}).get("title", "unknown"),
+        parameters=config or {},
+        enable_llm=False
+    )
+
+    result: AgentResult = await agent.execute(task, spec, db_session=None)
+
     return {
-        "test_cases": [],
-        "success": False,
-        "error": "DataMockingAgent not implemented in Python",
-        "metadata": {
-            "agent_type": "data-mocking",
-            "language": "python",
-            "note": "Not implemented - placeholder for benchmarking"
-        }
+        "test_cases": result.test_cases,
+        "success": result.success,
+        "error": result.error,
+        "metadata": result.metadata
     }
 
 

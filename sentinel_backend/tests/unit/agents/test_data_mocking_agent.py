@@ -444,6 +444,108 @@ class TestDataMockingAgent:
         assert agent.max_response_variations == 5
         assert agent.max_parameter_variations == 3
         assert agent.max_entity_variations == 5
-        
+
         # These limits should be respected in generation
         # (tested in generate_operation_data)
+
+    @pytest.mark.asyncio
+    async def test_performance_10k_records(self, agent):
+        """Test performance - should generate 10k records in reasonable time"""
+        import time
+
+        schema = {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer"},
+                "name": {"type": "string"},
+                "email": {"type": "string", "format": "email"}
+            }
+        }
+
+        start_time = time.time()
+        records = []
+
+        for _ in range(10000):
+            record = await agent._generate_from_schema(schema, {}, 'realistic')
+            records.append(record)
+
+        elapsed = time.time() - start_time
+        rate = 10000 / elapsed if elapsed > 0 else 0
+
+        assert len(records) == 10000
+        # Performance target: >10k records/sec (< 1 second for 10k records)
+        # Allow 5 seconds for CI/CD environments
+        assert elapsed < 5.0, f"Performance too slow: {elapsed:.3f}s"
+
+    @pytest.mark.asyncio
+    async def test_ref_resolution(self, agent, api_spec):
+        """Test $ref resolution in schemas"""
+        schema = {"$ref": "#/components/schemas/User"}
+        analysis = agent._analyze_specification(api_spec)
+
+        result = await agent._generate_from_schema(schema, analysis, 'realistic')
+
+        assert isinstance(result, dict)
+        assert 'name' in result
+        assert 'email' in result
+
+    @pytest.mark.asyncio
+    async def test_empty_schema_handling(self, agent):
+        """Test handling of empty and minimal schemas"""
+        # Empty object
+        schema = {"type": "object"}
+        result = await agent._generate_from_schema(schema, {}, 'realistic')
+        assert isinstance(result, dict)
+
+        # Object with no properties
+        schema = {"type": "object", "properties": {}}
+        result = await agent._generate_from_schema(schema, {}, 'realistic')
+        assert result == {}
+
+    @pytest.mark.asyncio
+    async def test_invalid_spec_error_handling(self, agent):
+        """Test error handling with invalid specification"""
+        invalid_spec = {"invalid": "spec", "no": "paths"}
+
+        result = await agent.execute(invalid_spec, {})
+
+        assert result['agent_type'] == 'data-mocking'
+        # Should not crash, should return empty data
+        assert 'mock_data' in result
+        assert 'global_data' in result
+
+    @pytest.mark.asyncio
+    async def test_number_generation(self, agent):
+        """Test number (float) data generation"""
+        schema = {"type": "number", "minimum": 0.0, "maximum": 1.0"}
+        result = await agent._generate_from_schema(schema, {}, 'realistic')
+
+        assert isinstance(result, float)
+        assert 0.0 <= result <= 1.0
+
+    def test_schema_analysis_comprehensive(self, agent, api_spec):
+        """Test comprehensive schema analysis"""
+        analysis = agent._analyze_specification(api_spec)
+
+        # Verify all analysis components
+        assert 'schemas' in analysis
+        assert 'relationships' in analysis
+        assert 'constraints' in analysis
+        assert 'patterns' in analysis
+        assert 'enums' in analysis
+
+        # Verify schema detection
+        assert 'User' in analysis['schemas']
+
+        # Verify constraint extraction
+        assert 'User.age' in analysis['constraints']
+        assert analysis['constraints']['User.age']['minimum'] == 18
+        assert analysis['constraints']['User.age']['maximum'] == 120
+
+        # Verify pattern detection
+        assert 'User.email' in analysis['patterns']
+        assert analysis['patterns']['User.email'] == 'email'
+
+        # Verify enum detection
+        assert 'User.role' in analysis['enums']
+        assert set(analysis['enums']['User.role']) == {'admin', 'user', 'guest'}

@@ -12,17 +12,8 @@ capabilities:
   - stakeholder-reporting
   - deployment-gate-enforcement
   - post-deployment-monitoring
-hooks:
-  pre_task:
-    - "npx claude-flow@alpha hooks pre-task --description 'Assessing deployment readiness'"
-    - "npx claude-flow@alpha memory retrieve --key 'aqe/quality-signals/*'"
-    - "npx claude-flow@alpha memory retrieve --key 'aqe/deployment/history'"
-  post_task:
-    - "npx claude-flow@alpha hooks post-task --task-id '${TASK_ID}'"
-    - "npx claude-flow@alpha memory store --key 'aqe/deployment/decision' --value '${GO_NO_GO}'"
-    - "npx claude-flow@alpha memory store --key 'aqe/deployment/risk-score' --value '${RISK_SCORE}'"
-  post_edit:
-    - "npx claude-flow@alpha hooks post-edit --file '${FILE_PATH}' --memory-key 'aqe/deployment/config-updated'"
+coordination:
+  protocol: aqe-hooks
 metadata:
   version: "1.0.0"
   stakeholders: ["Engineering", "QA", "DevOps", "Product", "Executive"]
@@ -41,6 +32,26 @@ metadata:
 ## Mission Statement
 
 The Deployment Readiness agent is the **final guardian before production**. It aggregates quality signals from all testing stages, calculates comprehensive risk scores, and provides data-driven go/no-go deployment decisions. By analyzing code quality, test coverage, performance benchmarks, security scans, and historical deployment patterns, this agent prevents 90% of production incidents and reduces MTTR by 65%. It transforms deployment from a high-stress gamble into a confident, predictable process backed by quantitative evidence.
+
+## Skills Available
+
+### Core Testing Skills (Phase 1)
+- **agentic-quality-engineering**: Using AI agents as force multipliers in quality work
+- **risk-based-testing**: Focus testing effort on highest-risk areas using risk assessment
+
+### Phase 2 Skills (NEW in v1.3.0)
+- **shift-right-testing**: Testing in production with feature flags, canary deployments, synthetic monitoring, and chaos engineering
+- **compliance-testing**: Regulatory compliance testing for GDPR, CCPA, HIPAA, SOC2, and PCI-DSS
+
+Use these skills via:
+```bash
+# Via CLI
+aqe skills show shift-right-testing
+
+# Via Skill tool in Claude Code
+Skill("shift-right-testing")
+Skill("compliance-testing")
+```
 
 ## Core Capabilities
 
@@ -577,6 +588,52 @@ const postDeploymentMonitoring = {
 ### Coordination Agents
 - **qe-fleet-commander**: Orchestrates readiness assessment workflow
 - **qe-production-intelligence**: Provides historical deployment insights
+
+## Coordination Protocol
+
+This agent uses **AQE hooks (Agentic QE native hooks)** for coordination (zero external dependencies, 100-500x faster).
+
+**Automatic Lifecycle Hooks:**
+```typescript
+// Automatically called by BaseAgent
+protected async onPreTask(data: { assignment: TaskAssignment }): Promise<void> {
+  // Load all quality signals for deployment assessment
+  const qualitySignals = await this.memoryStore.retrievePattern('aqe/quality-signals/*');
+  const deploymentHistory = await this.memoryStore.retrieve('aqe/deployment/history');
+
+  this.logger.info('Deployment readiness assessment started', {
+    qualitySignalsCollected: Object.keys(qualitySignals).length,
+    historicalDeployments: deploymentHistory?.length || 0
+  });
+}
+
+protected async onPostTask(data: { assignment: TaskAssignment; result: any }): Promise<void> {
+  // Store deployment decision and risk score
+  await this.memoryStore.store('aqe/deployment/decision', data.result.decision);
+  await this.memoryStore.store('aqe/deployment/risk-score', data.result.riskScore);
+  await this.memoryStore.store('aqe/deployment/confidence', data.result.confidence);
+
+  // Emit deployment readiness event
+  this.eventBus.emit('deployment-readiness:assessed', {
+    decision: data.result.decision.status,
+    riskLevel: data.result.riskScore.level,
+    confidence: data.result.confidence.score
+  });
+}
+```
+
+**Advanced Verification (Optional):**
+```typescript
+const hookManager = new VerificationHookManager(this.memoryStore);
+const verification = await hookManager.executePreTaskVerification({
+  task: 'deployment-assessment',
+  context: {
+    requiredVars: ['DEPLOYMENT_ENV', 'VERSION'],
+    minMemoryMB: 512,
+    requiredKeys: ['aqe/quality-signals/code-quality', 'aqe/deployment/history']
+  }
+});
+```
 
 ## Memory Keys
 

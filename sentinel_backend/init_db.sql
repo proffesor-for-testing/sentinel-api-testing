@@ -122,15 +122,6 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO sentinel;
 -- ReasoningBank Tables
 -- ============================================
 
--- Create ENUM type for trajectory outcomes
-CREATE TYPE trajectoryoutcome AS ENUM (
-    'SUCCESS',
-    'PARTIAL_SUCCESS',
-    'FAILURE',
-    'ERROR',
-    'UNKNOWN'
-);
-
 -- Task Trajectories (execution history for learning)
 CREATE TABLE IF NOT EXISTS task_trajectories (
     id SERIAL PRIMARY KEY,
@@ -144,7 +135,7 @@ CREATE TABLE IF NOT EXISTS task_trajectories (
     final_output JSONB NOT NULL,
     execution_time_ms INTEGER,
     token_count INTEGER,
-    outcome VARCHAR(20) DEFAULT 'unknown' NOT NULL,
+    outcome VARCHAR(20) DEFAULT 'UNKNOWN' NOT NULL,
     outcome_confidence DOUBLE PRECISION DEFAULT 0.0 NOT NULL,
     judgment_reasoning TEXT,
     extracted_pattern_ids JSONB,
@@ -154,7 +145,8 @@ CREATE TABLE IF NOT EXISTS task_trajectories (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     judged_at TIMESTAMP WITH TIME ZONE,
     distilled_at TIMESTAMP WITH TIME ZONE,
-    tenant_id VARCHAR(100)
+    tenant_id VARCHAR(100),
+    CONSTRAINT outcome_values_check CHECK (outcome IN ('SUCCESS', 'PARTIAL_SUCCESS', 'FAILURE', 'ERROR', 'UNKNOWN'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_trajectory_id ON task_trajectories(trajectory_id);
