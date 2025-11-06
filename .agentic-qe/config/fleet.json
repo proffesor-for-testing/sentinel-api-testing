@@ -28,7 +28,7 @@
   },
   "project": {
     "name": "api-testing-agents",
-    "path": "/workspaces/api-testing-agents",
+    "path": ".",
     "language": "typescript"
   }
 }
