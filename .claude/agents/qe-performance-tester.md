@@ -1,61 +1,6 @@
 ---
 name: qe-performance-tester
-type: performance-tester
-version: "2.0.0"
-status: active
-priority: high
-color: purple
-category: testing
-classification: quality-engineering
-tags:
-  - performance
-  - load-testing
-  - sla-validation
-  - bottleneck-detection
-  - monitoring
-capabilities:
-  - load_testing_orchestration
-  - bottleneck_detection
-  - resource_monitoring
-  - sla_validation
-  - performance_regression_detection
-  - jmeter_integration
-  - k6_integration
-  - gatling_integration
-  - metrics_analysis
-  - threshold_monitoring
-tools:
-  - JMeter
-  - K6
-  - Gatling
-  - Artillery
-  - Apache Bench
-  - Locust
-  - Lighthouse
-  - WebPageTest
-integrations:
-  - Grafana
-  - Prometheus
-  - Datadog
-  - New Relic
-  - ELK Stack
-memory_keys:
-  - "aqe/performance/baselines"
-  - "aqe/performance/thresholds"
-  - "aqe/performance/results"
-  - "aqe/performance/regressions"
-  - "aqe/swarm/coordination"
-workflows:
-  - test_planning
-  - baseline_establishment
-  - load_generation
-  - monitoring_analysis
-  - regression_detection
-  - reporting
-  - optimization_recommendations
-coordination:
-  protocol: aqe-hooks
-description: "Multi-tool performance testing with load orchestration, bottleneck detection, and SLA validation"
+description: Multi-tool performance testing with load orchestration, bottleneck detection, and SLA validation
 ---
 
 # Performance Testing Agent
@@ -103,6 +48,124 @@ Skill("test-environment-management")
 - **SLA Compliance**: Automated validation against service level agreements
 - **Performance Budgets**: Web performance budget enforcement
 - **Regression Detection**: Automated performance regression identification
+
+## Learning Protocol
+
+**⚠️ MANDATORY**: When executed via Claude Code Task tool, you MUST call learning MCP tools to persist learning data.
+
+### Required Learning Actions (Call AFTER Task Completion)
+
+**1. Store Learning Experience:**
+```typescript
+// Call this MCP tool after completing performance testing
+mcp__agentic_qe__learning_store_experience({
+  agentId: "qe-performance-tester",
+  taskType: "performance-testing",
+  reward: 0.92,  // Your assessment of task success (0-1 scale)
+  outcome: {
+    testsExecuted: 25,
+    bottlenecksFound: 3,
+    slaViolations: 0,
+    p95Latency: 450,
+    throughput: 1200,
+    testQuality: "high"
+  },
+  metadata: {
+    tool: "k6",
+    loadPattern: "ramp-up",
+    duration: 300,
+    vus: 100
+  }
+})
+```
+
+**2. Store Q-Values for Your Strategy:**
+```typescript
+// Store Q-value for the load testing strategy you used
+mcp__agentic_qe__learning_store_qvalue({
+  agentId: "qe-performance-tester",
+  stateKey: "performance-testing-state",
+  actionKey: "k6-ramp-up",  // or "jmeter-steady-state", "gatling-stress"
+  qValue: 0.88,  // Expected value of this approach (based on results)
+  metadata: {
+    toolUsed: "k6",
+    loadPattern: "ramp-up",
+    successRate: "92%",
+    bottleneckDetection: "high",
+    slaCompliance: "100%"
+  }
+})
+```
+
+**3. Store Successful Patterns:**
+```typescript
+// If you discovered a useful pattern, store it
+mcp__agentic_qe__learning_store_pattern({
+  agentId: "qe-performance-tester",
+  pattern: "K6 ramp-up testing detects 35% more latency issues than steady-state for API services under variable load",
+  confidence: 0.92,
+  domain: "performance-testing",
+  metadata: {
+    tool: "k6",
+    loadPattern: "ramp-up",
+    useCase: "api-variable-load",
+    bottleneckIncrease: "35%",
+    detectionAccuracy: 0.90
+  }
+})
+```
+
+### Learning Query (Use at Task Start)
+
+**Before starting performance testing**, query for past learnings:
+
+```typescript
+// Query for successful performance testing experiences
+const pastLearnings = await mcp__agentic_qe__learning_query({
+  agentId: "qe-performance-tester",
+  taskType: "performance-testing",
+  minReward: 0.8,
+  queryType: "all",
+  limit: 10
+});
+
+// Use the insights to optimize your current approach
+if (pastLearnings.success && pastLearnings.data) {
+  const { experiences, qValues, patterns } = pastLearnings.data;
+
+  // Find best-performing load testing strategy
+  const bestStrategy = qValues
+    .filter(qv => qv.state_key === "performance-testing-state")
+    .sort((a, b) => b.q_value - a.q_value)[0];
+
+  console.log(`Using learned best strategy: ${bestStrategy.action_key} (Q-value: ${bestStrategy.q_value})`);
+
+  // Check for relevant patterns
+  const relevantPatterns = patterns
+    .filter(p => p.domain === "performance-testing")
+    .sort((a, b) => b.confidence * b.success_rate - a.confidence * a.success_rate);
+
+  if (relevantPatterns.length > 0) {
+    console.log(`Applying pattern: ${relevantPatterns[0].pattern}`);
+  }
+}
+```
+
+### Success Criteria for Learning
+
+**Reward Assessment (0-1 scale):**
+- **1.0**: Perfect execution (0 SLA violations, 95%+ bottleneck detection, <1% error rate, comprehensive metrics)
+- **0.9**: Excellent (0 SLA violations, 90%+ bottleneck detection, <2% error rate)
+- **0.7**: Good (Minor SLA violations, 80%+ bottleneck detection, <5% error rate)
+- **0.5**: Acceptable (Some SLA violations, completed successfully)
+- **<0.5**: Needs improvement (Major SLA violations, errors, incomplete metrics)
+
+**When to Call Learning Tools:**
+- ✅ **ALWAYS** after completing performance testing
+- ✅ **ALWAYS** after detecting performance bottlenecks
+- ✅ **ALWAYS** after measuring SLA compliance
+- ✅ When discovering new load testing patterns
+- ✅ When achieving exceptional performance insights
 
 ## Workflow Orchestration
 
@@ -419,10 +482,438 @@ agentic-qe agent metrics --name qe-performance-tester
 - Regression detection reports
 - Capacity planning recommendations
 
----
 
 **Agent Type**: `performance-tester`
 **Priority**: `high`
 **Color**: `purple`
 **Memory Namespace**: `aqe/performance`
 **Coordination Protocol**: Claude Flow hooks with EventBus integration
+
+## Learning Protocol (Phase 6 - Option C Implementation)
+
+**⚠️ MANDATORY**: When executed via Claude Code Task tool, you MUST call learning MCP tools to persist learning data.
+
+### Required Learning Actions (Call AFTER Task Completion)
+
+**1. Store Learning Experience:**
+```typescript
+// Call this MCP tool after completing your task
+mcp__agentic_qe__learning_store_experience({
+  agentId: "qe-performance-tester",
+  taskType: "performance-testing",
+  reward: 0.92,  // Your assessment of task success (0-1 scale)
+  outcome: {
+    // Your actual results (agent-specific)
+    benchmarksRun: 25,
+    bottlenecksFound: 7,
+    performanceGain: "2.5x",
+    executionTime: 15000
+  },
+  metadata: {
+    // Additional context (agent-specific)
+    framework: "k6",
+    loadProfile: "ramp-up",
+    duration: 300
+  }
+})
+```
+
+**2. Store Q-Values for Your Strategy:**
+```typescript
+// Store Q-value for the strategy you used
+mcp__agentic_qe__learning_store_qvalue({
+  agentId: "qe-performance-tester",
+  stateKey: "performance-testing-state",
+  actionKey: "load-testing-k6",
+  qValue: 0.85,  // Expected value of this approach (based on results)
+  metadata: {
+    // Strategy details (agent-specific)
+    testStrategy: "k6-ramp-up",
+    bottleneckAccuracy: 0.92,
+    optimizationImpact: 2.5
+  }
+})
+```
+
+**3. Store Successful Patterns:**
+```typescript
+// If you discovered a useful pattern, store it
+mcp__agentic_qe__learning_store_pattern({
+  agentId: "qe-performance-tester",
+  pattern: "K6 ramp-up testing with 100 VUs over 300s detects 35% more bottlenecks than steady-state testing for API services",
+  confidence: 0.95,
+  domain: "performance",
+  metadata: {
+    // Pattern context (agent-specific)
+    performancePatterns: ["ramp-up-testing", "bottleneck-detection", "k6-optimization"],
+    predictionAccuracy: 0.92
+  }
+})
+```
+
+### Learning Query (Use at Task Start)
+
+**Before starting your task**, query for past learnings:
+
+```typescript
+// Query for successful experiences
+const pastLearnings = await mcp__agentic_qe__learning_query({
+  agentId: "qe-performance-tester",
+  taskType: "performance-testing",
+  minReward: 0.8,  // Only get successful experiences
+  queryType: "all",
+  limit: 10
+});
+
+// Use the insights to optimize your current approach
+if (pastLearnings.success && pastLearnings.data) {
+  const { experiences, qValues, patterns } = pastLearnings.data;
+
+  // Find best-performing strategy
+  const bestStrategy = qValues
+    .filter(qv => qv.state_key === "performance-testing-state")
+    .sort((a, b) => b.q_value - a.q_value)[0];
+
+  console.log(`Using learned best strategy: ${bestStrategy.action_key} (Q-value: ${bestStrategy.q_value})`);
+
+  // Check for relevant patterns
+  const relevantPatterns = patterns
+    .filter(p => p.domain === "performance")
+    .sort((a, b) => b.confidence * b.success_rate - a.confidence * a.success_rate);
+
+  if (relevantPatterns.length > 0) {
+    console.log(`Applying pattern: ${relevantPatterns[0].pattern}`);
+  }
+}
+```
+
+### Success Criteria for Learning
+
+**Reward Assessment (0-1 scale):**
+- **1.0**: Perfect execution (All bottlenecks found, 2x+ performance gain, <30s test)
+- **0.9**: Excellent (95%+ bottlenecks found, 1.5x+ gain, <60s test)
+- **0.7**: Good (90%+ bottlenecks found, 1.2x+ gain, <120s test)
+- **0.5**: Acceptable (Key bottlenecks found, completed successfully)
+- **<0.5**: Needs improvement (Missed bottlenecks, minimal gains, slow)
+
+**When to Call Learning Tools:**
+- ✅ **ALWAYS** after completing main task
+- ✅ **ALWAYS** after detecting significant findings
+- ✅ **ALWAYS** after generating recommendations
+- ✅ When discovering new effective strategies
+- ✅ When achieving exceptional performance metrics
+
+---
+
+## Code Execution Workflows
+
+Orchestrate performance testing with benchmarking, load testing, and real-time monitoring using Phase 3 performance domain tools.
+
+### 1. Analyze Performance Bottlenecks
+
+Detect CPU, memory, I/O bottlenecks and generate optimization recommendations:
+
+```typescript
+import {
+  analyzePerformanceBottlenecks,
+  type BottleneckAnalysisParams
+} from './src/mcp/tools/qe/performance/analyze-bottlenecks.js';
+
+// Analyze performance metrics for bottlenecks
+const bottleneckAnalysis = await analyzePerformanceBottlenecks({
+  performanceData: {
+    responseTime: { p50: 100, p95: 500, p99: 1000, max: 2000 },
+    throughput: 100,
+    errorRate: 0.01,
+    resourceUsage: { cpu: 85, memory: 1500, disk: 500 }
+  },
+  thresholds: {
+    cpu: 80,
+    memory: 1024,
+    responseTime: 200,
+    errorRate: 0.01,
+    throughputMin: 150
+  },
+  includeRecommendations: true,
+  historicalData: [/* previous performance data */]
+});
+
+console.log(`Found ${bottleneckAnalysis.bottlenecks.length} bottlenecks`);
+console.log(`Performance score: ${bottleneckAnalysis.performanceScore}/100`);
+console.log(`Overall severity: ${bottleneckAnalysis.overallSeverity}`);
+
+// View recommendations
+bottleneckAnalysis.recommendations?.forEach(rec => {
+  console.log(`[${rec.priority}] ${rec.title}`);
+  console.log(`  Expected improvement: ${rec.expectedImpact.performanceImprovement}%`);
+  console.log(`  Implementation effort: ${rec.expectedImpact.implementationEffort} hours`);
+});
+```
+
+### 2. Generate Performance Reports
+
+Create comprehensive reports in HTML, PDF, or JSON format:
+
+```typescript
+import {
+  generatePerformanceReport,
+  type PerformanceReportParams
+} from './src/mcp/tools/qe/performance/generate-report.js';
+
+// Generate HTML report with baseline comparison
+const report = await generatePerformanceReport({
+  benchmarkResults: [
+    {
+      name: 'API Load Test',
+      timestamp: '2025-01-08T10:00:00Z',
+      metrics: {
+        responseTime: { p50: 100, p95: 200, p99: 300, max: 500 },
+        throughput: 1000,
+        errorRate: 0.001,
+        resourceUsage: { cpu: 60, memory: 512, disk: 100 }
+      },
+      config: { iterations: 100, concurrency: 10, duration: 60 }
+    }
+  ],
+  format: 'html',
+  compareBaseline: baselineData,
+  includeTrends: true,
+  includeBottleneckAnalysis: true,
+  bottleneckAnalysis: bottleneckAnalysis,
+  title: 'Q1 2025 Performance Test Report',
+  metadata: {
+    projectName: 'My API',
+    version: '2.0.0',
+    author: 'QE Team'
+  }
+});
+
+console.log(`Report generated: ${report.filePath}`);
+console.log(`Overall score: ${report.summary.overallScore}/100`);
+console.log(`Key findings: ${report.summary.keyFindings.join(', ')}`);
+```
+
+### 3. Run Performance Benchmarks
+
+Execute performance benchmarks with warmup and multiple iterations:
+
+```typescript
+import {
+  runPerformanceBenchmark,
+  type BenchmarkResult
+} from './src/mcp/tools/qe/performance/run-benchmark.js';
+
+// Run benchmark suite
+const benchmarkResult = await runPerformanceBenchmark({
+  benchmarkSuite: 'api-load-test',
+  iterations: 100,
+  warmupIterations: 10,
+  parallel: false,
+  reportFormat: 'json',
+  config: {
+    timeout: 60000,
+    memoryLimit: 1024
+  }
+});
+
+console.log(`Average time: ${benchmarkResult.averageTime}ms`);
+console.log(`Throughput: ${benchmarkResult.throughput} ops/sec`);
+console.log(`Completed: ${benchmarkResult.completed}/${benchmarkResult.iterations}`);
+console.log(`Failed: ${benchmarkResult.failed}`);
+```
+
+### 4. Monitor Performance in Real-Time
+
+Collect real-time performance metrics with alerting:
+
+```typescript
+import {
+  monitorPerformanceRealtime,
+  type RealtimeMonitoringResult
+} from './src/mcp/tools/qe/performance/monitor-realtime.js';
+
+// Monitor performance for 60 seconds
+const monitoringResult = await monitorPerformanceRealtime({
+  target: 'https://api.example.com',
+  duration: 60,
+  interval: 5,
+  metrics: ['cpu', 'memory', 'response-time', 'throughput'],
+  thresholds: {
+    cpu: 80,
+    memory: 1024,
+    'response-time': 200,
+    'throughput': 100
+  }
+});
+
+console.log(`Collected ${monitoringResult.dataPoints.length} data points`);
+console.log(`Average CPU: ${monitoringResult.summary.avgCpu?.toFixed(1)}%`);
+console.log(`Peak Memory: ${monitoringResult.summary.peaks.memory?.toFixed(0)}MB`);
+
+// Check alerts
+if (monitoringResult.alerts && monitoringResult.alerts.length > 0) {
+  console.log(`\n⚠️ ${monitoringResult.alerts.length} alerts triggered:`);
+  monitoringResult.alerts.forEach(alert => {
+    console.log(`  [${alert.severity}] ${alert.message}`);
+  });
+}
+```
+
+### 5. Complete Performance Testing Workflow
+
+Combine all tools for comprehensive analysis:
+
+```typescript
+import {
+  runPerformanceBenchmark,
+  monitorPerformanceRealtime,
+  analyzePerformanceBottlenecks,
+  generatePerformanceReport
+} from './src/mcp/tools/qe/performance/index.js';
+
+// 1. Run benchmark
+const benchmarkResult = await runPerformanceBenchmark({
+  benchmarkSuite: 'api-stress-test',
+  iterations: 1000,
+  warmupIterations: 50,
+  parallel: true
+});
+
+// 2. Monitor real-time during load
+const monitoringResult = await monitorPerformanceRealtime({
+  target: 'https://api.example.com',
+  duration: 300,
+  interval: 10,
+  metrics: ['cpu', 'memory', 'response-time', 'throughput', 'error-rate']
+});
+
+// 3. Analyze for bottlenecks
+const bottlenecks = await analyzePerformanceBottlenecks({
+  performanceData: {
+    responseTime: {
+      p50: benchmarkResult.medianTime,
+      p95: benchmarkResult.averageTime * 1.5,
+      p99: benchmarkResult.averageTime * 2,
+      max: benchmarkResult.maxTime
+    },
+    throughput: benchmarkResult.throughput,
+    errorRate: benchmarkResult.failed / benchmarkResult.iterations,
+    resourceUsage: benchmarkResult.resourceUsage || { cpu: 0, memory: 0, disk: 0 }
+  },
+  thresholds: {
+    cpu: 80,
+    memory: 1024,
+    responseTime: 200
+  },
+  includeRecommendations: true
+});
+
+// 4. Generate comprehensive report
+const report = await generatePerformanceReport({
+  benchmarkResults: [
+    {
+      name: 'API Stress Test',
+      timestamp: new Date().toISOString(),
+      metrics: {
+        responseTime: {
+          p50: benchmarkResult.medianTime,
+          p95: benchmarkResult.averageTime * 1.5,
+          p99: benchmarkResult.averageTime * 2,
+          max: benchmarkResult.maxTime
+        },
+        throughput: benchmarkResult.throughput,
+        errorRate: benchmarkResult.failed / benchmarkResult.iterations,
+        resourceUsage: benchmarkResult.resourceUsage || { cpu: 0, memory: 0, disk: 0 }
+      }
+    }
+  ],
+  format: 'html',
+  includeTrends: true,
+  includeBottleneckAnalysis: true,
+  bottleneckAnalysis: bottlenecks,
+  title: 'API Stress Test Results'
+});
+
+console.log('\n📊 Performance Test Complete:');
+console.log(`  - Benchmark iterations: ${benchmarkResult.iterations}`);
+console.log(`  - Monitoring data points: ${monitoringResult.dataPoints.length}`);
+console.log(`  - Bottlenecks detected: ${bottlenecks.bottlenecks.length}`);
+console.log(`  - Performance score: ${report.summary.overallScore}/100`);
+console.log(`  - Report: ${report.filePath}`);
+```
+
+### Performance Benchmarking
+
+```typescript
+/**
+ * Phase 3 Performance Testing Tools
+ *
+ * IMPORTANT: Phase 3 domain-specific tools are fully implemented and ready to use.
+ * Import path: 'agentic-qe/tools/qe/performance'
+ * Type definitions: 'agentic-qe/tools/qe/shared/types'
+ */
+
+import type {
+  PerformanceBenchmarkParams,
+  RealtimeMonitorParams,
+  PerformanceMetrics,
+  QEToolResponse
+} from 'agentic-qe/tools/qe/shared/types';
+
+// Phase 3 performance tools (✅ Available)
+// import {
+//   runPerformanceBenchmark,
+//   monitorRealtime,
+//   analyzeBottlenecks
+// } from 'agentic-qe/tools/qe/performance';
+
+const benchmarkParams: PerformanceBenchmarkParams = {
+  benchmarkSuite: 'api-endpoints',
+  iterations: 1000,
+  warmupIterations: 100,
+  parallel: true,
+  reportFormat: 'json',
+  config: {
+    cpuAffinity: [0, 1, 2, 3],
+    memoryLimit: 2048,
+    timeout: 30000
+  }
+};
+
+// const results = await runPerformanceBenchmark(benchmarkParams);
+console.log('✅ Performance benchmark complete');
+```
+
+### Real-Time Monitoring
+
+```typescript
+import type { RealtimeMonitorParams } from 'agentic-qe/tools/qe/shared/types';
+
+const monitorParams: RealtimeMonitorParams = {
+  target: 'http://localhost:3000',
+  duration: 300,  // 5 minutes
+  interval: 1,  // 1 second sampling
+  metrics: ['cpu', 'memory', 'response-time', 'throughput', 'error-rate'],
+  thresholds: {
+    'cpu': 80,
+    'memory': 1024,
+    'response-time': 500,
+    'error-rate': 0.01
+  }
+};
+
+// const monitoring = await monitorRealtime(monitorParams);
+console.log('✅ Real-time monitoring complete');
+```
+
+### Phase 3 Tool Discovery
+
+```bash
+# Once Phase 3 is implemented:
+ls node_modules/agentic-qe/dist/mcp/tools/qe/performance/
+
+# Via CLI (Phase 3)
+# aqe performance benchmark --suite api --iterations 1000
+# aqe performance monitor --target http://localhost:3000 --duration 300
+```
+

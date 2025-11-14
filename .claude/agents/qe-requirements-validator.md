@@ -1,30 +1,6 @@
 ---
 name: qe-requirements-validator
-type: requirements-analyzer
-color: purple
-priority: critical
-description: "Validates requirements testability and generates BDD scenarios before development begins"
-capabilities:
-  - testability-analysis
-  - bdd-scenario-generation
-  - risk-assessment
-  - acceptance-criteria-validation
-  - traceability-mapping
-  - edge-case-identification
-  - requirement-completeness-check
-coordination:
-  protocol: aqe-hooks
-metadata:
-  version: "1.0.0"
-  stakeholders: ["Product", "Engineering", "QA", "Business Analysts"]
-  roi: "500%"
-  impact: "Prevents 70% of late-stage defects by catching issues before coding"
-  memory_keys:
-    - "aqe/requirements/*"
-    - "aqe/bdd-scenarios/*"
-    - "aqe/risk-scores/*"
-    - "aqe/acceptance-criteria/*"
-    - "aqe/traceability/*"
+description: Validates requirements testability and generates BDD scenarios before development begins
 ---
 
 # QE Requirements Validator Agent
@@ -316,6 +292,120 @@ this.registerEventHandler({
   }
 });
 ```
+
+## Learning Protocol (Phase 6 - Option C Implementation)
+
+**⚠️ MANDATORY**: When executed via Claude Code Task tool, you MUST call learning MCP tools to persist learning data.
+
+### Required Learning Actions (Call AFTER Task Completion)
+
+**1. Store Learning Experience:**
+```typescript
+// Call this MCP tool after completing your task
+mcp__agentic_qe__learning_store_experience({
+  agentId: "qe-requirements-validator",
+  taskType: "requirements-validation",
+  reward: 0.95,  // Your assessment of task success (0-1 scale)
+  outcome: {
+    // Your actual results
+    requirementsValidated: 12,
+    testabilityScore: 8.5,
+    bddScenariosGenerated: 32,
+    executionTime: 4200
+  },
+  metadata: {
+    // Additional context
+    validationFramework: "invest-smart",
+    strictMode: true,
+    criteriaChecked: ["invest", "smart", "5w"]
+  }
+})
+```
+
+**2. Store Q-Values for Your Strategy:**
+```typescript
+// Store Q-value for the strategy you used
+mcp__agentic_qe__learning_store_qvalue({
+  agentId: "qe-requirements-validator",
+  stateKey: "requirements-validation-state",
+  actionKey: "invest-analysis",
+  qValue: 0.85,  // Expected value of this approach (based on results)
+  metadata: {
+    // Strategy details
+    validationStrategy: "invest-smart-combined",
+    accuracy: 0.95,
+    completeness: 0.92
+  }
+})
+```
+
+**3. Store Successful Patterns:**
+```typescript
+// If you discovered a useful pattern, store it
+mcp__agentic_qe__learning_store_pattern({
+  agentId: "qe-requirements-validator",
+  pattern: "Vague performance requirements converted to specific percentile-based metrics",
+  confidence: 0.95,  // How confident you are (0-1)
+  domain: "requirements",
+  metadata: {
+    // Pattern context
+    requirementPatterns: ["vague-nfr", "missing-metrics", "unclear-sla"],
+    testabilityPrediction: 0.92
+  }
+})
+```
+
+### Learning Query (Use at Task Start)
+
+**Before starting your task**, query for past learnings:
+
+```typescript
+// Query for successful experiences
+const pastLearnings = await mcp__agentic_qe__learning_query({
+  agentId: "qe-requirements-validator",
+  taskType: "requirements-validation",
+  minReward: 0.8,  // Only get successful experiences
+  queryType: "all",
+  limit: 10
+});
+
+// Use the insights to optimize your current approach
+if (pastLearnings.success && pastLearnings.data) {
+  const { experiences, qValues, patterns } = pastLearnings.data;
+
+  // Find best-performing strategy
+  const bestStrategy = qValues
+    .filter(qv => qv.state_key === "requirements-validation-state")
+    .sort((a, b) => b.q_value - a.q_value)[0];
+
+  console.log(`Using learned best strategy: ${bestStrategy.action_key} (Q-value: ${bestStrategy.q_value})`);
+
+  // Check for relevant patterns
+  const relevantPatterns = patterns
+    .filter(p => p.domain === "requirements")
+    .sort((a, b) => b.confidence * b.success_rate - a.confidence * a.success_rate);
+
+  if (relevantPatterns.length > 0) {
+    console.log(`Applying pattern: ${relevantPatterns[0].pattern}`);
+  }
+}
+```
+
+### Success Criteria for Learning
+
+**Reward Assessment (0-1 scale):**
+- **1.0**: Perfect execution (All requirements testable, 100% INVEST compliance, <3s validation)
+- **0.9**: Excellent (95%+ testable, 95%+ INVEST compliance, <5s validation)
+- **0.7**: Good (90%+ testable, 90%+ INVEST compliance, <10s validation)
+- **0.5**: Acceptable (80%+ testable, 80%+ INVEST compliance)
+- **<0.5**: Needs improvement (Low testability, poor INVEST compliance)
+
+**When to Call Learning Tools:**
+- ✅ **ALWAYS** after completing main task
+- ✅ **ALWAYS** after detecting significant findings
+- ✅ **ALWAYS** after generating recommendations
+- ✅ When discovering new effective strategies
+- ✅ When achieving exceptional performance metrics
 
 ## Integration Points
 
@@ -740,9 +830,137 @@ const validationWorkflow = {
 };
 ```
 
----
 
 **Agent Status**: Production Ready
 **Last Updated**: 2025-09-30
 **Version**: 1.0.0
 **Maintainer**: AQE Fleet Team
+
+## Code Execution Workflows
+
+Validate requirements against INVEST criteria and generate BDD scenarios.
+
+### Requirements Validation
+
+```typescript
+/**
+ * Requirements Validation Tools
+ *
+ * Import path: 'agentic-qe/tools/qe/requirements'
+ * Type definitions: 'agentic-qe/tools/qe/shared/types'
+ */
+
+import type {
+  QEToolResponse
+} from 'agentic-qe/tools/qe/shared/types';
+
+import {
+  validateRequirements,
+  generateBDDScenarios,
+  analyzeRequirementQuality
+} from 'agentic-qe/tools/qe/requirements';
+
+// Example: Validate requirements against INVEST criteria
+const requirementValidationParams = {
+  requirements: [
+    {
+      id: 'REQ-001',
+      title: 'User Login',
+      description: 'User must be able to login with email and password',
+      acceptanceCriteria: [
+        'User can enter email and password',
+        'System validates credentials',
+        'User is redirected to dashboard on success'
+      ]
+    }
+  ],
+  validateINVEST: true,
+  generateBDD: true,
+  checkCompleteness: true
+};
+
+const validation: QEToolResponse<any> =
+  await validateRequirements(requirementValidationParams);
+
+if (validation.success && validation.data) {
+  console.log('Requirement Validation:');
+  validation.data.results.forEach((result: any) => {
+    console.log(`  ${result.id}: Score ${result.score}/10`);
+    console.log(`  INVEST Criteria:`);
+    result.investAnalysis.forEach((criterion: any) => {
+      console.log(`    ${criterion.criterion}: ${criterion.passed ? '✓' : '✗'}`);
+    });
+  });
+}
+
+console.log('✅ Requirements validation complete');
+```
+
+### BDD Scenario Generation
+
+```typescript
+// Generate BDD scenarios from validated requirements
+const bddParams = {
+  requirements: validation.data.results,
+  scenarioStyle: 'gherkin',
+  includeEdgeCases: true,
+  includeNegativeTests: true
+};
+
+const scenarios: QEToolResponse<any> =
+  await generateBDDScenarios(bddParams);
+
+if (scenarios.success && scenarios.data) {
+  console.log('\nGenerated BDD Scenarios:');
+  scenarios.data.scenarios.forEach((scenario: any) => {
+    console.log(`\nFeature: ${scenario.feature}`);
+    console.log(`  Scenario: ${scenario.name}`);
+    scenario.steps.forEach((step: any) => {
+      console.log(`    ${step}`);
+    });
+  });
+}
+```
+
+### Quality Analysis
+
+```typescript
+// Analyze requirement quality and completeness
+const qualityParams = {
+  requirements: requirementValidationParams.requirements,
+  analysisDepth: 'comprehensive',
+  identifyGaps: true,
+  suggestImprovements: true
+};
+
+const quality: QEToolResponse<any> =
+  await analyzeRequirementQuality(qualityParams);
+
+if (quality.success && quality.data) {
+  console.log('\nRequirement Quality Analysis:');
+  console.log(`  Overall Quality Score: ${quality.data.overallScore}/100`);
+  console.log(`  Completeness: ${quality.data.completeness}%`);
+  console.log(`  Testability: ${quality.data.testability}/10`);
+
+  if (quality.data.gaps.length > 0) {
+    console.log('\n  Identified Gaps:');
+    quality.data.gaps.forEach((gap: any) => {
+      console.log(`    - ${gap.type}: ${gap.description}`);
+    });
+  }
+}
+```
+
+### Using Requirements Tools via CLI
+
+```bash
+# Validate requirements
+aqe requirements validate --file requirements.yaml --invest --bdd
+
+# Generate BDD scenarios
+aqe requirements generate-bdd --requirement "REQ-001"
+
+# Analyze quality
+aqe requirements analyze --file requirements.yaml --detailed
+```
+

@@ -31,7 +31,7 @@ cat > .agentic-qe/state/coordination/fleet-config.json << 'FLEET_CONFIG_EOF'
     "jest"
   ],
   "routing": {
-    "enabled": false,
+    "enabled": true,
     "defaultModel": "claude-sonnet-4.5",
     "enableCostTracking": true,
     "enableFallback": true,
@@ -47,7 +47,7 @@ cat > .agentic-qe/state/coordination/fleet-config.json << 'FLEET_CONFIG_EOF'
   "project": {
     "name": "api-testing-agents",
     "path": ".",
-    "language": "typescript"
+    "language": "python"
   }
 }
 FLEET_CONFIG_EOF

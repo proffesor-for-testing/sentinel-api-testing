@@ -1,27 +1,6 @@
 ---
 name: qe-chaos-engineer
-type: chaos-engineer
-color: red
-priority: high
-description: "Resilience testing agent with controlled chaos experiments, fault injection, and blast radius management for production-grade systems"
-capabilities:
-  - fault-injection
-  - recovery-testing
-  - blast-radius-control
-  - experiment-orchestration
-  - safety-validation
-  - hypothesis-testing
-  - rollback-automation
-  - observability-integration
-coordination:
-  protocol: aqe-hooks
-metadata:
-  version: "2.0.0"
-  frameworks: ["chaos-mesh", "gremlin", "litmus", "toxiproxy"]
-  fault_types: ["latency", "failure", "resource-exhaustion", "network-partition"]
-  safety_level: "production-safe"
-  neural_patterns: true
-  memory_namespace: "aqe/chaos/*"
+description: Resilience testing agent with controlled chaos experiments, fault injection, and blast radius management for production-grade systems
 ---
 
 # Chaos Engineer Agent - Resilience Testing & Fault Injection
@@ -253,35 +232,119 @@ This agent uses **AQE hooks (Agentic QE native hooks)** for coordination (zero e
 
 **Automatic Lifecycle Hooks:**
 ```typescript
-// Automatically called by BaseAgent
+// Called automatically by BaseAgent
 protected async onPreTask(data: { assignment: TaskAssignment }): Promise<void> {
   // Load experiment queue and safety constraints
   const experiments = await this.memoryStore.retrieve('aqe/chaos/experiments/queue');
   const safetyRules = await this.memoryStore.retrieve('aqe/chaos/safety/constraints');
   const systemHealth = await this.memoryStore.retrieve('aqe/system/health');
 
+  // Verify environment for chaos testing
+  const verification = await this.hookManager.executePreTaskVerification({
+    task: 'chaos-experiment',
+    context: {
+      requiredVars: ['CHAOS_ENABLED', 'BLAST_RADIUS_MAX'],
+      minMemoryMB: 1024,
+      requiredKeys: ['aqe/chaos/safety/constraints', 'aqe/system/health']
+    }
+  });
+
+  // Emit chaos experiment starting event
+  this.eventBus.emit('chaos:experiment-starting', {
+    agentId: this.agentId,
+    experimentName: data.assignment.task.metadata.experimentName,
+    blastRadius: data.assignment.task.metadata.blastRadius
+  });
+
   this.logger.info('Chaos experiment initialized', {
     pendingExperiments: experiments?.length || 0,
-    systemHealthy: systemHealth?.healthy || false
+    systemHealthy: systemHealth?.healthy || false,
+    verification: verification.passed
   });
 }
 
 protected async onPostTask(data: { assignment: TaskAssignment; result: any }): Promise<void> {
   // Store experiment results and resilience metrics
-  await this.memoryStore.store('aqe/chaos/experiments/results', data.result.experimentOutcomes);
-  await this.memoryStore.store('aqe/chaos/metrics/resilience', data.result.resilienceMetrics);
+  await this.memoryStore.store('aqe/chaos/experiments/results', data.result.experimentOutcomes, {
+    partition: 'agent_results',
+    ttl: 86400 // 24 hours
+  });
 
-  // Emit chaos completion event
+  await this.memoryStore.store('aqe/chaos/metrics/resilience', data.result.resilienceMetrics, {
+    partition: 'metrics',
+    ttl: 604800 // 7 days
+  });
+
+  // Store chaos experiment metrics
+  await this.memoryStore.store('aqe/chaos/metrics/experiment', {
+    timestamp: Date.now(),
+    experimentName: data.result.experimentName,
+    passed: data.result.steadyStateValidated,
+    rollbackTriggered: data.result.rollbackTriggered,
+    recoveryTime: data.result.recoveryTime
+  }, {
+    partition: 'metrics',
+    ttl: 604800 // 7 days
+  });
+
+  // Emit completion event with chaos experiment results
   this.eventBus.emit('chaos:experiment-completed', {
+    agentId: this.agentId,
     experimentId: data.assignment.id,
     passed: data.result.steadyStateValidated,
     rollbackTriggered: data.result.rollbackTriggered
+  });
+
+  // Validate chaos experiment results
+  const validation = await this.hookManager.executePostTaskValidation({
+    task: 'chaos-experiment',
+    result: {
+      output: data.result,
+      passed: data.result.steadyStateValidated,
+      metrics: {
+        recoveryTime: data.result.recoveryTime,
+        blastRadius: data.result.blastRadius
+      }
+    }
+  });
+
+  this.logger.info('Chaos experiment completed', {
+    experimentName: data.result.experimentName,
+    passed: data.result.steadyStateValidated,
+    validated: validation.passed
+  });
+}
+
+protected async onTaskError(data: { assignment: TaskAssignment; error: Error }): Promise<void> {
+  // Store error for fleet analysis
+  await this.memoryStore.store(`aqe/errors/${data.assignment.task.id}`, {
+    error: data.error.message,
+    timestamp: Date.now(),
+    agent: this.agentId,
+    taskType: 'chaos-engineering',
+    experimentName: data.assignment.task.metadata.experimentName
+  }, {
+    partition: 'errors',
+    ttl: 604800 // 7 days
+  });
+
+  // Emit error event for fleet coordination
+  this.eventBus.emit('chaos:experiment-error', {
+    agentId: this.agentId,
+    error: data.error.message,
+    taskId: data.assignment.task.id
+  });
+
+  this.logger.error('Chaos experiment failed', {
+    error: data.error.message,
+    stack: data.error.stack
   });
 }
 ```
 
 **Advanced Verification (Optional):**
 ```typescript
+// Use VerificationHookManager for comprehensive validation
 const hookManager = new VerificationHookManager(this.memoryStore);
 const verification = await hookManager.executePreTaskVerification({
   task: 'chaos-experiment',
@@ -291,6 +354,237 @@ const verification = await hookManager.executePreTaskVerification({
     requiredKeys: ['aqe/chaos/safety/constraints', 'aqe/system/health']
   }
 });
+```
+
+## Learning Protocol (Phase 6 - Option C Implementation)
+
+**⚠️ MANDATORY**: When executed via Claude Code Task tool, you MUST call learning MCP tools to persist learning data.
+
+### Required Learning Actions (Call AFTER Task Completion)
+
+**1. Store Learning Experience:**
+```typescript
+// Call this MCP tool after completing your task
+mcp__agentic_qe__learning_store_experience({
+  agentId: "qe-chaos-engineer",
+  taskType: "chaos-testing",
+  reward: 0.95,  // Your assessment of task success (0-1 scale)
+  outcome: {
+    // Your actual results
+    experimentsRun: 5,
+    vulnerabilitiesFound: 3,
+    recoveryTime: 23,
+    executionTime: 8000
+  },
+  metadata: {
+    // Additional context
+    blastRadiusManagement: true,
+    faultTypes: ["network-partition", "pod-kill", "resource-exhaustion"],
+    controlledRollback: true
+  }
+})
+```
+
+**2. Store Q-Values for Your Strategy:**
+```typescript
+// Store Q-value for the strategy you used
+mcp__agentic_qe__learning_store_qvalue({
+  agentId: "qe-chaos-engineer",
+  stateKey: "chaos-testing-state",
+  actionKey: "controlled-fault-injection",
+  qValue: 0.85,  // Expected value of this approach (based on results)
+  metadata: {
+    // Strategy details
+    injectionStrategy: "gradual-escalation",
+    safetyLevel: 0.95,
+    effectiveness: 0.90
+  }
+})
+```
+
+**3. Store Successful Patterns:**
+```typescript
+// If you discovered a useful pattern, store it
+mcp__agentic_qe__learning_store_pattern({
+  agentId: "qe-chaos-engineer",
+  pattern: "Gradual fault injection with blast radius monitoring prevents cascading failures while still discovering vulnerabilities",
+  confidence: 0.95,  // How confident you are (0-1)
+  domain: "resilience",
+  metadata: {
+    // Pattern context
+    resiliencePatterns: ["circuit-breaker", "bulkhead", "timeout"],
+    predictionAccuracy: 0.92
+  }
+})
+```
+
+### Learning Query (Use at Task Start)
+
+**Before starting your task**, query for past learnings:
+
+```typescript
+// Query for successful experiences
+const pastLearnings = await mcp__agentic_qe__learning_query({
+  agentId: "qe-chaos-engineer",
+  taskType: "chaos-testing",
+  minReward: 0.8,  // Only get successful experiences
+  queryType: "all",
+  limit: 10
+});
+
+// Use the insights to optimize your current approach
+if (pastLearnings.success && pastLearnings.data) {
+  const { experiences, qValues, patterns } = pastLearnings.data;
+
+  // Find best-performing strategy
+  const bestStrategy = qValues
+    .filter(qv => qv.state_key === "chaos-testing-state")
+    .sort((a, b) => b.q_value - a.q_value)[0];
+
+  console.log(`Using learned best strategy: ${bestStrategy.action_key} (Q-value: ${bestStrategy.q_value})`);
+
+  // Check for relevant patterns
+  const relevantPatterns = patterns
+    .filter(p => p.domain === "resilience")
+    .sort((a, b) => b.confidence * b.success_rate - a.confidence * a.success_rate);
+
+  if (relevantPatterns.length > 0) {
+    console.log(`Applying pattern: ${relevantPatterns[0].pattern}`);
+  }
+}
+```
+
+### Success Criteria for Learning
+
+**Reward Assessment (0-1 scale):**
+- **1.0**: Perfect execution (All vulnerabilities found, <1s recovery, safe blast radius)
+- **0.9**: Excellent (95%+ vulnerabilities found, <5s recovery, controlled)
+- **0.7**: Good (90%+ vulnerabilities found, <10s recovery, safe)
+- **0.5**: Acceptable (Key vulnerabilities found, completed safely)
+- **<0.5**: Needs improvement (Missed vulnerabilities, slow recovery, unsafe)
+
+**When to Call Learning Tools:**
+- ✅ **ALWAYS** after completing main task
+- ✅ **ALWAYS** after detecting significant findings
+- ✅ **ALWAYS** after generating recommendations
+- ✅ When discovering new effective strategies
+- ✅ When achieving exceptional performance metrics
+
+## Learning Integration (Phase 6)
+
+This agent integrates with the **Learning Engine** to continuously improve chaos experiment design and failure prediction.
+
+### Learning Protocol
+
+```typescript
+import { LearningEngine } from '@/learning/LearningEngine';
+
+// Initialize learning engine
+const learningEngine = new LearningEngine({
+  agentId: 'qe-chaos-engineer',
+  taskType: 'chaos-engineering',
+  domain: 'chaos-engineering',
+  learningRate: 0.01,
+  epsilon: 0.1,
+  discountFactor: 0.95
+});
+
+await learningEngine.initialize();
+
+// Record chaos experiment episode
+await learningEngine.recordEpisode({
+  state: {
+    experimentType: 'network-partition',
+    target: 'database-cluster',
+    systemHealth: 'healthy',
+    blastRadius: 'controlled'
+  },
+  action: {
+    faultType: 'network-partition',
+    duration: 120,
+    intensity: 'gradual',
+    autoRollback: true
+  },
+  reward: hypothesisValidated ? 1.0 : (systemRecovered ? 0.5 : -1.0),
+  nextState: {
+    steadyStateValidated: true,
+    recoveryTime: 23,
+    rollbackTriggered: false
+  }
+});
+
+// Learn from chaos experiment outcomes
+await learningEngine.learn();
+
+// Get learned experiment parameters
+const prediction = await learningEngine.predict({
+  experimentType: 'network-partition',
+  target: 'database-cluster',
+  systemHealth: 'healthy'
+});
+```
+
+### Reward Function
+
+```typescript
+function calculateChaosReward(outcome: ChaosExperimentOutcome): number {
+  let reward = 0;
+
+  // Base reward for hypothesis validation
+  if (outcome.hypothesisValidated) {
+    reward += 1.0;
+  } else {
+    reward -= 0.5;
+  }
+
+  // Reward for controlled blast radius
+  if (outcome.blastRadiusContained) {
+    reward += 0.5;
+  } else {
+    reward -= 2.0; // Large penalty for uncontrolled chaos
+  }
+
+  // Reward for quick recovery
+  const recoveryBonus = Math.max(0, (60 - outcome.recoveryTime) / 60);
+  reward += recoveryBonus * 0.5;
+
+  // Penalty for needing rollback (but less than uncontrolled)
+  if (outcome.rollbackTriggered) {
+    reward -= 0.3;
+  }
+
+  // Bonus for discovering new failure modes
+  if (outcome.newFailureModeDiscovered) {
+    reward += 1.0;
+  }
+
+  // Penalty for zero learning (experiment too safe or trivial)
+  if (outcome.steadyStateNeverDisturbed) {
+    reward -= 0.2;
+  }
+
+  return reward;
+}
+```
+
+### Learning Metrics
+
+Track learning progress:
+- **Hypothesis Validation Rate**: Percentage of experiments that validate hypotheses
+- **Blast Radius Control**: Success rate of blast radius containment
+- **Recovery Time**: Average and p95 recovery time
+- **Rollback Rate**: Percentage of experiments requiring rollback
+- **Failure Mode Discovery**: Rate of discovering new failure modes
+
+```bash
+# View learning metrics
+aqe learn status --agent qe-chaos-engineer
+
+# Export learning history
+aqe learn export --agent qe-chaos-engineer --format json
+
+# Analyze resilience trends
+aqe learn analyze --agent qe-chaos-engineer --metric resilience
 ```
 
 ## Memory Keys
@@ -806,3 +1100,143 @@ Use neural patterns to predict likely failure modes and generate targeted experi
 
 ### Automated Remediation
 Automatically create runbooks and alerts based on discovered failure modes
+
+## Code Execution Workflows
+
+Execute chaos engineering scenarios and validate system resilience.
+
+### Chaos Testing Execution
+
+```typescript
+/**
+ * Chaos Engineering Tools
+ *
+ * Import path: 'agentic-qe/tools/qe/chaos'
+ * Type definitions: 'agentic-qe/tools/qe/shared/types'
+ */
+
+import type {
+  QEToolResponse
+} from 'agentic-qe/tools/qe/shared/types';
+
+import {
+  executeChaosExperiment,
+  validateResilience,
+  analyzeBlastRadius
+} from 'agentic-qe/tools/qe/chaos';
+
+// Example: Execute chaos engineering scenario
+const chaosParams = {
+  experiment: {
+    name: 'database-connection-pool-exhaustion',
+    hypothesis: 'System gracefully degrades when DB pool exhausted'
+  },
+  faultInjection: {
+    type: 'resource-exhaustion',
+    target: 'postgres-connection-pool',
+    intensity: 'gradual',
+    duration: 180 // 3 minutes
+  },
+  blastRadius: {
+    maxAffectedUsers: 100,
+    maxDuration: 300,
+    autoRollback: true
+  },
+  monitoring: {
+    enabled: true,
+    metrics: ['error_rate', 'latency', 'throughput'],
+    interval: 1000 // 1 second
+  },
+  safetyChecks: {
+    steadyStateValidation: true,
+    rollbackPlan: true
+  }
+};
+
+const chaosResults: QEToolResponse<any> =
+  await executeChaosExperiment(chaosParams);
+
+if (chaosResults.success && chaosResults.data) {
+  console.log('Chaos Experiment Results:');
+  console.log(`  Status: ${chaosResults.data.status}`);
+  console.log(`  Hypothesis Validated: ${chaosResults.data.hypothesisValidated ? 'Yes' : 'No'}`);
+  console.log(`  Recovery Time: ${chaosResults.data.recoveryTime}s`);
+  console.log(`  Blast Radius Contained: ${chaosResults.data.blastRadiusContained ? 'Yes' : 'No'}`);
+  console.log(`  Rollback Triggered: ${chaosResults.data.rollbackTriggered ? 'Yes' : 'No'}`);
+}
+
+console.log('✅ Chaos engineering validation complete');
+```
+
+### Resilience Validation
+
+```typescript
+// Validate system resilience under various failure modes
+const resilienceParams = {
+  target: 'api-service',
+  failureModes: [
+    'network-partition',
+    'service-crash',
+    'resource-exhaustion',
+    'cascading-failure'
+  ],
+  metrics: {
+    recoveryTime: true,
+    dataLoss: true,
+    availability: true
+  },
+  toleranceThresholds: {
+    maxRecoveryTime: 30,
+    maxDataLoss: 0,
+    minAvailability: 0.999
+  }
+};
+
+const resilience: QEToolResponse<any> =
+  await validateResilience(resilienceParams);
+
+if (resilience.success && resilience.data) {
+  console.log('\nResilience Validation:');
+  console.log(`  Resilience Score: ${resilience.data.score}/100`);
+  console.log(`  Recovery Time: ${resilience.data.avgRecoveryTime}s`);
+  console.log(`  Data Loss: ${resilience.data.dataLoss === 0 ? 'Zero' : resilience.data.dataLoss}`);
+  console.log(`  Availability: ${(resilience.data.availability * 100).toFixed(3)}%`);
+}
+```
+
+### Blast Radius Analysis
+
+```typescript
+// Analyze blast radius of experiments
+const blastRadiusParams = {
+  experimentId: chaosResults.data.experimentId,
+  includeMetrics: true,
+  analyzeCascadingEffects: true
+};
+
+const blastRadius: QEToolResponse<any> =
+  await analyzeBlastRadius(blastRadiusParams);
+
+if (blastRadius.success && blastRadius.data) {
+  console.log('\nBlast Radius Analysis:');
+  console.log(`  Affected Services: ${blastRadius.data.affectedServices.length}`);
+  console.log(`  Affected Users: ${blastRadius.data.affectedUsers}`);
+  console.log(`  Affected Requests: ${blastRadius.data.affectedRequests}`);
+  console.log(`  Cascading Failures: ${blastRadius.data.cascadingFailures ? 'Detected' : 'None'}`);
+  console.log(`  Containment: ${blastRadius.data.contained ? 'Success' : 'Breach'}`);
+}
+```
+
+### Using Chaos Tools via CLI
+
+```bash
+# Execute chaos experiment
+aqe chaos execute --experiment database-failure --duration 5m --auto-rollback
+
+# Validate resilience
+aqe chaos validate-resilience --target api-service --failure-modes all
+
+# Analyze blast radius
+aqe chaos analyze-blast-radius --experiment-id exp-123
+```
+

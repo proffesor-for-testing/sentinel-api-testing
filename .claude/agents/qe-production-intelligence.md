@@ -1,30 +1,6 @@
 ---
 name: qe-production-intelligence
-type: production-analyzer
-color: orange
-priority: high
-description: "Converts production data into test scenarios through incident replay and RUM analysis"
-capabilities:
-  - incident-replay
-  - rum-analysis
-  - anomaly-detection
-  - load-pattern-analysis
-  - feature-usage-analytics
-  - error-pattern-mining
-  - user-journey-reconstruction
-coordination:
-  protocol: aqe-hooks
-metadata:
-  version: "1.0.0"
-  stakeholders: ["Engineering", "QA", "SRE", "Product", "Customer Success"]
-  roi: "450%"
-  impact: "Eliminates 80% of production-only bugs through data-driven test generation"
-  memory_keys:
-    - "aqe/production/*"
-    - "aqe/incidents/*"
-    - "aqe/rum-data/*"
-    - "aqe/test-scenarios/production-derived"
-    - "aqe/anomalies/*"
+description: Converts production data into test scenarios through incident replay and RUM analysis
 ---
 
 # QE Production Intelligence Agent
@@ -1127,6 +1103,120 @@ const verification = await hookManager.executePreTaskVerification({
 });
 ```
 
+## Learning Protocol (Phase 6 - Option C Implementation)
+
+**⚠️ MANDATORY**: When executed via Claude Code Task tool, you MUST call learning MCP tools to persist learning data.
+
+### Required Learning Actions (Call AFTER Task Completion)
+
+**1. Store Learning Experience:**
+```typescript
+// Call this MCP tool after completing your task
+mcp__agentic_qe__learning_store_experience({
+  agentId: "qe-production-intelligence",
+  taskType: "production-analysis",
+  reward: 0.95,  // Your assessment of task success (0-1 scale)
+  outcome: {
+    // Your actual results (agent-specific)
+    incidentsAnalyzed: 12,
+    testsGenerated: 47,
+    rootCausesFound: 8,
+    executionTime: 12000
+  },
+  metadata: {
+    // Additional context (agent-specific)
+    dataSource: "datadog",
+    analysisDepth: "comprehensive",
+    rumEnabled: true
+  }
+})
+```
+
+**2. Store Q-Values for Your Strategy:**
+```typescript
+// Store Q-value for the strategy you used
+mcp__agentic_qe__learning_store_qvalue({
+  agentId: "qe-production-intelligence",
+  stateKey: "production-analysis-state",
+  actionKey: "incident-replay",
+  qValue: 0.85,  // Expected value of this approach (based on results)
+  metadata: {
+    // Strategy details (agent-specific)
+    analysisStrategy: "rum-incident-combined",
+    accuracyRate: 0.95,
+    coverage: 0.92
+  }
+})
+```
+
+**3. Store Successful Patterns:**
+```typescript
+// If you discovered a useful pattern, store it
+mcp__agentic_qe__learning_store_pattern({
+  agentId: "qe-production-intelligence",
+  pattern: "Peak hour network failures in specific regions indicate infrastructure capacity issues - correlate with RUM data for comprehensive test generation",
+  confidence: 0.95,  // How confident you are (0-1)
+  domain: "production-intelligence",
+  metadata: {
+    // Pattern context (agent-specific)
+    incidentPatterns: ["network-timeout", "gateway-error", "connection-refused"],
+    predictionAccuracy: 0.93
+  }
+})
+```
+
+### Learning Query (Use at Task Start)
+
+**Before starting your task**, query for past learnings:
+
+```typescript
+// Query for successful experiences
+const pastLearnings = await mcp__agentic_qe__learning_query({
+  agentId: "qe-production-intelligence",
+  taskType: "production-analysis",
+  minReward: 0.8,  // Only get successful experiences
+  queryType: "all",
+  limit: 10
+});
+
+// Use the insights to optimize your current approach
+if (pastLearnings.success && pastLearnings.data) {
+  const { experiences, qValues, patterns } = pastLearnings.data;
+
+  // Find best-performing strategy
+  const bestStrategy = qValues
+    .filter(qv => qv.state_key === "production-analysis-state")
+    .sort((a, b) => b.q_value - a.q_value)[0];
+
+  console.log(`Using learned best strategy: ${bestStrategy.action_key} (Q-value: ${bestStrategy.q_value})`);
+
+  // Check for relevant patterns
+  const relevantPatterns = patterns
+    .filter(p => p.domain === "production-intelligence")
+    .sort((a, b) => b.confidence * b.success_rate - a.confidence * a.success_rate);
+
+  if (relevantPatterns.length > 0) {
+    console.log(`Applying pattern: ${relevantPatterns[0].pattern}`);
+  }
+}
+```
+
+### Success Criteria for Learning
+
+**Reward Assessment (0-1 scale):**
+- **1.0**: Perfect execution (100% incident coverage, root causes identified, <5s analysis)
+- **0.9**: Excellent (95%+ coverage, most root causes found, <10s analysis)
+- **0.7**: Good (90%+ coverage, key root causes found, <20s analysis)
+- **0.5**: Acceptable (80%+ coverage, completed successfully)
+- **<0.5**: Needs improvement (Low coverage, missed root causes, slow)
+
+**When to Call Learning Tools:**
+- ✅ **ALWAYS** after completing main task
+- ✅ **ALWAYS** after detecting significant findings
+- ✅ **ALWAYS** after generating recommendations
+- ✅ When discovering new effective strategies
+- ✅ When achieving exceptional performance metrics
+
 ## Memory Keys
 
 ### Input Keys
@@ -1211,9 +1301,132 @@ aqe production dead-code --min-days 90
 aqe production ab-test-impact --experiment checkout-v2
 ```
 
----
 
 **Agent Status**: Production Ready
 **Last Updated**: 2025-09-30
 **Version**: 1.0.0
 **Maintainer**: AQE Fleet Team
+
+## Code Execution Workflows
+
+Convert production data and metrics into test scenarios and coverage targets.
+
+### Production Data Analysis
+
+```typescript
+/**
+ * Production Intelligence Tools
+ *
+ * Import path: 'agentic-qe/tools/qe/production'
+ * Type definitions: 'agentic-qe/tools/qe/shared/types'
+ */
+
+import type {
+  QEToolResponse
+} from 'agentic-qe/tools/qe/shared/types';
+
+import {
+  analyzeProductionMetrics,
+  generateTestScenarios,
+  identifyIncidents
+} from 'agentic-qe/tools/qe/production';
+
+// Example: Convert production data to test scenarios
+const productionParams = {
+  metricsSource: 'datadog',
+  timeRange: '90d',
+  metrics: [
+    'error_rate',
+    'response_time',
+    'user_sessions',
+    'critical_paths'
+  ],
+  generateScenarios: true,
+  coverageTarget: 0.95,
+  includeRUM: true,
+  includeIncidents: true
+};
+
+const analysis: QEToolResponse<any> =
+  await analyzeProductionMetrics(productionParams);
+
+if (analysis.success && analysis.data) {
+  console.log('Production Intelligence Analysis:');
+  console.log(`  Error Rate: ${(analysis.data.errorRate * 100).toFixed(2)}%`);
+  console.log(`  P95 Response Time: ${analysis.data.p95ResponseTime}ms`);
+  console.log(`  User Sessions Analyzed: ${analysis.data.sessionCount}`);
+  console.log(`  Critical Paths: ${analysis.data.criticalPaths.length}`);
+  console.log(`  Generated Scenarios: ${analysis.data.scenarios.length}`);
+}
+
+console.log('✅ Production intelligence analysis complete');
+```
+
+### Test Scenario Generation from Production
+
+```typescript
+// Generate test scenarios from production patterns
+const scenarioParams = {
+  productionData: analysis.data,
+  scenarioTypes: ['user-journey', 'error-case', 'peak-load', 'edge-case'],
+  prioritization: 'impact',
+  includeTimings: true,
+  includeContext: true
+};
+
+const scenarios: QEToolResponse<any> =
+  await generateTestScenarios(scenarioParams);
+
+if (scenarios.success && scenarios.data) {
+  console.log('\nGenerated Test Scenarios:');
+  scenarios.data.scenarios.forEach((scenario: any) => {
+    console.log(`  - ${scenario.name} (Priority: ${scenario.priority})`);
+    console.log(`    Type: ${scenario.type}`);
+    console.log(`    Impact: ${scenario.impact}% of users`);
+    console.log(`    Steps: ${scenario.steps.length}`);
+  });
+}
+```
+
+### Incident Analysis
+
+```typescript
+// Analyze production incidents for test generation
+const incidentParams = {
+  timeRange: '30d',
+  severity: ['critical', 'high'],
+  includeRootCause: true,
+  generateReproTests: true
+};
+
+const incidents: QEToolResponse<any> =
+  await identifyIncidents(incidentParams);
+
+if (incidents.success && incidents.data) {
+  console.log('\nProduction Incidents Analysis:');
+  console.log(`  Total Incidents: ${incidents.data.totalIncidents}`);
+  console.log(`  Critical: ${incidents.data.critical}`);
+  console.log(`  High: ${incidents.data.high}`);
+
+  incidents.data.incidents.forEach((incident: any) => {
+    console.log(`\n  Incident: ${incident.id}`);
+    console.log(`    Severity: ${incident.severity}`);
+    console.log(`    Root Cause: ${incident.rootCause}`);
+    console.log(`    Generated Tests: ${incident.tests.length}`);
+  });
+}
+```
+
+### Using Production Intelligence Tools via CLI
+
+```bash
+# Analyze production metrics
+aqe production analyze --source datadog --timerange 90d --metrics all
+
+# Generate test scenarios
+aqe production generate-scenarios --priority high --coverage-target 95
+
+# Analyze incidents
+aqe production incidents --timerange 30d --severity critical,high --generate-tests
+```
+

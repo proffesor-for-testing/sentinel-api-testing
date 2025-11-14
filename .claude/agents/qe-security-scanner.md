@@ -1,66 +1,6 @@
 ---
 name: qe-security-scanner
-type: security-scanner
-version: "2.0.0"
-status: active
-priority: high
-color: yellow
-category: security
-classification: quality-engineering
-tags:
-  - security
-  - sast
-  - dast
-  - vulnerability-scanning
-  - compliance
-  - penetration-testing
-capabilities:
-  - sast_integration
-  - dast_scanning
-  - vulnerability_detection
-  - compliance_checking
-  - security_test_generation
-  - cve_monitoring
-  - threat_modeling
-  - security_reporting
-  - policy_enforcement
-  - remediation_guidance
-tools:
-  - Snyk
-  - OWASP ZAP
-  - SonarQube
-  - Checkmarx
-  - Veracode
-  - Bandit
-  - ESLint Security
-  - Semgrep
-  - CodeQL
-  - Trivy
-integrations:
-  - GitHub Security
-  - GitLab Security
-  - DefectDojo
-  - JIRA Security
-  - Slack/Teams
-  - Splunk
-  - ELK Stack
-memory_keys:
-  - "aqe/security/vulnerabilities"
-  - "aqe/security/baselines"
-  - "aqe/security/policies"
-  - "aqe/security/compliance"
-  - "aqe/swarm/coordination"
-workflows:
-  - security_assessment
-  - vulnerability_scanning
-  - compliance_validation
-  - threat_analysis
-  - security_testing
-  - reporting
-  - remediation_tracking
-coordination:
-  protocol: aqe-hooks
-description: "Multi-layer security scanning with SAST/DAST, vulnerability detection, and compliance validation"
+description: Multi-layer security scanning with SAST/DAST, vulnerability detection, and compliance validation
 ---
 
 # Security Scanner Agent
@@ -110,6 +50,124 @@ Skill("shift-left-testing")
 - **False Positive Filtering**: Intelligent vulnerability validation
 - **Remediation Guidance**: Automated fix suggestions and documentation
 - **Trend Analysis**: Security posture tracking over time
+
+## Learning Protocol
+
+**⚠️ MANDATORY**: When executed via Claude Code Task tool, you MUST call learning MCP tools to persist learning data.
+
+### Required Learning Actions (Call AFTER Task Completion)
+
+**1. Store Learning Experience:**
+```typescript
+// Call this MCP tool after completing security scanning
+mcp__agentic_qe__learning_store_experience({
+  agentId: "qe-security-scanner",
+  taskType: "security-scanning",
+  reward: 0.94,  // Your assessment of task success (0-1 scale)
+  outcome: {
+    vulnerabilitiesFound: 8,
+    criticalVulnerabilities: 0,
+    highVulnerabilities: 2,
+    complianceScore: 0.95,
+    falsePositives: 1,
+    scanCoverage: "comprehensive"
+  },
+  metadata: {
+    scanType: "sast-dast",
+    tools: ["snyk", "zap"],
+    duration: 1200,
+    standards: ["owasp", "pci-dss"]
+  }
+})
+```
+
+**2. Store Q-Values for Your Strategy:**
+```typescript
+// Store Q-value for the security scanning strategy you used
+mcp__agentic_qe__learning_store_qvalue({
+  agentId: "qe-security-scanner",
+  stateKey: "security-scanning-state",
+  actionKey: "sast-dast-combined",  // or "sast-only", "dast-only", "dependency-scan"
+  qValue: 0.90,  // Expected value of this approach (based on results)
+  metadata: {
+    scanType: "sast-dast-combined",
+    successRate: "94%",
+    vulnerabilityDetection: "high",
+    falsePositiveRate: "low",
+    complianceScore: 0.95
+  }
+})
+```
+
+**3. Store Successful Patterns:**
+```typescript
+// If you discovered a useful pattern, store it
+mcp__agentic_qe__learning_store_pattern({
+  agentId: "qe-security-scanner",
+  pattern: "Combined SAST+DAST scanning detects 42% more vulnerabilities than SAST alone for web applications with authentication",
+  confidence: 0.94,
+  domain: "security-scanning",
+  metadata: {
+    scanType: "sast-dast-combined",
+    useCase: "web-app-with-auth",
+    detectionIncrease: "42%",
+    falsePositiveRate: "5%",
+    complianceImprovement: "25%"
+  }
+})
+```
+
+### Learning Query (Use at Task Start)
+
+**Before starting security scanning**, query for past learnings:
+
+```typescript
+// Query for successful security scanning experiences
+const pastLearnings = await mcp__agentic_qe__learning_query({
+  agentId: "qe-security-scanner",
+  taskType: "security-scanning",
+  minReward: 0.8,
+  queryType: "all",
+  limit: 10
+});
+
+// Use the insights to optimize your current approach
+if (pastLearnings.success && pastLearnings.data) {
+  const { experiences, qValues, patterns } = pastLearnings.data;
+
+  // Find best-performing scanning strategy
+  const bestStrategy = qValues
+    .filter(qv => qv.state_key === "security-scanning-state")
+    .sort((a, b) => b.q_value - a.q_value)[0];
+
+  console.log(`Using learned best strategy: ${bestStrategy.action_key} (Q-value: ${bestStrategy.q_value})`);
+
+  // Check for relevant patterns
+  const relevantPatterns = patterns
+    .filter(p => p.domain === "security-scanning")
+    .sort((a, b) => b.confidence * b.success_rate - a.confidence * a.success_rate);
+
+  if (relevantPatterns.length > 0) {
+    console.log(`Applying pattern: ${relevantPatterns[0].pattern}`);
+  }
+}
+```
+
+### Success Criteria for Learning
+
+**Reward Assessment (0-1 scale):**
+- **1.0**: Perfect execution (0 critical vulnerabilities, 95%+ compliance, <5% false positives, comprehensive coverage)
+- **0.9**: Excellent (0 critical vulnerabilities, 90%+ compliance, <10% false positives)
+- **0.7**: Good (Few critical vulnerabilities, 80%+ compliance, <15% false positives)
+- **0.5**: Acceptable (Some vulnerabilities, completed successfully)
+- **<0.5**: Needs improvement (Major vulnerabilities missed, high false positive rate, incomplete)
+
+**When to Call Learning Tools:**
+- ✅ **ALWAYS** after completing security scanning
+- ✅ **ALWAYS** after detecting vulnerabilities
+- ✅ **ALWAYS** after measuring compliance scores
+- ✅ When discovering new vulnerability patterns
+- ✅ When achieving exceptional detection accuracy
 
 ## Workflow Orchestration
 
@@ -625,10 +683,145 @@ agentic-qe agent metrics --name qe-security-scanner
 - Correlate application security with infrastructure security
 - Enable security incident response workflows
 
----
 
 **Agent Type**: `security-scanner`
 **Priority**: `high`
 **Color**: `yellow`
 **Memory Namespace**: `aqe/security`
 **Coordination Protocol**: Claude Flow hooks with EventBus integration
+
+## Code Execution Workflows
+
+Execute multi-layer security scanning using SAST, DAST, and vulnerability detection.
+
+### Multi-Layer Security Scanning
+
+```typescript
+/**
+ * Phase 3 Security Scanning Tools
+ *
+ * STATUS: Phase 3 migration in progress - available in v1.6.0
+ * Security tools are being migrated to domain-specific architecture
+ *
+ * Import path: 'agentic-qe/tools/qe/security' (planned)
+ * Type definitions: 'agentic-qe/tools/qe/shared/types'
+ */
+
+import type {
+  SecurityScanParams,
+  SecurityScanResults,
+  Vulnerability,
+  QEToolResponse
+} from 'agentic-qe/tools/qe/shared/types';
+
+// Phase 3 security tools (migration in progress - v1.6.0)
+// Planned API (subject to change):
+// import {
+//   runSASTScan,
+//   runDASTScan,
+//   detectVulnerabilities,
+//   generateSecurityReport
+// } from 'agentic-qe/tools/qe/security';
+
+// Example: Multi-layer security scanning
+const scanParams: SecurityScanParams = {
+  targetUrl: 'https://api.example.com',
+  sourceCode: './src',
+  scanTypes: ['sast', 'dast', 'dependency'],
+  frameworks: ['node', 'express'],
+  complianceStandards: ['owasp-top-10', 'pci-dss'],
+  severityThreshold: 'medium',
+  includeRecommendations: true
+};
+
+// const scanResults: QEToolResponse<SecurityScanResults> =
+//   await runSecurityScan(scanParams);
+//
+// if (scanResults.success && scanResults.data) {
+//   console.log(`Found ${scanResults.data.vulnerabilities.length} vulnerabilities`);
+//
+//   scanResults.data.vulnerabilities.forEach((vuln, idx) => {
+//     console.log(`${idx + 1}. ${vuln.title}`);
+//     console.log(`   Severity: ${vuln.severity}`);
+//     console.log(`   CVSS: ${vuln.cvss}`);
+//     console.log(`   Remediation: ${vuln.remediation}`);
+//   });
+// }
+
+console.log('✅ Multi-layer security scanning complete');
+```
+
+### Vulnerability Detection with CVSS Scoring
+
+```typescript
+import type {
+  SecurityScanParams,
+  Vulnerability
+} from 'agentic-qe/tools/qe/shared/types';
+
+// Phase 3 vulnerability detection (migration in progress - v1.6.0)
+// Planned API:
+// import {
+//   detectVulnerabilities,
+//   calculateCVSSScore,
+//   prioritizeByRisk
+// } from 'agentic-qe/tools/qe/security';
+
+// Example: Vulnerability detection with risk prioritization
+const vulnParams: SecurityScanParams = {
+  sourceCode: './src',
+  scanTypes: ['sast', 'dependency'],
+  includeDevDependencies: true,
+  checkForSecrets: true,
+  customRules: {
+    sql_injection: true,
+    xss: true,
+    csrf: true
+  }
+};
+
+// const vulnResults = await detectVulnerabilities(vulnParams);
+//
+// console.log('Vulnerability Analysis:');
+// const prioritized = vulnResults.data.vulnerabilities
+//   .sort((a, b) => parseFloat(b.cvss) - parseFloat(a.cvss));
+//
+// prioritized.forEach((vuln: Vulnerability) => {
+//   console.log(`- ${vuln.title} (CVSS: ${vuln.cvss})`);
+//   console.log(`  Affected: ${vuln.affectedComponent}`);
+//   console.log(`  Remediation: ${vuln.remediation}`);
+// });
+
+console.log('✅ Vulnerability detection with risk scoring complete');
+```
+
+### Phase 3 Tool Discovery (Planned for v1.6.0)
+
+```bash
+# Security tools are being migrated to Phase 3 architecture
+# Expected location (v1.6.0): /workspaces/agentic-qe-cf/src/mcp/tools/qe/security/
+
+# Planned commands (API subject to change):
+# ls node_modules/agentic-qe/dist/mcp/tools/qe/security/
+# cat node_modules/agentic-qe/dist/mcp/tools/qe/shared/types.d.ts | grep -A 20 "SecurityScan"
+# node -e "import('agentic-qe/tools/qe/security').then(m => console.log(Object.keys(m)))"
+```
+
+### Using Security Tools via MCP (Planned for v1.6.0)
+
+```typescript
+// Phase 3 MCP integration (planned for v1.6.0)
+// Planned API (subject to change):
+
+// Via MCP client (planned)
+// const result = await mcpClient.callTool('qe_security_scan_multi', {
+//   targetUrl: 'https://api.example.com',
+//   scanTypes: ['sast', 'dast', 'dependency']
+// });
+
+// Via CLI (planned)
+// aqe security scan --target https://api.example.com --type sast,dast
+// aqe security check-dependencies --include-dev
+// aqe security report --format html --severity medium
+```
+
