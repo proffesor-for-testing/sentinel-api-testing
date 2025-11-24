@@ -1,0 +1,11 @@
+# Agentic QE Fleet - Generated files
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/learning/*
+data/patterns/*
+data/improvement/*
+data/memory/*
+*.log
+*.tmp
