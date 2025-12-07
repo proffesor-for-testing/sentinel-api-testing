@@ -5,7 +5,9 @@ This module provides a factory pattern for creating FastAPI applications
 with configurable dependencies, making it easier to test.
 """
 from typing import Optional, Dict, Any, Callable
-from fastapi import FastAPI, Depends, HTTPException, status
+from collections import defaultdict
+import time
+from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
@@ -13,6 +15,70 @@ import jwt
 import bcrypt
 from datetime import datetime, timedelta
 from enum import Enum
+
+
+class RateLimiter:
+    """
+    In-memory rate limiter for authentication endpoints.
+
+    SECURITY: Protects against brute-force attacks on login endpoints.
+    For production with multiple instances, use Redis-based rate limiting.
+    """
+    def __init__(self, requests_per_minute: int = 5, lockout_duration_seconds: int = 300):
+        self.requests_per_minute = requests_per_minute
+        self.lockout_duration = lockout_duration_seconds
+        self.request_counts: Dict[str, list] = defaultdict(list)
+        self.lockouts: Dict[str, float] = {}
+
+    def _clean_old_requests(self, key: str) -> None:
+        """Remove requests older than 1 minute."""
+        current_time = time.time()
+        self.request_counts[key] = [
+            req_time for req_time in self.request_counts[key]
+            if current_time - req_time < 60
+        ]
+
+    def is_rate_limited(self, identifier: str) -> tuple[bool, Optional[int]]:
+        """
+        Check if an identifier (IP or email) is rate limited.
+
+        Returns:
+            Tuple of (is_limited, seconds_until_unlock)
+        """
+        current_time = time.time()
+
+        # Check if in lockout period
+        if identifier in self.lockouts:
+            unlock_time = self.lockouts[identifier]
+            if current_time < unlock_time:
+                return True, int(unlock_time - current_time)
+            else:
+                del self.lockouts[identifier]
+
+        # Clean old requests
+        self._clean_old_requests(identifier)
+
+        # Check request count
+        if len(self.request_counts[identifier]) >= self.requests_per_minute:
+            # Trigger lockout
+            self.lockouts[identifier] = current_time + self.lockout_duration
+            return True, self.lockout_duration
+
+        return False, None
+
+    def record_request(self, identifier: str) -> None:
+        """Record a request for rate limiting purposes."""
+        self.request_counts[identifier].append(time.time())
+
+    def record_failed_attempt(self, identifier: str) -> None:
+        """Record a failed login attempt (counts as multiple requests)."""
+        current_time = time.time()
+        # Failed attempts count as 2 requests to be more aggressive
+        self.request_counts[identifier].extend([current_time, current_time])
+
+
+# Global rate limiter instance
+_auth_rate_limiter = RateLimiter(requests_per_minute=5, lockout_duration_seconds=300)
 
 
 class Permission(str, Enum):
@@ -45,11 +111,28 @@ class UserLogin(BaseModel):
 
 class AuthConfig:
     """Configuration for authentication."""
-    def __init__(self, 
-                 jwt_secret: str = "secret",
+    def __init__(self,
+                 jwt_secret: str = None,
                  jwt_algorithm: str = "HS256",
                  jwt_expiration_hours: int = 24,
                  users_db: Optional[Dict] = None):
+        import os
+        import secrets
+
+        # SECURITY FIX: Require proper JWT secret in production
+        if jwt_secret is None:
+            jwt_secret = os.getenv("SENTINEL_SECURITY_JWT_SECRET_KEY")
+
+        if not jwt_secret:
+            # Generate secure random secret for development only
+            if os.getenv("SENTINEL_ENVIRONMENT") == "production":
+                raise ValueError("JWT secret key must be set via SENTINEL_SECURITY_JWT_SECRET_KEY in production")
+            jwt_secret = secrets.token_urlsafe(32)
+
+        # Validate minimum length
+        if len(jwt_secret) < 32:
+            raise ValueError("JWT secret key must be at least 32 characters long")
+
         self.jwt_secret = jwt_secret
         self.jwt_algorithm = jwt_algorithm
         self.jwt_expiration_hours = jwt_expiration_hours
@@ -79,13 +162,18 @@ def create_auth_app(
         version="2.0.0"
     )
     
-    # Add CORS middleware
+    # Add CORS middleware - SECURITY FIX: Use configured origins
+    import os
+    cors_origins = os.getenv("SENTINEL_SECURITY_CORS_ORIGINS", "http://localhost:3000,http://localhost:8080").split(",")
+    if os.getenv("SENTINEL_ENVIRONMENT") == "development":
+        cors_origins = list(set(cors_origins + ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000"]))
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "X-Correlation-ID"],
     )
     
     # Security
@@ -171,24 +259,62 @@ def create_auth_app(
             "version": "2.0.0"
         }
     
+    def get_client_ip(request: Request) -> str:
+        """Extract client IP from request, handling proxies."""
+        # Check for forwarded headers (when behind proxy/load balancer)
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        return request.client.host if request.client else "unknown"
+
     @app.post("/auth/login")
-    async def login(credentials: UserLogin):
-        """Login endpoint."""
+    async def login(request: Request, credentials: UserLogin):
+        """Login endpoint with rate limiting."""
+        client_ip = get_client_ip(request)
+
+        # Check rate limiting by IP
+        is_limited, wait_time = _auth_rate_limiter.is_rate_limited(client_ip)
+        if is_limited:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Too many login attempts. Please try again in {wait_time} seconds.",
+                headers={"Retry-After": str(wait_time)}
+            )
+
+        # Also check by email (to prevent distributed attacks on single account)
+        is_limited, wait_time = _auth_rate_limiter.is_rate_limited(credentials.email)
+        if is_limited:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Too many login attempts for this account. Please try again in {wait_time} seconds.",
+                headers={"Retry-After": str(wait_time)}
+            )
+
+        # Record the login attempt
+        _auth_rate_limiter.record_request(client_ip)
+        _auth_rate_limiter.record_request(credentials.email)
+
         user = config.users_db.get(credentials.email)
         if not user:
+            # Record failed attempt
+            _auth_rate_limiter.record_failed_attempt(client_ip)
+            _auth_rate_limiter.record_failed_attempt(credentials.email)
             raise HTTPException(status_code=401, detail="Invalid credentials")
-        
+
         # Check password
-        if not bcrypt.checkpw(credentials.password.encode('utf-8'), 
+        if not bcrypt.checkpw(credentials.password.encode('utf-8'),
                             user["hashed_password"].encode('utf-8')):
+            # Record failed attempt
+            _auth_rate_limiter.record_failed_attempt(client_ip)
+            _auth_rate_limiter.record_failed_attempt(credentials.email)
             raise HTTPException(status_code=401, detail="Invalid credentials")
-        
+
         # Check if active
         if not user.get("is_active", True):
             raise HTTPException(status_code=401, detail="Account disabled")
-        
+
         token = create_access_token(credentials.email)
-        
+
         return {
             "access_token": token,
             "token_type": "bearer",

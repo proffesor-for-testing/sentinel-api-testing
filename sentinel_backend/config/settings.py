@@ -102,14 +102,21 @@ class MessageBrokerSettings(BaseSettings):
 
 class SecuritySettings(BaseSettings):
     """Security configuration settings."""
-    
-    # JWT settings
+
+    # JWT settings - SECURITY: Short-lived access tokens with refresh tokens
     jwt_secret_key: str = Field(
         default="sentinel-dev-secret-key-change-in-production",
         description="JWT secret key for token signing"
     )
     jwt_algorithm: str = Field(default="HS256", description="JWT signing algorithm")
-    jwt_expiration_hours: int = Field(default=24, description="JWT token expiration in hours")
+    jwt_expiration_hours: int = Field(default=1, description="JWT access token expiration in hours (reduced from 24 for security)")
+
+    # Refresh token settings - SECURITY: Separate refresh token for session renewal
+    jwt_refresh_secret_key: str = Field(
+        default="sentinel-refresh-secret-key-change-in-production",
+        description="JWT secret key for refresh token signing (should be different from access token key)"
+    )
+    jwt_refresh_expiration_days: int = Field(default=7, description="JWT refresh token expiration in days")
     
     # Password settings
     password_min_length: int = Field(default=8, description="Minimum password length")
@@ -154,7 +161,19 @@ class SecuritySettings(BaseSettings):
         if v == "sentinel-dev-secret-key-change-in-production" and os.getenv("SENTINEL_ENV") == "production":
             raise ValueError("Default JWT secret key cannot be used in production")
         return v
-    
+
+    @validator('jwt_refresh_secret_key')
+    def validate_jwt_refresh_secret(cls, v, values):
+        """Validate JWT refresh secret key strength."""
+        if len(v) < 32:
+            raise ValueError("JWT refresh secret key must be at least 32 characters long")
+        if v == "sentinel-refresh-secret-key-change-in-production" and os.getenv("SENTINEL_ENV") == "production":
+            raise ValueError("Default JWT refresh secret key cannot be used in production")
+        # Ensure refresh secret is different from access secret
+        if 'jwt_secret_key' in values and v == values['jwt_secret_key']:
+            raise ValueError("JWT refresh secret key must be different from access token secret key")
+        return v
+
     class Config:
         env_prefix = "SENTINEL_SECURITY_"
         case_sensitive = False

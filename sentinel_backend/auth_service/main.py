@@ -3,14 +3,80 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import Dict, List, Optional, Any
+from collections import defaultdict
 from datetime import datetime, timedelta
 import jwt
 import bcrypt
 import os
 import structlog
 import uuid
+import time
 from enum import Enum
 from prometheus_fastapi_instrumentator import Instrumentator
+
+
+class RateLimiter:
+    """
+    In-memory rate limiter for authentication endpoints.
+
+    SECURITY: Protects against brute-force attacks on login endpoints.
+    For production with multiple instances, use Redis-based rate limiting.
+    """
+    def __init__(self, requests_per_minute: int = 5, lockout_duration_seconds: int = 300):
+        self.requests_per_minute = requests_per_minute
+        self.lockout_duration = lockout_duration_seconds
+        self.request_counts: Dict[str, list] = defaultdict(list)
+        self.lockouts: Dict[str, float] = {}
+
+    def _clean_old_requests(self, key: str) -> None:
+        """Remove requests older than 1 minute."""
+        current_time = time.time()
+        self.request_counts[key] = [
+            req_time for req_time in self.request_counts[key]
+            if current_time - req_time < 60
+        ]
+
+    def is_rate_limited(self, identifier: str) -> tuple:
+        """
+        Check if an identifier (IP or email) is rate limited.
+
+        Returns:
+            Tuple of (is_limited, seconds_until_unlock)
+        """
+        current_time = time.time()
+
+        # Check if in lockout period
+        if identifier in self.lockouts:
+            unlock_time = self.lockouts[identifier]
+            if current_time < unlock_time:
+                return True, int(unlock_time - current_time)
+            else:
+                del self.lockouts[identifier]
+
+        # Clean old requests
+        self._clean_old_requests(identifier)
+
+        # Check request count
+        if len(self.request_counts[identifier]) >= self.requests_per_minute:
+            # Trigger lockout
+            self.lockouts[identifier] = current_time + self.lockout_duration
+            return True, self.lockout_duration
+
+        return False, None
+
+    def record_request(self, identifier: str) -> None:
+        """Record a request for rate limiting purposes."""
+        self.request_counts[identifier].append(time.time())
+
+    def record_failed_attempt(self, identifier: str) -> None:
+        """Record a failed login attempt (counts as multiple requests)."""
+        current_time = time.time()
+        # Failed attempts count as 2 requests to be more aggressive
+        self.request_counts[identifier].extend([current_time, current_time])
+
+
+# Global rate limiter instance
+_auth_rate_limiter = RateLimiter(requests_per_minute=5, lockout_duration_seconds=300)
 
 # Import configuration
 from sentinel_backend.config.settings import get_security_settings, get_application_settings
@@ -53,21 +119,62 @@ async def correlation_id_middleware(request: Request, call_next):
     Injects a correlation ID into every request and log context.
     """
     correlation_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
-    
+
     # Bind the correlation ID to the logger context for this request
     structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
 
     response = await call_next(request)
-    
+
     # Add the correlation ID to the response headers
     response.headers["X-Correlation-ID"] = correlation_id
-    
+
+    return response
+
+
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    """
+    Adds security headers to every response.
+
+    SECURITY: These headers help protect against common web vulnerabilities.
+    """
+    response = await call_next(request)
+
+    # HSTS - Force HTTPS connections
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
+    # Prevent MIME type sniffing
+    response.headers["X-Content-Type-Options"] = "nosniff"
+
+    # Prevent clickjacking
+    response.headers["X-Frame-Options"] = "DENY"
+
+    # Content Security Policy - restrict resource loading
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+        "img-src 'self' fastapi.tiangolo.com; "
+        "object-src 'none'; "
+        "frame-ancestors 'none';"
+    )
+
+    # Referrer Policy - control referrer information
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+    # Permissions Policy - disable unnecessary browser features
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+
     return response
 
 # Configuration from centralized settings
 JWT_SECRET_KEY = security_settings.jwt_secret_key
 JWT_ALGORITHM = security_settings.jwt_algorithm
 JWT_EXPIRATION_HOURS = security_settings.jwt_expiration_hours
+
+# Refresh token configuration
+JWT_REFRESH_SECRET_KEY = getattr(security_settings, 'jwt_refresh_secret_key', JWT_SECRET_KEY + '-refresh')
+JWT_REFRESH_EXPIRATION_DAYS = getattr(security_settings, 'jwt_refresh_expiration_days', 7)
 
 security = HTTPBearer()
 
@@ -187,9 +294,15 @@ class UserResponse(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
     expires_in: int
     user: UserResponse
+
+
+class RefreshTokenRequest(BaseModel):
+    """Request model for token refresh."""
+    refresh_token: str
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -211,10 +324,45 @@ def create_access_token(user_data: dict) -> str:
         "sub": user_data["email"],
         "user_id": user_data["id"],
         "role": user_data["role"],
+        "type": "access",
         "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS),
         "iat": datetime.utcnow()
     }
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
+def create_refresh_token(user_data: dict) -> str:
+    """Create a JWT refresh token with longer expiry."""
+    payload = {
+        "sub": user_data["email"],
+        "user_id": user_data["id"],
+        "type": "refresh",
+        "exp": datetime.utcnow() + timedelta(days=JWT_REFRESH_EXPIRATION_DAYS),
+        "iat": datetime.utcnow()
+    }
+    return jwt.encode(payload, JWT_REFRESH_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
+def decode_refresh_token(token: str) -> dict:
+    """Decode and validate a JWT refresh token."""
+    try:
+        payload = jwt.decode(token, JWT_REFRESH_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type"
+            )
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token has expired"
+        )
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token"
+        )
 
 def decode_access_token(token: str) -> dict:
     """Decode and validate a JWT access token."""
@@ -339,37 +487,130 @@ async def register_user(
     
     return UserResponse(**{k: v for k, v in new_user.items() if k != "hashed_password"})
 
+def get_client_ip(request: Request) -> str:
+    """Extract client IP from request, handling proxies."""
+    # Check for forwarded headers (when behind proxy/load balancer)
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
 @app.post("/auth/login", response_model=TokenResponse)
-async def login_user(login_data: UserLogin):
-    """Authenticate user and return access token."""
+async def login_user(request: Request, login_data: UserLogin):
+    """Authenticate user and return access token with rate limiting."""
+    client_ip = get_client_ip(request)
+
+    # Check rate limiting by IP
+    is_limited, wait_time = _auth_rate_limiter.is_rate_limited(client_ip)
+    if is_limited:
+        logger.warning(f"Rate limited login attempt from IP: {client_ip}")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many login attempts. Please try again in {wait_time} seconds.",
+            headers={"Retry-After": str(wait_time)}
+        )
+
+    # Also check by email (to prevent distributed attacks on single account)
+    is_limited, wait_time = _auth_rate_limiter.is_rate_limited(login_data.email)
+    if is_limited:
+        logger.warning(f"Rate limited login attempt for email: {login_data.email}")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many login attempts for this account. Please try again in {wait_time} seconds.",
+            headers={"Retry-After": str(wait_time)}
+        )
+
+    # Record the login attempt
+    _auth_rate_limiter.record_request(client_ip)
+    _auth_rate_limiter.record_request(login_data.email)
+
     user = users_db.get(login_data.email)
-    
+
     if not user or not verify_password(login_data.password, user["hashed_password"]):
+        # Record failed attempt
+        _auth_rate_limiter.record_failed_attempt(client_ip)
+        _auth_rate_limiter.record_failed_attempt(login_data.email)
+        logger.warning(f"Failed login attempt for email: {login_data.email} from IP: {client_ip}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
-    
+
     if not user["is_active"]:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User account is disabled"
         )
-    
+
     # Update last login
     user["last_login"] = datetime.utcnow()
-    
-    # Create access token
+
+    # Create access and refresh tokens
     access_token = create_access_token(user)
-    
+    refresh_token = create_refresh_token(user)
+
     logger.info(f"User logged in: {login_data.email}")
-    
+
     return TokenResponse(
         access_token=access_token,
+        refresh_token=refresh_token,
         token_type="bearer",
         expires_in=JWT_EXPIRATION_HOURS * 3600,
         user=UserResponse(**{k: v for k, v in user.items() if k != "hashed_password"})
     )
+
+@app.post("/auth/refresh", response_model=TokenResponse)
+async def refresh_access_token(request: Request, refresh_request: RefreshTokenRequest):
+    """Refresh access token using a valid refresh token."""
+    client_ip = get_client_ip(request)
+
+    # Check rate limiting for refresh endpoint
+    refresh_key = f"refresh:{client_ip}"
+    is_limited, wait_time = _auth_rate_limiter.is_rate_limited(refresh_key)
+    if is_limited:
+        logger.warning(f"Rate limited refresh attempt from IP: {client_ip}")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many refresh attempts. Please try again in {wait_time} seconds.",
+            headers={"Retry-After": str(wait_time)}
+        )
+
+    _auth_rate_limiter.record_request(refresh_key)
+
+    # Decode and validate refresh token
+    payload = decode_refresh_token(refresh_request.refresh_token)
+    user_email = payload.get("sub")
+
+    if not user_email or user_email not in users_db:
+        _auth_rate_limiter.record_failed_attempt(refresh_key)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found"
+        )
+
+    user = users_db[user_email]
+
+    if not user["is_active"]:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account is disabled"
+        )
+
+    # Create new access and refresh tokens
+    access_token = create_access_token(user)
+    new_refresh_token = create_refresh_token(user)
+
+    logger.info(f"Token refreshed for user: {user_email}")
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=new_refresh_token,
+        token_type="bearer",
+        expires_in=JWT_EXPIRATION_HOURS * 3600,
+        user=UserResponse(**{k: v for k, v in user.items() if k != "hashed_password"})
+    )
+
 
 @app.get("/auth/profile", response_model=UserResponse)
 async def get_current_user_profile(current_user: dict = Depends(get_current_user)):
