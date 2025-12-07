@@ -9,12 +9,19 @@ from fastapi.testclient import TestClient
 from fastapi import status
 import bcrypt
 
-from sentinel_backend.auth_service.app_factory import create_auth_app, create_test_app_with_users, AuthConfig
+from sentinel_backend.auth_service.app_factory import create_auth_app, create_test_app_with_users, AuthConfig, reset_rate_limiter
 
 
 class TestAuthWithFactory:
     """Test authentication using app factory pattern."""
-    
+
+    @pytest.fixture(autouse=True)
+    def reset_rate_limiting(self):
+        """Reset rate limiter before each test to avoid cross-test interference."""
+        reset_rate_limiter()
+        yield
+        reset_rate_limiter()
+
     @pytest.fixture
     def test_users(self):
         """Create test users with hashed passwords."""

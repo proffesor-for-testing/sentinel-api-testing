@@ -76,9 +76,19 @@ class RateLimiter:
         # Failed attempts count as 2 requests to be more aggressive
         self.request_counts[identifier].extend([current_time, current_time])
 
+    def reset(self) -> None:
+        """Reset all rate limiting state. Useful for testing."""
+        self.request_counts.clear()
+        self.lockouts.clear()
+
 
 # Global rate limiter instance
 _auth_rate_limiter = RateLimiter(requests_per_minute=5, lockout_duration_seconds=300)
+
+
+def reset_rate_limiter() -> None:
+    """Reset the global rate limiter. Useful for testing."""
+    _auth_rate_limiter.reset()
 
 
 class Permission(str, Enum):
@@ -374,7 +384,7 @@ def create_test_app_with_users(users: Dict[str, Dict[str, Any]]) -> FastAPI:
         Configured FastAPI app for testing
     """
     config = AuthConfig(
-        jwt_secret="test-secret",
+        jwt_secret="test-secret-key-for-testing-purposes-only-32chars",
         jwt_algorithm="HS256",
         jwt_expiration_hours=1,
         users_db=users
