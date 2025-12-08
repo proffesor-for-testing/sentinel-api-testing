@@ -25,7 +25,9 @@
       "Bash(node:*)",
       "Bash(which:*)",
       "Bash(pwd)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npx agentdb:*)",
+      "Bash(npx aqe:*)"
     ],
     "deny": []
   },

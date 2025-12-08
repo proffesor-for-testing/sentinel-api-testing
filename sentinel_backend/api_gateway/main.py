@@ -30,20 +30,29 @@ app = FastAPI(
     version=app_settings.app_version
 )
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+# Get security settings for CORS configuration
+from sentinel_backend.config.settings import get_security_settings
+security_settings = get_security_settings()
+
+# Add CORS middleware - SECURITY FIX: Use configured origins, not "*"
+# In production, set SENTINEL_SECURITY_CORS_ORIGINS environment variable
+cors_origins = security_settings.cors_origins
+if os.getenv("SENTINEL_ENVIRONMENT") == "development":
+    # Allow localhost variants in development only
+    cors_origins = list(set(cors_origins + [
         "http://localhost:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
         "http://localhost:8000",
-        "*"  # Allow all origins in development
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    ]))
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=security_settings.cors_allow_credentials,
+    allow_methods=security_settings.cors_allow_methods,
+    allow_headers=security_settings.cors_allow_headers,
 )
 
 # Instrument for Prometheus
@@ -74,12 +83,21 @@ async def correlation_id_middleware(request: Request, call_next):
 async def security_headers_middleware(request: Request, call_next):
     """
     Adds security headers to every response.
+
+    SECURITY: These headers help protect against common web vulnerabilities.
     """
     response = await call_next(request)
+
+    # HSTS - Force HTTPS connections
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
+    # Prevent MIME type sniffing
     response.headers["X-Content-Type-Options"] = "nosniff"
+
+    # Prevent clickjacking
     response.headers["X-Frame-Options"] = "DENY"
-    # Loosen CSP to allow Swagger UI resources
+
+    # Content Security Policy - restrict resource loading (loosened for Swagger UI)
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
@@ -88,6 +106,13 @@ async def security_headers_middleware(request: Request, call_next):
         "object-src 'none'; "
         "frame-ancestors 'none';"
     )
+
+    # Referrer Policy - control referrer information
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+    # Permissions Policy - disable unnecessary browser features
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+
     return response
 
 
