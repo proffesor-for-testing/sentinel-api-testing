@@ -5,6 +5,41 @@ All notable changes to the Sentinel API Testing Platform will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-12-08
+
+### Security 🔒
+- **Critical CORS Fix**: Replaced `allow_origins=["*"]` with explicit allowed domains across all services
+- **JWT Security Enhancement**: Added 32-character minimum validation for JWT secrets
+- **Rate Limiting**: New `RateLimiter` class with configurable limits (5 req/min, 5-minute lockout)
+- **Refresh Token Support**: Access tokens now expire in 1 hour, refresh tokens in 7 days
+- **Security Headers Middleware**: Added HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy
+
+### Added
+- **Agentic QE Fleet Infrastructure** 🤖
+  - 18 specialized QE agents for comprehensive testing automation
+  - 59 quality engineering skills integrated with Claude Code
+  - AQE MCP server integration for tool coordination
+  - Comprehensive QE analysis reports in `/docs/`
+
+- **Quality Analysis Reports** 📊
+  - `COMPREHENSIVE_QE_ANALYSIS_REPORT.md` - Full consolidated analysis
+  - `code-complexity-analysis-report.md` - 5 critical files identified
+  - `quality-analysis-report.md` - 72/100 quality score
+  - `test-doubles-analysis-report.md` - 739 mocks, 272 fixtures inventory
+
+### Fixed
+- **Backend Tests**: Added `reset_rate_limiter()` for test isolation
+- **Frontend Tests**: Upgraded `@testing-library/user-event` v13→v14.5.2
+- **TypeScript**: Fixed type assertions in test files
+- **Docker Build**: Fixed `npm ci --only=production` deprecation
+
+### Changed
+- **Claude-Flow Integration**: Updated to v2.0.0 with enhanced hooks
+- **AQE Integration**: Updated to v2.2.0 with native hooks (100-500x faster)
+- **Settings**: Streamlined `.claude/settings.json` with AQE MCP enabled
+
+---
+
 ## [1.1.0] - 2025-10-30
 
 ### Fixed

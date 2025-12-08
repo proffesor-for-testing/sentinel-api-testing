@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sentinel-backend"
-version = "0.1.0"
+version = "1.2.0"
 description = "Backend services for the Sentinel AI Agentic API Testing Platform"
 authors = ["Cline"]
 

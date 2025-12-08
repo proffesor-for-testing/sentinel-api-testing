@@ -8,8 +8,8 @@ WORKDIR /app
 # Copy package files
 COPY sentinel_frontend/package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production && \
+# Install dependencies (need all deps for build, then prune)
+RUN npm ci && \
     npm cache clean --force
 
 # Copy source code
