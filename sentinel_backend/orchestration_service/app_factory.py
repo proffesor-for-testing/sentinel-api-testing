@@ -150,13 +150,18 @@ def create_orchestration_app(
         version="1.0.0"
     )
     
-    # Add CORS middleware
+    # Add CORS middleware - SECURITY FIX: Use configured origins
+    import os
+    cors_origins = os.getenv("SENTINEL_SECURITY_CORS_ORIGINS", "http://localhost:3000,http://localhost:8080").split(",")
+    if os.getenv("SENTINEL_ENVIRONMENT") == "development":
+        cors_origins = list(set(cors_origins + ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000"]))
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "X-Correlation-ID"],
     )
     
     # Apply dependency overrides if provided

@@ -73,13 +73,18 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add CORS middleware
+# Add CORS middleware - SECURITY FIX: Use configured origins
+import os as _os
+_cors_origins = _os.getenv("SENTINEL_SECURITY_CORS_ORIGINS", "http://localhost:3000,http://localhost:8080").split(",")
+if _os.getenv("SENTINEL_ENVIRONMENT") == "development":
+    _cors_origins = list(set(_cors_origins + ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000"]))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Correlation-ID"],
 )
 
 # Add Prometheus instrumentation
