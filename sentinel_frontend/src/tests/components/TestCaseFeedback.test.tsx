@@ -108,7 +108,7 @@ describe('TestCaseFeedback Component', () => {
       const user = userEvent.setup();
       render(<TestCaseFeedback testId={mockTestId} />);
 
-      const textarea = screen.getByPlaceholderText('Share your thoughts about this test case...');
+      const textarea = screen.getByPlaceholderText('Share your thoughts about this test case...') as HTMLTextAreaElement;
       const longText = 'a'.repeat(2001);
       await user.type(textarea, longText);
 

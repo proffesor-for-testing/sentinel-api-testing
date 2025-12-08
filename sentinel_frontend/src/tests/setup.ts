@@ -31,9 +31,14 @@ const localStorageMock = {
   setItem: jest.fn(),
   removeItem: jest.fn(),
   clear: jest.fn(),
+  length: 0,
+  key: jest.fn(),
 };
 
-global.localStorage = localStorageMock as Storage;
+Object.defineProperty(global, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
