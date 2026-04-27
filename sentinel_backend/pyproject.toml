@@ -51,7 +51,7 @@ openapi-core = "^0.18.0"
 pyyaml = "^6.0"
 
 # Testing
-pytest = "^7.4.0"
+pytest = ">=7.4,<9.0"
 pytest-asyncio = "^0.21.0"
 httpx = "^0.25.2" # For testing API clients (updated for mistralai compatibility)
 
@@ -69,7 +69,7 @@ aiohttp = "^3.9.0"  # For async HTTP requests (Ollama)
 # Authentication & Security
 pyjwt = "^2.8.0"
 bcrypt = "^4.0.1"
-python-multipart = "^0.0.6"
+python-multipart = ">=0.0.6,<0.0.21"
 email-validator = "^2.0.0"
 
 # Configuration Management
