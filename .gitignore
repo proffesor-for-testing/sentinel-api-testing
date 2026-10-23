@@ -193,6 +193,8 @@ out/
 
 # Package lock files (optional - some teams prefer to commit these)
 package-lock.json
+# The frontend container uses npm ci and requires its reproducible lock.
+!/sentinel_frontend/package-lock.json
 yarn.lock
 
 
