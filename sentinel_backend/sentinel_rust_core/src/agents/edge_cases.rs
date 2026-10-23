@@ -4,11 +4,12 @@
 //!
 //! Migration:
 //! ```rust
+//! use sentinel_rust_core::agents::edge_cases::EdgeCasesAgent;
 //! // Old way (DEPRECATED):
 //! let agent = EdgeCasesAgent::new();
 //!
 //! // New way:
-//! use crate::agents::functional_agent::FunctionalAgent;
+//! use sentinel_rust_core::agents::functional_agent::FunctionalAgent;
 //! let agent = FunctionalAgent::new();
 //! // Use with task parameters: {"strategies": ["edge_case"]}
 //! ```

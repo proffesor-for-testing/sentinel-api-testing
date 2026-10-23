@@ -8,30 +8,30 @@ use std::collections::HashMap;
 
 /// Generate a realistic ID value (type-aware)
 pub fn generate_realistic_id(is_integer: bool) -> Value {
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
 
     if is_integer {
         // For integer IDs, always return a valid integer
-        Value::Number(serde_json::Number::from(rng.gen_range(1..=10000)))
+        Value::Number(serde_json::Number::from(rng.random_range(1..=10000)))
     } else {
         // For string IDs, generate realistic string formats
         let formats: Vec<Box<dyn Fn(&mut ThreadRng) -> String>> = vec![
-            Box::new(|rng| rng.gen_range(1..=10000).to_string()),
+            Box::new(|rng| rng.random_range(1..=10000).to_string()),
             Box::new(|rng| {
                 let chars: String = (0..8)
                     .map(|_| {
                         let chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-                        chars.chars().nth(rng.gen_range(0..chars.len())).unwrap()
+                        chars.chars().nth(rng.random_range(0..chars.len())).unwrap()
                     })
                     .collect();
                 chars
             }),
-            Box::new(|rng| format!("usr_{}", rng.gen_range(1000..=9999))),
+            Box::new(|rng| format!("usr_{}", rng.random_range(1000..=9999))),
             Box::new(|rng| {
                 let chars: String = (0..12)
                     .map(|_| {
                         let chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-                        chars.chars().nth(rng.gen_range(0..chars.len())).unwrap()
+                        chars.chars().nth(rng.random_range(0..chars.len())).unwrap()
                     })
                     .collect();
                 chars
@@ -88,8 +88,8 @@ pub fn generate_schema_example(schema: &Value) -> Value {
             if let Some(enum_values) = schema.get("enum").and_then(|e| e.as_array()) {
                 if !enum_values.is_empty() {
                     // Pick a random enum value for more variety in positive tests
-                    let mut rng = thread_rng();
-                    let index = rng.gen_range(0..enum_values.len());
+                    let mut rng = rand::rng();
+                    let index = rng.random_range(0..enum_values.len());
                     return enum_values[index].clone();
                 }
             }
@@ -124,24 +124,24 @@ pub fn generate_schema_example(schema: &Value) -> Value {
             }
         }
         "integer" => {
-            let mut rng = thread_rng();
+            let mut rng = rand::rng();
             let min = schema.get("minimum").and_then(|m| m.as_i64()).unwrap_or(1);
             let max = schema.get("maximum").and_then(|m| m.as_i64()).unwrap_or(1000);
             // Generate a random value within the constraints
             let value = if min < max {
-                rng.gen_range(min..=max)
+                rng.random_range(min..=max)
             } else {
                 min
             };
             Value::Number(serde_json::Number::from(value))
         }
         "number" => {
-            let mut rng = thread_rng();
+            let mut rng = rand::rng();
             let min = schema.get("minimum").and_then(|m| m.as_f64()).unwrap_or(1.0);
             let max = schema.get("maximum").and_then(|m| m.as_f64()).unwrap_or(1000.0);
             // Generate a random value within the constraints
             let value = if min < max {
-                rng.gen_range(min..=max)
+                rng.random_range(min..=max)
             } else {
                 min
             };
@@ -217,8 +217,8 @@ pub fn generate_realistic_property_value_with_spec(prop_name: &str, schema: &Val
             // If there's an enum in the resolved item, use it
             if let Some(enum_values) = resolved_item.get("enum").and_then(|e| e.as_array()) {
                 if !enum_values.is_empty() {
-                    let mut rng = thread_rng();
-                    let index = rng.gen_range(0..enum_values.len());
+                    let mut rng = rand::rng();
+                    let index = rng.random_range(0..enum_values.len());
                     return enum_values[index].clone();
                 }
             }
@@ -230,12 +230,12 @@ pub fn generate_realistic_property_value_with_spec(prop_name: &str, schema: &Val
         }
     }
     
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
     
     // First check for enum values in the schema itself
     if let Some(enum_values) = schema.get("enum").and_then(|e| e.as_array()) {
         if !enum_values.is_empty() {
-            let index = rng.gen_range(0..enum_values.len());
+            let index = rng.random_range(0..enum_values.len());
             return enum_values[index].clone();
         }
     }
@@ -257,7 +257,7 @@ pub fn generate_realistic_property_value_with_spec(prop_name: &str, schema: &Val
 
     // Generate realistic values based on property names
     if prop_name_lower.contains("email") {
-        let user_num = rng.gen_range(1..=999);
+        let user_num = rng.random_range(1..=999);
         return Value::String(format!("user{}@example.com", user_num));
     } else if prop_name_lower.contains("name") {
         if prop_name_lower.contains("first") {
@@ -270,18 +270,18 @@ pub fn generate_realistic_property_value_with_spec(prop_name: &str, schema: &Val
             return Value::String("Test Pet".to_string());  // Changed to "Test Pet" for pet APIs
         }
     } else if prop_name_lower.contains("phone") {
-        let area = rng.gen_range(100..=999);
-        let exchange = rng.gen_range(1000..=9999);
+        let area = rng.random_range(100..=999);
+        let exchange = rng.random_range(1000..=9999);
         return Value::String(format!("+1-555-{}-{}", area, exchange));
     } else if prop_name_lower.contains("address") {
         return Value::String("123 Test Street, Test City, TC 12345".to_string());
     } else if prop_name_lower.contains("age") {
-        return Value::Number(serde_json::Number::from(rng.gen_range(18..=80)));
+        return Value::Number(serde_json::Number::from(rng.random_range(18..=80)));
     } else if prop_name_lower.contains("price") || prop_name_lower.contains("amount") {
-        let price = (rng.gen_range(1000..=100000) as f64) / 100.0; // 10.00 to 1000.00
+        let price = (rng.random_range(1000..=100000) as f64) / 100.0; // 10.00 to 1000.00
         return Value::Number(serde_json::Number::from_f64(price).unwrap());
     } else if prop_name_lower.contains("date") {
-        let days_offset = rng.gen_range(-30..=30);
+        let days_offset = rng.random_range(-30..=30);
         let date = chrono::Utc::now() + chrono::Duration::days(days_offset);
         return Value::String(date.to_rfc3339());
     } else if prop_name_lower.contains("url") {
@@ -540,12 +540,12 @@ pub fn generate_realistic_object(schema: &Value, api_spec: &Value) -> Value {
         .unwrap_or_default();
 
     let mut obj = serde_json::Map::new();
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
 
     if let Some(props) = properties {
         for (prop_name, prop_schema) in props {
             // Always include required properties, sometimes include optional ones
-            if required.contains(&prop_name.as_str()) || rng.gen_bool(0.8) {
+            if required.contains(&prop_name.as_str()) || rng.random_bool(0.8) {
                 let resolved_prop_schema = resolve_schema_ref(prop_schema, api_spec);
                 obj.insert(
                     prop_name.clone(),
@@ -556,4 +556,30 @@ pub fn generate_realistic_object(schema: &Value, api_spec: &Value) -> Value {
     }
 
     Value::Object(obj)
+}
+
+#[cfg(test)]
+mod rng_compatibility_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn generated_numeric_examples_stay_within_schema_bounds() {
+        for _ in 0..128 {
+            let integer = generate_schema_example(&json!({"type": "integer", "minimum": -3, "maximum": 7}));
+            assert!((-3..=7).contains(&integer.as_i64().unwrap()));
+            let number = generate_schema_example(&json!({"type": "number", "minimum": 0.25, "maximum": 0.75}));
+            assert!((0.25..=0.75).contains(&number.as_f64().unwrap()));
+        }
+    }
+
+    #[test]
+    fn generated_ids_and_enum_examples_satisfy_their_contracts() {
+        let schema = json!({"type": "string", "enum": ["active", "pending"]});
+        for _ in 0..128 {
+            assert!((1..=10000).contains(&generate_realistic_id(true).as_i64().unwrap()));
+            assert!(!generate_realistic_id(false).as_str().unwrap().is_empty());
+            assert!(schema["enum"].as_array().unwrap().contains(&generate_schema_example(&schema)));
+        }
+    }
 }

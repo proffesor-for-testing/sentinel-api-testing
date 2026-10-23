@@ -3,7 +3,7 @@
 //! This example demonstrates how to integrate LLM capabilities into Sentinel Rust agents.
 
 use sentinel_rust_core::agents::{Agent, BaseAgent};
-use sentinel_rust_core::llm::{LlmConfig, openai::OpenAiProvider};
+use sentinel_rust_core::llm::{Llm, LlmConfig, openai::OpenAiProvider};
 use sentinel_rust_core::types::{AgentTask, AgentResult};
 use serde_json::Value;
 use std::collections::HashMap;
