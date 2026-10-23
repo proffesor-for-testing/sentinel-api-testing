@@ -349,7 +349,7 @@ impl DataMockingAgent {
         let mut api_keys = Vec::new();
         let mut test_entities = serde_json::Map::new();
         
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         
         // Generate test users
         for i in 0..count {
@@ -361,7 +361,7 @@ impl DataMockingAgent {
             user.insert("last_name".to_string(), Value::String(["Smith", "Johnson", "Williams", "Brown", "Jones"].choose(&mut rng).unwrap().to_string()));
             user.insert("role".to_string(), Value::String(["admin", "user", "moderator"].choose(&mut rng).unwrap().to_string()));
             user.insert("created_at".to_string(), Value::String(chrono::Utc::now().to_rfc3339()));
-            user.insert("active".to_string(), Value::Bool(rng.gen_bool(0.8)));
+            user.insert("active".to_string(), Value::Bool(rng.random_bool(0.8)));
             users.push(Value::Object(user));
         }
         
@@ -385,7 +385,7 @@ impl DataMockingAgent {
             api_key.insert("user_id".to_string(), users[i % users.len()].get("id").unwrap().clone());
             api_key.insert("created_at".to_string(), Value::String(chrono::Utc::now().to_rfc3339()));
             api_key.insert("last_used".to_string(), 
-                          if rng.gen_bool(0.5) { 
+                          if rng.random_bool(0.5) {
                               Value::String(chrono::Utc::now().to_rfc3339()) 
                           } else { 
                               Value::Null 
@@ -435,7 +435,7 @@ impl DataMockingAgent {
     /// Generate object data
     fn generate_object(&self, schema: &Value, strategy: &str) -> Value {
         let mut obj = serde_json::Map::new();
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         
         if let Some(properties) = schema.get("properties").and_then(|p| p.as_object()) {
             let required = schema.get("required")
@@ -449,7 +449,7 @@ impl DataMockingAgent {
             
             for (prop_name, prop_schema) in properties {
                 // Always generate required fields
-                if required.contains(&prop_name.as_str()) || rng.gen_bool(0.7) {
+                if required.contains(&prop_name.as_str()) || rng.random_bool(0.7) {
                     obj.insert(prop_name.clone(), self.generate_from_schema(prop_schema, strategy));
                 }
             }
@@ -465,8 +465,8 @@ impl DataMockingAgent {
         let min_items = schema.get("minItems").and_then(|m| m.as_u64()).unwrap_or(1) as usize;
         let max_items = schema.get("maxItems").and_then(|m| m.as_u64()).unwrap_or(5) as usize;
         
-        let mut rng = thread_rng();
-        let length = rng.gen_range(min_items..=max_items);
+        let mut rng = rand::rng();
+        let length = rng.random_range(min_items..=max_items);
         
         let items: Vec<Value> = (0..length)
             .map(|_| self.generate_from_schema(items_schema, strategy))
@@ -477,7 +477,7 @@ impl DataMockingAgent {
     
     /// Generate string data
     fn generate_string(&self, schema: &Value, strategy: &str) -> Value {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         
         if let Some(enum_values) = schema.get("enum").and_then(|e| e.as_array()) {
             return enum_values.choose(&mut rng).unwrap_or(&Value::String("default".to_string())).clone();
@@ -485,7 +485,7 @@ impl DataMockingAgent {
         
         if let Some(format) = schema.get("format").and_then(|f| f.as_str()) {
             return match format {
-                "email" => Value::String(format!("user{}@example.com", rng.gen_range(1..=999))),
+                "email" => Value::String(format!("user{}@example.com", rng.random_range(1..=999))),
                 "uri" => Value::String("https://example.com/test".to_string()),
                 "date" => Value::String(chrono::Utc::now().format("%Y-%m-%d").to_string()),
                 "date-time" => Value::String(chrono::Utc::now().to_rfc3339()),
@@ -498,17 +498,17 @@ impl DataMockingAgent {
         let max_length = schema.get("maxLength").and_then(|m| m.as_u64()).unwrap_or(50) as usize;
         
         if strategy == "edge_cases" {
-            if rng.gen_bool(0.5) {
+            if rng.random_bool(0.5) {
                 Value::String("a".repeat(min_length))
             } else {
                 Value::String("a".repeat(max_length))
             }
         } else {
-            let length = rng.gen_range(min_length..=std::cmp::min(max_length, 20));
+            let length = rng.random_range(min_length..=std::cmp::min(max_length, 20));
             let chars: String = (0..length)
                 .map(|_| {
                     let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ";
-                    chars.chars().nth(rng.gen_range(0..chars.len())).unwrap()
+                    chars.chars().nth(rng.random_range(0..chars.len())).unwrap()
                 })
                 .collect();
             Value::String(chars.trim().to_string())
@@ -520,12 +520,12 @@ impl DataMockingAgent {
         let minimum = schema.get("minimum").and_then(|m| m.as_i64()).unwrap_or(0);
         let maximum = schema.get("maximum").and_then(|m| m.as_i64()).unwrap_or(1000);
         
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         
         let value = match strategy {
             "edge_cases" => *[minimum, maximum, minimum + 1, maximum - 1].choose(&mut rng).unwrap(),
             "boundary" => *[minimum, maximum].choose(&mut rng).unwrap(),
-            _ => rng.gen_range(minimum..=maximum),
+            _ => rng.random_range(minimum..=maximum),
         };
         
         Value::Number(serde_json::Number::from(value))
@@ -536,12 +536,12 @@ impl DataMockingAgent {
         let minimum = schema.get("minimum").and_then(|m| m.as_f64()).unwrap_or(0.0);
         let maximum = schema.get("maximum").and_then(|m| m.as_f64()).unwrap_or(1000.0);
         
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         
         let value = match strategy {
             "edge_cases" => *[minimum, maximum, minimum + 0.1, maximum - 0.1].choose(&mut rng).unwrap(),
             "boundary" => *[minimum, maximum].choose(&mut rng).unwrap(),
-            _ => rng.gen_range(minimum..=maximum),
+            _ => rng.random_range(minimum..=maximum),
         };
         
         Value::Number(serde_json::Number::from_f64((value * 100.0).round() / 100.0).unwrap())
@@ -549,19 +549,19 @@ impl DataMockingAgent {
     
     /// Generate boolean data
     fn generate_boolean(&self, _schema: &Value, _strategy: &str) -> Value {
-        let mut rng = thread_rng();
-        Value::Bool(rng.gen_bool(0.5))
+        let mut rng = rand::rng();
+        Value::Bool(rng.random_bool(0.5))
     }
     
     /// Generate a JWT token
     fn generate_jwt_token(&self) -> String {
         let header = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
         let payload = "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ";
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         let signature: String = (0..43)
             .map(|_| {
                 let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
-                chars.chars().nth(rng.gen_range(0..chars.len())).unwrap()
+                chars.chars().nth(rng.random_range(0..chars.len())).unwrap()
             })
             .collect();
         
@@ -570,12 +570,12 @@ impl DataMockingAgent {
     
     /// Generate an API key
     fn generate_api_key(&self) -> String {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         let prefix = ["test", "dev", "prod"].choose(&mut rng).unwrap();
         let key: String = (0..32)
             .map(|_| {
                 let chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-                chars.chars().nth(rng.gen_range(0..chars.len())).unwrap()
+                chars.chars().nth(rng.random_range(0..chars.len())).unwrap()
             })
             .collect();
         

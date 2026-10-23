@@ -1,24 +1,24 @@
 # ---- Builder Stage ----
 # Use the official Rust image as a build environment.
-FROM rust:latest as builder
+FROM rust:1.97.1-bookworm@sha256:0e2bcaef56d041a486784e54104a81aebe0da44bd03019bd70bc0401e42e4a97 AS builder
 
 # Set the working directory.
 WORKDIR /usr/src/sentinel_rust_core
 
 # Copy the Cargo manifest and lock file.
-COPY sentinel_rust_core/Cargo.toml ./
+COPY sentinel_rust_core/Cargo.toml sentinel_rust_core/Cargo.lock ./
 
 # Create a dummy src directory with a main.rs file to cache dependencies.
 # This layer will only be rebuilt if Cargo.toml or Cargo.lock changes.
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --release
+RUN mkdir src && echo "fn main() {}" > src/main.rs && echo "// lib" > src/lib.rs
+RUN cargo build --release --locked
 RUN rm -f target/release/deps/sentinel_rust_core*
 
 # Copy the actual source code.
 COPY sentinel_rust_core/src ./src
 
 # Build the application.
-RUN cargo build --release
+RUN cargo build --release --locked
 
 # ---- Final Stage ----
 # Use a minimal image for the final container.
